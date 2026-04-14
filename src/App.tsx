@@ -10,6 +10,7 @@ import Studio     from '@/pages/Studio'
 import Calendar   from '@/pages/Calendar'
 import Settings   from '@/pages/Settings'
 import Admin      from '@/pages/Admin'
+import Agency     from '@/pages/Agency'
 
 export default function App() {
   return (
@@ -35,6 +36,11 @@ export default function App() {
         } />
         <Route path="/settings" element={
           <ProtectedRoute><Settings /></ProtectedRoute>
+        } />
+
+        {/* Agency */}
+        <Route path="/agency" element={
+          <ProtectedRoute><Agency /></ProtectedRoute>
         } />
 
         {/* Admin */}
