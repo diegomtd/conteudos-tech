@@ -8,13 +8,13 @@ function Spinner() {
       alignItems: 'center',
       justifyContent: 'center',
       minHeight: '100vh',
-      backgroundColor: '#050D14',
+      backgroundColor: '#080808',
     }}>
       <div style={{
         width: 40,
         height: 40,
-        border: '3px solid rgba(0,180,216,0.2)',
-        borderTopColor: '#00B4D8',
+        border: '3px solid rgba(200,255,0,0.15)',
+        borderTopColor: '#C8FF00',
         borderRadius: '50%',
         animation: 'spin 0.8s linear infinite',
       }} />
