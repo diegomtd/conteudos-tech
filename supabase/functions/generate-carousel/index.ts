@@ -188,6 +188,12 @@ Retorne APENAS um JSON válido, sem markdown, sem explicação, sem código fenc
       cost_brl: costBrl,
     })
 
+    // ── Incrementa contador de exportações ────────────────────────────
+    await supabase
+      .from('profiles')
+      .update({ exports_used_this_month: profile.exports_used_this_month + 1 })
+      .eq('user_id', user.id)
+
     return json({
       carousel_id: carousel.id,
       preview_token: carousel.preview_token,
