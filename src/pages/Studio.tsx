@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Check, ChevronLeft, ChevronRight, Copy, Plus, X, Zap } from 'lucide-react'
@@ -123,15 +123,8 @@ function StateInput({
   const [slides, setSlides] = useState(7)
   const [tom, setTom] = useState('Provocador')
   const [cta, setCta] = useState('Engajamento')
-  const inputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    inputRef.current?.focus()
-    const len = inputRef.current?.value.length ?? 0
-    inputRef.current?.setSelectionRange(len, len)
-  }, [])
-
-  const canCreate = tema.trim().length > 3
+  const canCreate = tema.trim().length >= 4
 
   return (
     <motion.div
@@ -155,9 +148,12 @@ function StateInput({
 
       {/* Input do tema */}
       <input
-        ref={inputRef}
+        id="tema-input"
+        type="text"
+        autoFocus
         value={tema}
         onChange={(e) => setTema(e.target.value)}
+        onClick={(e) => e.stopPropagation()}
         placeholder="Ex: por que a maioria das pessoas nunca para de procrastinar"
         onKeyDown={(e) => { if (e.key === 'Enter' && canCreate) onGenerate({ tema, slides, tom, cta }) }}
         style={{
