@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Check, ChevronLeft, ChevronRight, Copy, Plus, X, Zap } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, Copy, Download, Plus, X, Zap } from 'lucide-react'
 import { toast } from 'sonner'
+import { toPng } from 'html-to-image'
+import JSZip from 'jszip'
 import { usePlan } from '@/hooks/usePlan'
 import { supabase } from '@/lib/supabase'
 
@@ -415,20 +417,107 @@ function StateGenerating({
   )
 }
 
+// ─── Modal de Upgrade ─────────────────────────────────────────
+function UpgradeModal({ onClose, plan }: { onClose: () => void; plan: string }) {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 100,
+      backgroundColor: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }} onClick={onClose}>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 16 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.2 }}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          backgroundColor: S, border: `1px solid ${B}`,
+          borderRadius: 16, padding: '36px 32px', maxWidth: 400, width: '90%',
+          display: 'flex', flexDirection: 'column', gap: 20,
+        }}
+      >
+        <div>
+          <p style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700, letterSpacing: 1, margin: '0 0 8px', textTransform: 'uppercase' }}>
+            Limite atingido
+          </p>
+          <h2 style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 28, color: T, margin: 0, letterSpacing: 1 }}>
+            Você esgotou suas exportações
+          </h2>
+        </div>
+
+        <p style={{ fontSize: 13, color: M, fontFamily: ff, lineHeight: 1.6, margin: 0 }}>
+          {plan === 'free'
+            ? 'O plano gratuito inclui 1 exportação por mês. Faça upgrade para continuar criando sem limite.'
+            : 'Você atingiu o limite do seu plano este mês. Faça upgrade ou aguarde o próximo ciclo.'}
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {[
+            { name: 'Starter', price: 'R$47/mês', limit: '20 exportações' },
+            { name: 'Pro', price: 'R$97/mês', limit: '50 exportações + Calendário + Telegram' },
+            { name: 'Agency', price: 'R$197/mês', limit: '150 exportações + 5 subcontas' },
+          ].map((p) => (
+            <div key={p.name} style={{
+              backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 10,
+              padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            }}>
+              <div>
+                <p style={{ fontFamily: ff, fontWeight: 700, fontSize: 13, color: T, margin: '0 0 2px' }}>{p.name}</p>
+                <p style={{ fontFamily: ff, fontSize: 11, color: M, margin: 0 }}>{p.limit}</p>
+              </div>
+              <span style={{ fontFamily: ff, fontWeight: 700, fontSize: 13, color: A }}>{p.price}</span>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            onClick={onClose}
+            style={{
+              flex: 1, height: 42, backgroundColor: 'transparent', border: `1px solid ${B}`,
+              borderRadius: 8, color: M, fontSize: 13, fontFamily: ff, cursor: 'pointer',
+            }}
+          >
+            Agora não
+          </button>
+          <button
+            onClick={() => window.open('https://conteudos.tech/#planos', '_blank')}
+            style={{
+              flex: 2, height: 42, backgroundColor: A, border: 'none',
+              borderRadius: 8, color: '#000', fontSize: 13, fontFamily: ff,
+              fontWeight: 700, cursor: 'pointer',
+            }}
+          >
+            Ver planos
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  )
+}
+
 // ─── Estado 3: Preview + Editor ───────────────────────────────
 function StatePreview({
   initialSlides,
   initialLegenda,
+  carouselId,
+  hasWatermark,
 }: {
-  onBack?: () => void
+  onBack: () => void
   initialSlides: Slide[]
   initialLegenda?: string
+  carouselId?: string
+  hasWatermark?: boolean
 }) {
+  const { canExport, plan } = usePlan()
   const [slides, setSlides] = useState<Slide[]>(initialSlides)
   const [activeSlide, setActiveSlide] = useState(0)
   const [editingField, setEditingField] = useState<{ id: string; field: 'titulo' | 'corpo' } | null>(null)
   const [bgStyle, setBgStyle] = useState('Cinemático')
   const [legenda, setLegenda] = useState(initialLegenda ?? '')
+  const [exporting, setExporting] = useState(false)
+  const [showUpgrade, setShowUpgrade] = useState(false)
+  const exportRefs = useRef<(HTMLDivElement | null)[]>([])
 
   const updateSlide = (id: string, field: 'titulo' | 'corpo', value: string) =>
     setSlides((prev) => prev.map((s) => s.id === id ? { ...s, [field]: value } : s))
@@ -453,13 +542,135 @@ function StatePreview({
     navigator.clipboard.writeText(legenda).then(() => toast.success('Legenda copiada'))
   }
 
+  const handleExport = async () => {
+    if (!canExport) { setShowUpgrade(true); return }
+
+    setExporting(true)
+    const toastId = toast.loading(`Gerando ${slides.length} imagens...`)
+
+    try {
+      const zip = new JSZip()
+
+      for (let i = 0; i < slides.length; i++) {
+        const el = exportRefs.current[i]
+        if (!el) continue
+
+        const dataUrl = await toPng(el, {
+          pixelRatio: 2,
+          cacheBust: true,
+          style: { display: 'flex' },
+        })
+
+        const base64 = dataUrl.split(',')[1]
+        const num = String(i + 1).padStart(2, '0')
+        zip.file(`slide-${num}.png`, base64, { base64: true })
+
+        toast.loading(`Processando ${i + 1}/${slides.length}...`, { id: toastId })
+      }
+
+      const blob = await zip.generateAsync({ type: 'blob' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'carrossel.zip'
+      a.click()
+      URL.revokeObjectURL(url)
+
+      // Atualiza status no banco se tiver carousel_id
+      if (carouselId) {
+        await supabase
+          .from('carousels')
+          .update({ status: 'exported', exported_at: new Date().toISOString() })
+          .eq('id', carouselId)
+      }
+
+      toast.success('Download iniciado', { id: toastId })
+    } catch (err) {
+      console.error('Export error:', err)
+      toast.error('Erro ao exportar. Tente novamente.', { id: toastId })
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  // Container oculto com todos os slides em resolução real para captura
+  const exportContainer = (
+    <div style={{ position: 'absolute', left: -9999, top: -9999, pointerEvents: 'none' }}>
+      {slides.map((slide, i) => (
+        <div
+          key={slide.id}
+          ref={(el) => { exportRefs.current[i] = el }}
+          style={{
+            width: 1080, height: 1080,
+            background: BG_STYLES[bgStyle],
+            display: 'flex', flexDirection: 'column',
+            justifyContent: 'flex-end', padding: '80px 72px',
+            position: 'relative', overflow: 'hidden', flexShrink: 0,
+          }}
+        >
+          {/* Número de fundo translúcido */}
+          <span style={{
+            position: 'absolute', top: '50%', left: '50%',
+            transform: 'translate(-50%,-50%)',
+            fontFamily: '"Bebas Neue", sans-serif',
+            fontSize: 420, color: 'rgba(255,255,255,0.03)',
+            letterSpacing: 4, userSelect: 'none', lineHeight: 1,
+          }}>
+            {i + 1}
+          </span>
+
+          {/* Hack badge */}
+          {slide.hack && (
+            <span style={{
+              position: 'absolute', top: 48, left: 48,
+              fontSize: 26, color: A, fontFamily: 'DM Sans, sans-serif', fontWeight: 700,
+              letterSpacing: 2, backgroundColor: 'rgba(200,255,0,0.12)',
+              padding: '8px 20px', borderRadius: 99,
+            }}>
+              {slide.hack.toUpperCase()}
+            </span>
+          )}
+
+          {/* Título */}
+          <p style={{
+            fontFamily: '"Bebas Neue", sans-serif', fontSize: 88, color: T,
+            margin: '0 0 32px', lineHeight: 1.05, letterSpacing: 1, zIndex: 1,
+          }}>
+            {slide.titulo}
+          </p>
+
+          {/* Corpo */}
+          <p style={{
+            fontSize: 40, color: 'rgba(255,255,255,0.65)',
+            fontFamily: 'DM Sans, sans-serif', margin: 0, lineHeight: 1.5, zIndex: 1,
+          }}>
+            {slide.corpo}
+          </p>
+
+          {/* Watermark */}
+          <span style={{
+            position: 'absolute', bottom: 36, right: 48, fontSize: 28,
+            fontFamily: '"Bebas Neue", sans-serif',
+            color: hasWatermark ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.08)',
+            letterSpacing: 2,
+          }}>
+            ConteudOS
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+
   return (
+    <>
+      {exportContainer}
+      {showUpgrade && <UpgradeModal plan={plan} onClose={() => setShowUpgrade(false)} />}
     <motion.div
       key="preview"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       style={{
-        width: '100%', height: '100%', display: 'flex',
+        width: '100%', flex: 1, minHeight: 0, display: 'flex',
         flexDirection: 'row', overflow: 'hidden',
       }}
     >
@@ -769,6 +980,60 @@ function StatePreview({
         </div>
       </div>
     </motion.div>
+
+    {/* Bottom bar */}
+    <div style={{
+      height: 60, borderTop: `1px solid ${B}`,
+      backgroundColor: 'rgba(8,8,8,0.9)', backdropFilter: 'blur(12px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '0 24px', flexShrink: 0,
+    }}>
+      <button
+        onClick={onBack}
+        style={{
+          background: 'none', border: 'none', color: M, fontSize: 13,
+          fontFamily: ff, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+        }}
+      >
+        <ChevronLeft size={14} /> Novo tema
+      </button>
+
+      <div style={{ display: 'flex', gap: 10 }}>
+        <button style={{
+          height: 38, padding: '0 18px', backgroundColor: S2,
+          border: `1px solid ${B}`, borderRadius: 8, color: T,
+          fontSize: 13, fontFamily: ff, fontWeight: 600, cursor: 'pointer',
+          transition: 'border-color 0.15s',
+        }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = B }}>
+          Agendar
+        </button>
+        <button
+          onClick={handleExport}
+          disabled={exporting}
+          style={{
+            height: 38, padding: '0 22px',
+            backgroundColor: exporting ? S2 : A,
+            border: exporting ? `1px solid ${B}` : 'none',
+            borderRadius: 8, color: exporting ? M : '#000',
+            fontSize: 13, fontFamily: ff, fontWeight: 700,
+            cursor: exporting ? 'not-allowed' : 'pointer',
+            transition: 'all 0.15s',
+            display: 'flex', alignItems: 'center', gap: 7,
+            opacity: exporting ? 0.7 : 1,
+          }}
+          onMouseEnter={(e) => { if (!exporting) e.currentTarget.style.backgroundColor = '#ADDF00' }}
+          onMouseLeave={(e) => { if (!exporting) e.currentTarget.style.backgroundColor = A }}
+        >
+          {exporting
+            ? <><div style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.2)', borderTopColor: T, animation: 'spin 0.7s linear infinite' }} /> Exportando...</>
+            : <><Download size={14} /> BAIXAR ZIP</>
+          }
+        </button>
+      </div>
+    </div>
+    </>
   )
 }
 
@@ -835,57 +1100,14 @@ export default function Studio() {
                 onBack={() => setAppState('input')}
                 initialSlides={previewSlides.length > 0 ? previewSlides : MOCK_SLIDES}
                 initialLegenda={previewLegenda || undefined}
+                carouselId={generateResult?.carousel_id}
+                hasWatermark={generateResult?.has_watermark ?? true}
               />
             </div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Bottom bar — só no preview */}
-      {appState === 'preview' && (
-        <div style={{
-          height: 60, borderTop: `1px solid ${B}`,
-          backgroundColor: 'rgba(8,8,8,0.9)', backdropFilter: 'blur(12px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '0 24px', flexShrink: 0,
-        }}>
-          <button
-            onClick={() => setAppState('input')}
-            style={{
-              background: 'none', border: 'none', color: M, fontSize: 13,
-              fontFamily: ff, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
-            }}
-          >
-            <ChevronLeft size={14} /> Novo tema
-          </button>
-
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button style={{
-              height: 38, padding: '0 18px', backgroundColor: S2,
-              border: `1px solid ${B}`, borderRadius: 8, color: T,
-              fontSize: 13, fontFamily: ff, fontWeight: 600, cursor: 'pointer',
-              transition: 'border-color 0.15s',
-            }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = B }}>
-              Agendar
-            </button>
-            <button
-              onClick={() => toast.info('Download em breve — exportação via Playwright chega na Fase 6')}
-              style={{
-                height: 38, padding: '0 22px', backgroundColor: A,
-                border: 'none', borderRadius: 8, color: '#000',
-                fontSize: 13, fontFamily: ff, fontWeight: 700, cursor: 'pointer',
-                transition: 'background-color 0.15s',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ADDF00' }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = A }}
-            >
-              BAIXAR ZIP
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
