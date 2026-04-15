@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Check, ChevronLeft, ChevronRight, Copy, Plus, X, Zap } from 'lucide-react'
 import { toast } from 'sonner'
 import { usePlan } from '@/hooks/usePlan'
+import { supabase } from '@/lib/supabase'
 
 // ─── Tokens ───────────────────────────────────────────────────
 const A = '#C8FF00'
@@ -238,40 +239,98 @@ function StateInput({
 }
 
 // ─── Estado 2: Gerando ────────────────────────────────────────
-function StateGenerating({ onDone }: { onDone: () => void }) {
+interface GenerateConfig { tema: string; slides: number; tom: string; cta: string }
+interface GenerateResult {
+  carousel_id: string
+  preview_token: string
+  slides: Array<{ position: number; titulo: string; corpo: string; hack_aplicado: string }>
+  legenda: { gancho: string; corpo: string; cta: string }
+  has_watermark: boolean
+}
+
+function StateGenerating({
+  config,
+  onDone,
+  onError,
+}: {
+  config: GenerateConfig
+  onDone: (result: GenerateResult) => void
+  onError: () => void
+}) {
   const [progress, setProgress] = useState(0)
   const [currentStep, setCurrentStep] = useState(0)
   const [msgIdx, setMsgIdx] = useState(0)
+  const calledRef = useRef(false)
 
   useEffect(() => {
-    // Progress bar 0→100 em 5s
+    if (calledRef.current) return
+    calledRef.current = true
+
+    // Progress bar animada enquanto aguarda a API (estimativa 25s)
+    const ANIM_DURATION = 25_000
     const start = Date.now()
-    const duration = 5000
+    let rafId: number
     const frame = () => {
       const elapsed = Date.now() - start
-      const pct = Math.min((elapsed / duration) * 100, 100)
+      const pct = Math.min((elapsed / ANIM_DURATION) * 95, 95) // para em 95% até API responder
       setProgress(pct)
-      if (pct < 100) requestAnimationFrame(frame)
+      rafId = requestAnimationFrame(frame)
     }
-    requestAnimationFrame(frame)
+    rafId = requestAnimationFrame(frame)
 
-    // Revelar um step por segundo
+    // Revelar steps progressivamente
     const stepTimers = GENERATE_STEPS.map((_, i) =>
-      setTimeout(() => setCurrentStep(i + 1), (i + 1) * 900)
+      setTimeout(() => setCurrentStep(i + 1), (i + 1) * 4_000)
     )
 
-    // Rotacionar mensagens a cada 4s
+    // Rotacionar mensagens
     const msgInterval = setInterval(() => setMsgIdx((p) => (p + 1) % MESSAGES.length), 4000)
 
-    // Avançar para preview após 5s
-    const done = setTimeout(onDone, 5200)
+    // Chamada real à Edge Function
+    const run = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) throw new Error('no_session')
+
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
+        const res = await fetch(`${supabaseUrl}/functions/v1/generate-carousel`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            tema: config.tema,
+            tom: config.tom,
+            num_slides: config.slides,
+            cta_tipo: config.cta,
+          }),
+        })
+
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error ?? 'api_error')
+
+        cancelAnimationFrame(rafId)
+        setProgress(100)
+        setCurrentStep(GENERATE_STEPS.length + 1)
+        setTimeout(() => onDone(data as GenerateResult), 400)
+      } catch (err) {
+        console.error('generate-carousel error:', err)
+        toast.error('Erro ao gerar carrossel. Tente novamente.')
+        cancelAnimationFrame(rafId)
+        onError()
+      }
+    }
+
+    run()
 
     return () => {
+      cancelAnimationFrame(rafId)
       stepTimers.forEach(clearTimeout)
       clearInterval(msgInterval)
-      clearTimeout(done)
     }
-  }, [onDone])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <motion.div
@@ -359,15 +418,17 @@ function StateGenerating({ onDone }: { onDone: () => void }) {
 // ─── Estado 3: Preview + Editor ───────────────────────────────
 function StatePreview({
   initialSlides,
+  initialLegenda,
 }: {
   onBack?: () => void
   initialSlides: Slide[]
+  initialLegenda?: string
 }) {
   const [slides, setSlides] = useState<Slide[]>(initialSlides)
   const [activeSlide, setActiveSlide] = useState(0)
   const [editingField, setEditingField] = useState<{ id: string; field: 'titulo' | 'corpo' } | null>(null)
   const [bgStyle, setBgStyle] = useState('Cinemático')
-  const [legenda, setLegenda] = useState(`Você não é preguiçoso. Você está travado por um motivo que ninguém te ensinou a resolver.\n\nProcrastinação não é falta de força de vontade. É regulação emocional — e agora você vai entender por quê.\n\n↓ Salva esse post. Vai fazer sentido depois.`)
+  const [legenda, setLegenda] = useState(initialLegenda ?? '')
 
   const updateSlide = (id: string, field: 'titulo' | 'corpo', value: string) =>
     setSlides((prev) => prev.map((s) => s.id === id ? { ...s, [field]: value } : s))
@@ -716,14 +777,36 @@ export default function Studio() {
   const [searchParams] = useSearchParams()
   const temaFromURL = searchParams.get('tema') ?? ''
   const [appState, setAppState] = useState<AppState>('input')
+  const [generateConfig, setGenerateConfig] = useState<GenerateConfig | null>(null)
+  const [generateResult, setGenerateResult] = useState<GenerateResult | null>(null)
 
-  const handleGenerate = useCallback(() => {
+  const handleGenerate = useCallback((config: GenerateConfig) => {
+    setGenerateConfig(config)
     setAppState('generating')
   }, [])
 
-  const handleDone = useCallback(() => {
+  const handleDone = useCallback((result: GenerateResult) => {
+    setGenerateResult(result)
     setAppState('preview')
   }, [])
+
+  const handleError = useCallback(() => {
+    setAppState('input')
+  }, [])
+
+  // Converte slides da API para o formato interno
+  const previewSlides: Slide[] = (generateResult?.slides ?? []).map((s) => ({
+    id: String(s.position),
+    titulo: s.titulo,
+    corpo: s.corpo,
+    hack: s.hack_aplicado,
+  }))
+
+  const previewLegenda = generateResult
+    ? [generateResult.legenda.gancho, generateResult.legenda.corpo, generateResult.legenda.cta]
+        .filter(Boolean)
+        .join('\n\n')
+    : ''
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: BG, overflow: 'hidden' }}>
@@ -741,14 +824,18 @@ export default function Studio() {
               <StateInput temaInit={temaFromURL} onGenerate={handleGenerate} />
             </div>
           )}
-          {appState === 'generating' && (
+          {appState === 'generating' && generateConfig && (
             <div style={{ width: '100%', maxWidth: 480, padding: '40px 24px' }}>
-              <StateGenerating onDone={handleDone} />
+              <StateGenerating config={generateConfig} onDone={handleDone} onError={handleError} />
             </div>
           )}
           {appState === 'preview' && (
             <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <StatePreview onBack={() => setAppState('input')} initialSlides={MOCK_SLIDES} />
+              <StatePreview
+                onBack={() => setAppState('input')}
+                initialSlides={previewSlides.length > 0 ? previewSlides : MOCK_SLIDES}
+                initialLegenda={previewLegenda || undefined}
+              />
             </div>
           )}
         </AnimatePresence>
