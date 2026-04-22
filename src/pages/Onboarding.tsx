@@ -632,7 +632,7 @@ export default function Onboarding() {
 
       if (dbErr) throw dbErr
 
-      if (plan === 'agency') {
+      if (plan === 'agencia') {
         setAgencyPrompt(true)
       } else {
         navigate(`/studio?tema=${encodeURIComponent(form.primeiraTema.trim())}`)

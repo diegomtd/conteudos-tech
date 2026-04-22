@@ -1,4 +1,4 @@
-export type Plan = 'free' | 'starter' | 'pro' | 'agency'
+export type Plan = 'free' | 'criador' | 'profissional' | 'agencia'
 export type UserRole = 'owner' | 'member' | 'admin'
 export type CarouselStatus = 'draft' | 'exported' | 'scheduled'
 export type PostStatus = 'pending' | 'notified' | 'posted'
@@ -20,6 +20,8 @@ export interface Profile {
   plan: Plan
   exports_used_this_month: number
   exports_limit: number
+  ai_images_limit: number
+  ai_images_used_this_month: number
   onboarding_completed: boolean
   telegram_chat_id: string | null
   created_at: string

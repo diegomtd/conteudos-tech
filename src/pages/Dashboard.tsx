@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Zap, Calendar, Settings,
-  ChevronLeft, ChevronRight, Layers, TrendingUp,
+  ChevronLeft, Layers, TrendingUp,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -44,23 +44,16 @@ function relativeTime(iso: string): string {
   return `há ${days} dias`
 }
 
-function weekStart(): string {
-  const d = new Date()
-  const day = d.getDay()
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
-  const monday = new Date(d.setDate(diff))
-  return monday.toISOString().split('T')[0]
-}
 
 const PLAN_LABELS: Record<string, string> = {
-  free: 'FREE', starter: 'STARTER', pro: 'PRO', agency: 'AGENCY',
+  free: 'FREE', criador: 'CRIADOR', profissional: 'PRO', agencia: 'AGÊNCIA',
 }
 
 const PLAN_BORDER: Record<string, string> = {
   free: 'rgba(255,255,255,0.3)',
-  starter: A,
-  pro: '#F5F5F5',
-  agency: '#F59E0B',
+  criador: A,
+  profissional: '#F5F5F5',
+  agencia: '#F59E0B',
 }
 
 const STATUS_COLOR: Record<string, string> = {
@@ -107,10 +100,15 @@ function Sidebar({
   const W = open ? 240 : 64
 
   const pct = profile
-    ? Math.min(100, (profile.exports_used_this_month / profile.exports_limit) * 100)
+    ? Math.min(100, (profile.exports_used_this_month / Math.max(1, profile.exports_limit)) * 100)
     : 0
   const barColor = pct >= 90 ? '#EF4444' : pct >= 70 ? '#F59E0B' : A
   const plan = profile?.plan ?? 'free'
+
+  const aiLimit = profile?.ai_images_limit ?? 0
+  const aiUsed  = profile?.ai_images_used_this_month ?? 0
+  const aiPct   = aiLimit > 0 ? Math.min(100, (aiUsed / aiLimit) * 100) : 100
+  const aiBarColor = aiPct >= 90 ? '#EF4444' : aiPct >= 70 ? '#F59E0B' : '#00B4D8'
 
   return (
     <aside style={{
@@ -192,7 +190,7 @@ function Sidebar({
         }}>
           <span style={{
             fontFamily: ffd, fontSize: 13, letterSpacing: 1,
-            color: plan === 'free' ? M : plan === 'agency' ? '#F59E0B' : T,
+            color: plan === 'free' ? M : plan === 'agencia' ? '#F59E0B' : T,
           }}>
             {open ? PLAN_LABELS[plan] : PLAN_LABELS[plan][0]}
           </span>
@@ -201,20 +199,47 @@ function Sidebar({
         {/* Progress bar (expanded only) */}
         {open && profile && (
           <>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <div style={{
-                height: 4, borderRadius: 2, background: B, overflow: 'hidden',
-              }}>
+            {/* Exportações */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span style={{ fontFamily: ff, fontSize: 11, color: M, letterSpacing: 0.5 }}>Exportações</span>
+              <div style={{ height: 4, borderRadius: 2, background: B, overflow: 'hidden' }}>
                 <div style={{
                   height: '100%', width: `${pct}%`,
                   background: barColor, borderRadius: 2,
                   transition: 'width 0.4s ease',
                 }} />
               </div>
-              <span style={{ fontFamily: ff, fontSize: 12, color: M }}>
-                {profile.exports_used_this_month} / {profile.exports_limit} exportações
+              <span style={{ fontFamily: ff, fontSize: 11, color: M }}>
+                {plan === 'profissional' || plan === 'agencia'
+                  ? 'Ilimitadas'
+                  : `${profile.exports_used_this_month} / ${profile.exports_limit}`}
               </span>
             </div>
+
+            {/* Imagens IA */}
+            {aiLimit > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{ fontFamily: ff, fontSize: 11, color: M, letterSpacing: 0.5 }}>Imagens IA</span>
+                <div style={{ height: 4, borderRadius: 2, background: B, overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%', width: `${aiPct}%`,
+                    background: aiBarColor, borderRadius: 2,
+                    transition: 'width 0.4s ease',
+                  }} />
+                </div>
+                <span style={{ fontFamily: ff, fontSize: 11, color: M }}>
+                  {aiUsed} / {aiLimit}
+                </span>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{ fontFamily: ff, fontSize: 11, color: M }}>Imagens IA</span>
+                <span style={{ fontFamily: ff, fontSize: 11, color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>
+                  {plan === 'free' ? 'Upgrade para gerar imagens IA' : 'Não incluso'}
+                </span>
+              </div>
+            )}
+
             {plan === 'free' && (
               <button
                 onClick={() => navigate('/settings')}
@@ -313,7 +338,8 @@ export default function Dashboard() {
           .from('weekly_trends')
           .select('*')
           .eq('nicho', profileData.niche)
-          .eq('week_start', weekStart())
+          .order('week_start', { ascending: false })
+          .limit(1)
           .single()
         setTrends(trendData as WeeklyTrend | null)
       }
@@ -328,8 +354,13 @@ export default function Dashboard() {
 
   const exportsUsed = profile?.exports_used_this_month ?? 0
   const exportsLimit = profile?.exports_limit ?? 1
-  const exportPct = Math.min(100, (exportsUsed / exportsLimit) * 100)
+  const exportPct = Math.min(100, (exportsUsed / Math.max(1, exportsLimit)) * 100)
   const barColor = exportPct >= 90 ? '#EF4444' : exportPct >= 70 ? '#F59E0B' : A
+
+  const aiImgLimit = profile?.ai_images_limit ?? 0
+  const aiImgUsed  = profile?.ai_images_used_this_month ?? 0
+  const aiImgPct   = aiImgLimit > 0 ? Math.min(100, (aiImgUsed / aiImgLimit) * 100) : 0
+  const aiImgColor = aiImgPct >= 90 ? '#EF4444' : aiImgPct >= 70 ? '#F59E0B' : '#00B4D8'
 
   const nextPostLabel = nextPost
     ? new Date(nextPost.scheduled_at).toLocaleString('pt-BR', {
@@ -391,24 +422,41 @@ export default function Dashboard() {
         <div style={{
           display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 32,
         }}>
-          {/* Card 1 – Exportações */}
-          <MetricCard label="exportações este mês">
+          {/* Card 1 – Exportações + Imagens IA */}
+          <MetricCard label="uso este mês">
             {loading ? (
               <Skeleton w={120} h={40} r={4} />
             ) : (
-              <>
-                <span style={{ fontFamily: ffd, fontSize: 36, color: T, lineHeight: 1 }}>
-                  {exportsUsed}
-                  <span style={{ fontSize: 20, color: M }}> / {exportsLimit}</span>
-                </span>
-                <div style={{ height: 4, borderRadius: 2, background: B, overflow: 'hidden', marginTop: 4 }}>
-                  <div style={{
-                    height: '100%', width: `${exportPct}%`,
-                    background: barColor, borderRadius: 2,
-                    transition: 'width 0.4s ease',
-                  }} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
+                {/* Exportações */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span style={{ fontFamily: ff, fontSize: 11, color: M }}>Exportações</span>
+                    <span style={{ fontFamily: ff, fontSize: 11, color: plan === 'profissional' || plan === 'agencia' ? A : T, fontWeight: 600 }}>
+                      {plan === 'profissional' || plan === 'agencia' ? 'Ilimitadas' : `${exportsUsed} / ${exportsLimit}`}
+                    </span>
+                  </div>
+                  {plan !== 'profissional' && plan !== 'agencia' && (
+                    <div style={{ height: 4, borderRadius: 2, background: B, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${exportPct}%`, background: barColor, borderRadius: 2, transition: 'width 0.4s ease' }} />
+                    </div>
+                  )}
                 </div>
-              </>
+                {/* Imagens IA */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span style={{ fontFamily: ff, fontSize: 11, color: M }}>Imagens IA</span>
+                    <span style={{ fontFamily: ff, fontSize: 11, color: aiImgLimit > 0 ? T : 'rgba(255,255,255,0.25)', fontWeight: 600 }}>
+                      {aiImgLimit > 0 ? `${aiImgUsed} / ${aiImgLimit}` : 'Upgrade'}
+                    </span>
+                  </div>
+                  {aiImgLimit > 0 && (
+                    <div style={{ height: 4, borderRadius: 2, background: B, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${aiImgPct}%`, background: aiImgColor, borderRadius: 2, transition: 'width 0.4s ease' }} />
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
           </MetricCard>
 
@@ -501,7 +549,7 @@ export default function Dashboard() {
                 return (
                   <div
                     key={c.id}
-                    onClick={() => navigate('/studio')}
+                    onClick={() => navigate(`/studio?carousel_id=${c.id}`)}
                     style={{
                       background: S, borderRadius: 8, padding: '14px 16px',
                       display: 'flex', alignItems: 'center', gap: 12,

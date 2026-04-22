@@ -75,7 +75,6 @@ enable_confirmations = false
 [auth.sms]
 enable_signup = false
 enable_confirmations = false
-provider = "twilio"
 
 [edge_runtime]
 enabled = true
@@ -84,6 +83,9 @@ enabled = true
 # Use `per-worker` for load testing or integration testing with multiple clients.
 policy = "oneshot"
 inspector_port = 8083
+
+[functions.reset-monthly-counters]
+schedule = "0 0 1 * *"
 
 [analytics]
 enabled = false

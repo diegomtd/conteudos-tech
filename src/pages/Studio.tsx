@@ -1,12 +1,13 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Check, ChevronLeft, ChevronRight, Copy, Download, Plus, X, Zap } from 'lucide-react'
+import { Camera, Check, ChevronLeft, ChevronRight, Copy, Download, Plus, X, Zap } from 'lucide-react'
 import { toast } from 'sonner'
 import { toPng } from 'html-to-image'
 import JSZip from 'jszip'
 import { usePlan } from '@/hooks/usePlan'
 import { supabase } from '@/lib/supabase'
+import { SlideRenderer, getSlideContainerStyle, CarouselTemplate as _CarouselTemplate } from '@/components/SlideRenderer'
 
 // ─── Tokens ───────────────────────────────────────────────────
 const A = '#C8FF00'
@@ -21,8 +22,50 @@ const ff = 'DM Sans, sans-serif'
 
 type AppState = 'input' | 'generating' | 'preview'
 
+type CarouselTemplate = _CarouselTemplate
+
+const TEMPLATES: { key: CarouselTemplate; icon: string; name: string; desc: string }[] = [
+  { key: 'impacto',      icon: '⚡', name: 'Impacto',     desc: 'Autoridade e hooks visuais' },
+  { key: 'editorial',    icon: '📰', name: 'Editorial',   desc: 'Educação e análises' },
+  { key: 'lista',        icon: '📋', name: 'Lista Viral', desc: 'Dicas e passo a passo' },
+  { key: 'citacao',      icon: '💬', name: 'Citação',     desc: 'Frases e reflexões' },
+  { key: 'comparacao',   icon: '⚖️', name: 'Comparação',  desc: 'Antes vs Depois' },
+  { key: 'storytelling', icon: '📖', name: 'Narrativa',   desc: 'Jornada e bastidores' },
+]
+
 // ─── Mock slides ──────────────────────────────────────────────
-interface Slide { id: string; titulo: string; corpo: string; hack: string }
+interface Slide {
+  id: string
+  titulo: string
+  corpo: string
+  hack: string
+  bgImageUrl?: string
+  textPosition?: 'top' | 'center' | 'bottom'
+  overlayOpacity?: number       // 0–90, default 50
+  imageOpacity?: number         // 10–100, default 100
+  titleFontSize?: number        // mockup px, default 28
+  bodyFontSize?: number         // mockup px, default 12
+  fontWeightTitle?: 'normal' | 'bold'
+  fontFamily?: string           // CSS font-family string
+  textColor?: string            // default #F5F5F5
+  textAlign?: 'left' | 'center' | 'right'
+  titlePos?: { x: number; y: number }
+  blockSpacing?: number         // gap px between title and body, default 16
+  beforeText?: string           // Comparação template — coluna ANTES
+  afterText?: string            // Comparação template — coluna DEPOIS
+}
+
+const EXPORT_SCALE = 4  // mockup → export resolution multiplier
+const TEXT_COLORS = ['#F5F5F5', '#000000', '#C8FF00', '#FFD700', '#FF4444', '#4488FF', '#FF8C00', '#FF69B4']
+
+const FONT_OPTIONS: { label: string; value: string }[] = [
+  { label: 'Bebas Neue',       value: '"Bebas Neue", sans-serif' },
+  { label: 'DM Sans',          value: 'DM Sans, sans-serif' },
+  { label: 'Inter',            value: 'Inter, sans-serif' },
+  { label: 'Playfair Display', value: '"Playfair Display", serif' },
+  { label: 'Oswald',           value: 'Oswald, sans-serif' },
+  { label: 'Montserrat',       value: 'Montserrat, sans-serif' },
+]
 
 const MOCK_SLIDES: Slide[] = [
   { id: '1', titulo: 'VOCÊ NÃO É PREGUIÇOSO.',                     corpo: 'Você está travado por um motivo que ninguém te ensinou a resolver.',                            hack: 'Pattern Interrupt' },
@@ -49,12 +92,6 @@ const MESSAGES = [
   'Quase pronto...',
 ]
 
-const BG_STYLES: Record<string, string> = {
-  'Cinemático': 'linear-gradient(160deg,#060d14 0%,#0d1f30 60%,#091829 100%)',
-  'Abstrato':   'linear-gradient(160deg,#080c1a 0%,#0f1e4a 60%,#081530 100%)',
-  'Gradiente':  'linear-gradient(160deg,#080808 0%,#141414 100%)',
-  'Upload':     '#1A1A1A',
-}
 
 const CTA_OPTIONS = [
   'Engajamento', 'Salvar', 'Seguir', 'DM', 'Link na bio',
@@ -85,7 +122,7 @@ function ToggleChip({ label, active, onClick }: { label: string; active: boolean
 // ─── Header ───────────────────────────────────────────────────
 function Header() {
   const { plan, exportsRemaining, exportLimit } = usePlan()
-  const PLAN_COLORS: Record<string, string> = { free: M2, starter: '#00B4D8', pro: A, agency: '#A855F7' }
+  const PLAN_COLORS: Record<string, string> = { free: M2, criador: '#00B4D8', profissional: A, agencia: '#A855F7' }
   const color = PLAN_COLORS[plan] ?? M2
 
   return (
@@ -245,8 +282,8 @@ interface GenerateConfig { tema: string; slides: number; tom: string; cta: strin
 interface GenerateResult {
   carousel_id: string
   preview_token: string
-  slides: Array<{ position: number; titulo: string; corpo: string; hack_aplicado: string }>
-  legenda: { gancho: string; corpo: string; cta: string }
+  slides: Array<{ position: number; titulo: string; corpo: string; bg_image_url?: string }>
+  legenda: string
   has_watermark: boolean
 }
 
@@ -291,26 +328,24 @@ function StateGenerating({
     // Chamada real à Edge Function
     const run = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!session) throw new Error('no_session')
-
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
-        const res = await fetch(`${supabaseUrl}/functions/v1/generate-carousel`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
+        const { data, error: fnError } = await supabase.functions.invoke('generate-carousel', {
+          body: {
             tema: config.tema,
             tom: config.tom,
             num_slides: config.slides,
             cta_tipo: config.cta,
-          }),
+          },
         })
 
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.error ?? 'api_error')
+        if (fnError) throw fnError
+        if (!data) throw new Error('no_data')
+
+        if (data.error === 'export_limit_reached') {
+          toast.error('Você atingiu o limite de carrosseis do seu plano. Faça upgrade para continuar.')
+          cancelAnimationFrame(rafId)
+          onError()
+          return
+        }
 
         cancelAnimationFrame(rafId)
         setProgress(100)
@@ -453,9 +488,9 @@ function UpgradeModal({ onClose, plan }: { onClose: () => void; plan: string }) 
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {[
-            { name: 'Starter', price: 'R$47/mês', limit: '20 exportações' },
-            { name: 'Pro', price: 'R$97/mês', limit: '50 exportações + Calendário + Telegram' },
-            { name: 'Agency', price: 'R$197/mês', limit: '150 exportações + 5 subcontas' },
+            { name: 'Criador', price: 'R$47/mês', limit: '20 exportações + 20 imagens IA' },
+            { name: 'Profissional', price: 'R$97/mês', limit: 'Exportações ilimitadas + Calendário + Telegram' },
+            { name: 'Agência', price: 'R$197/mês', limit: 'Ilimitado + 5 subcontas + 200 imagens IA' },
           ].map((p) => (
             <div key={p.name} style={{
               backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 10,
@@ -498,6 +533,7 @@ function UpgradeModal({ onClose, plan }: { onClose: () => void; plan: string }) 
 
 // ─── Estado 3: Preview + Editor ───────────────────────────────
 function StatePreview({
+  onBack,
   initialSlides,
   initialLegenda,
   carouselId,
@@ -509,23 +545,164 @@ function StatePreview({
   carouselId?: string
   hasWatermark?: boolean
 }) {
-  const { canExport, plan } = usePlan()
+  const { canExport, plan, exportsRemaining } = usePlan()
   const [slides, setSlides] = useState<Slide[]>(initialSlides)
   const [activeSlide, setActiveSlide] = useState(0)
   const [editingField, setEditingField] = useState<{ id: string; field: 'titulo' | 'corpo' } | null>(null)
-  const [bgStyle, setBgStyle] = useState('Cinemático')
+  const [imageStyle, setImageStyle] = useState<string>('cinematic')
+  const [selectedTemplate, setSelectedTemplate] = useState<CarouselTemplate>('impacto')
   const [legenda, setLegenda] = useState(initialLegenda ?? '')
   const [exporting, setExporting] = useState(false)
   const [showUpgrade, setShowUpgrade] = useState(false)
+  const [generatingImages, setGeneratingImages] = useState(false)
+  const [imageGenProgress, setImageGenProgress] = useState<string | null>(null)
+  const [uploadingSlideId, setUploadingSlideId] = useState<string | null>(null)
+  const [selectedEl, setSelectedEl] = useState<'titulo' | 'corpo' | null>(null)
   const exportRefs = useRef<(HTMLDivElement | null)[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const uploadTargetSlideId = useRef<string>('')
+  const isDraggingTitle = useRef(false)
+  const dragStart = useRef({ mx: 0, my: 0, ox: 0, oy: 0 })
+  const currentSlideIdRef = useRef<string | undefined>(undefined)
 
-  const updateSlide = (id: string, field: 'titulo' | 'corpo', value: string) =>
+  // Load template from DB on mount
+  useEffect(() => {
+    if (!carouselId) return
+    supabase.from('carousels').select('template_style').eq('id', carouselId).single().then(({ data }) => {
+      if (data?.template_style) setSelectedTemplate(data.template_style as CarouselTemplate)
+    })
+  }, [carouselId])
+
+  // Save template to DB on change
+  useEffect(() => {
+    if (!carouselId) return
+    supabase.from('carousels').update({ template_style: selectedTemplate }).eq('id', carouselId)
+  }, [selectedTemplate, carouselId])
+
+  const updateSlide = (id: string, field: 'titulo' | 'corpo' | 'beforeText' | 'afterText', value: string) =>
     setSlides((prev) => prev.map((s) => s.id === id ? { ...s, [field]: value } : s))
+
+  const updateTextPosition = (id: string, pos: 'top' | 'center' | 'bottom') =>
+    setSlides((prev) => prev.map((s) => s.id === id ? { ...s, textPosition: pos } : s))
+
+  const updateOverlayOpacity = (id: string, val: number) =>
+    setSlides((prev) => prev.map((s) => s.id === id ? { ...s, overlayOpacity: val } : s))
+
+  // Global mouse events for title drag
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!isDraggingTitle.current || !currentSlideIdRef.current) return
+      const dx = e.clientX - dragStart.current.mx
+      const dy = e.clientY - dragStart.current.my
+      setSlides((prev) => prev.map((s) =>
+        s.id === currentSlideIdRef.current
+          ? { ...s, titlePos: { x: dragStart.current.ox + dx, y: dragStart.current.oy + dy } }
+          : s
+      ))
+    }
+    const onUp = () => { isDraggingTitle.current = false }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+  }, [])
+
+  const saveFormatTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const saveFormatToDb = (slideId: string, dbUpdates: Record<string, unknown>) => {
+    if (!carouselId || !slideId.startsWith('slide-')) return
+    if (saveFormatTimeout.current) clearTimeout(saveFormatTimeout.current)
+    saveFormatTimeout.current = setTimeout(async () => {
+      const parts = slideId.split('-')
+      const position = Number(parts[parts.length - 1])
+      if (isNaN(position)) return
+      await supabase.from('carousel_slides').update(dbUpdates)
+        .eq('carousel_id', carouselId).eq('position', position)
+    }, 800)
+  }
+
+  const updateSlideFormat = (id: string, updates: Partial<Pick<Slide,
+    'titleFontSize' | 'bodyFontSize' | 'fontWeightTitle' | 'textColor' | 'textAlign' | 'titlePos' | 'fontFamily' | 'blockSpacing'
+  >>) => {
+    setSlides((prev) => prev.map((s) => s.id === id ? { ...s, ...updates } : s))
+    const db: Record<string, unknown> = {}
+    if (updates.titleFontSize !== undefined) db.font_size_title = updates.titleFontSize
+    if (updates.bodyFontSize !== undefined) db.font_size_body = updates.bodyFontSize
+    if (updates.fontWeightTitle !== undefined) db.font_weight_title = updates.fontWeightTitle
+    if (updates.textColor !== undefined) db.text_color = updates.textColor
+    if (updates.textAlign !== undefined) db.text_align = updates.textAlign
+    if (updates.titlePos !== undefined) {
+      db.title_position_x = updates.titlePos.x
+      db.title_position_y = updates.titlePos.y
+    }
+    if (Object.keys(db).length > 0) saveFormatToDb(id, db)
+  }
+
+  const updateImageOpacity = (id: string, val: number) =>
+    setSlides((prev) => prev.map((s) => s.id === id ? { ...s, imageOpacity: val } : s))
+
+  const handleUploadImage = async (slideId: string, file: File) => {
+    if (!carouselId) return
+    setUploadingSlideId(slideId)
+    try {
+      const ext = file.name.split('.').pop() ?? 'jpg'
+      const path = `${carouselId}/${slideId}.${ext}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('carousel-images')
+        .upload(path, file, { upsert: true, contentType: file.type })
+
+      if (uploadError) {
+        console.error('[upload] storage error:', uploadError)
+        toast.error('Erro ao fazer upload da imagem.')
+        return
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('carousel-images')
+        .getPublicUrl(path)
+
+      // Extrai position do id (formato: slide-{carouselId}-{position})
+      const parts = slideId.split('-')
+      const position = slideId.startsWith('slide-') ? Number(parts[parts.length - 1]) : null
+      if (position !== null && !isNaN(position)) {
+        await supabase
+          .from('carousel_slides')
+          .update({ bg_image_url: publicUrl })
+          .eq('carousel_id', carouselId)
+          .eq('position', position)
+      }
+
+      setSlides((prev) => prev.map((s) => s.id === slideId ? { ...s, bgImageUrl: publicUrl } : s))
+      toast.success('Imagem atualizada')
+    } catch (e) {
+      console.error('[upload] exception:', e)
+      toast.error('Erro ao fazer upload.')
+    } finally {
+      setUploadingSlideId(null)
+    }
+  }
+
 
   const removeSlide = (id: string) => {
     const next = slides.filter((s) => s.id !== id)
     setSlides(next)
     if (activeSlide >= next.length) setActiveSlide(Math.max(0, next.length - 1))
+  }
+
+  const moveSlide = (id: string, dir: 'up' | 'down') => {
+    setSlides((prev) => {
+      const idx = prev.findIndex((s) => s.id === id)
+      if (dir === 'up' && idx === 0) return prev
+      if (dir === 'down' && idx === prev.length - 1) return prev
+      const next = [...prev]
+      const target = dir === 'up' ? idx - 1 : idx + 1
+      ;[next[idx], next[target]] = [next[target], next[idx]]
+      setActiveSlide(target)
+      return next
+    })
   }
 
   const addSlide = () => {
@@ -538,11 +715,52 @@ function StatePreview({
 
   const current = slides[activeSlide]
 
+  // keep currentSlideIdRef in sync for title drag closure
+  useEffect(() => { currentSlideIdRef.current = current?.id }, [current])
+
+  // slideStyle replaced by getSlideContainerStyle in the motion.div below
+
+  const handleGenerateImages = async () => {
+    if (!carouselId || generatingImages) return
+    setGeneratingImages(true)
+    setImageGenProgress('Gerando fundo com IA...')
+
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token
+    if (!token) { setGeneratingImages(false); return }
+
+    try {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-image`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ carousel_id: carouselId, style: imageStyle }),
+      })
+      const data = await res.json()
+
+      if (data.error === 'ai_images_limit_reached') {
+        toast.error('Limite de imagens IA atingido. Faça upgrade para gerar mais fundos.')
+      } else if (data.bg_image_url) {
+        setSlides((prev) => prev.map((s) => ({ ...s, bgImageUrl: data.bg_image_url })))
+        toast.success('Fundo aplicado em todos os slides')
+      } else {
+        console.error('[generateImages] erro:', data)
+        toast.error('Erro ao gerar imagem. Tente novamente.')
+      }
+    } catch (e) {
+      console.error('[generateImages] exception:', e)
+      toast.error('Erro ao gerar imagem.')
+    }
+
+    setImageGenProgress(null)
+    setGeneratingImages(false)
+  }
+
   const copyLegenda = () => {
     navigator.clipboard.writeText(legenda).then(() => toast.success('Legenda copiada'))
   }
 
   const handleExport = async () => {
+    console.log('Export check — plan:', plan, 'exportsRemaining:', exportsRemaining, 'canExport:', canExport)
     if (!canExport) { setShowUpgrade(true); return }
 
     setExporting(true)
@@ -556,7 +774,7 @@ function StatePreview({
         if (!el) continue
 
         const dataUrl = await toPng(el, {
-          pixelRatio: 2,
+          pixelRatio: 1,
           cacheBust: true,
           style: { display: 'flex' },
         })
@@ -601,61 +819,19 @@ function StatePreview({
           key={slide.id}
           ref={(el) => { exportRefs.current[i] = el }}
           style={{
-            width: 1080, height: 1080,
-            background: BG_STYLES[bgStyle],
-            display: 'flex', flexDirection: 'column',
-            justifyContent: 'flex-end', padding: '80px 72px',
-            position: 'relative', overflow: 'hidden', flexShrink: 0,
+            width: 1080, height: 1350, flexShrink: 0,
+            ...getSlideContainerStyle(slide, i, slides.length, selectedTemplate, imageStyle, EXPORT_SCALE),
           }}
         >
-          {/* Número de fundo translúcido */}
-          <span style={{
-            position: 'absolute', top: '50%', left: '50%',
-            transform: 'translate(-50%,-50%)',
-            fontFamily: '"Bebas Neue", sans-serif',
-            fontSize: 420, color: 'rgba(255,255,255,0.03)',
-            letterSpacing: 4, userSelect: 'none', lineHeight: 1,
-          }}>
-            {i + 1}
-          </span>
-
-          {/* Hack badge */}
-          {slide.hack && (
-            <span style={{
-              position: 'absolute', top: 48, left: 48,
-              fontSize: 26, color: A, fontFamily: 'DM Sans, sans-serif', fontWeight: 700,
-              letterSpacing: 2, backgroundColor: 'rgba(200,255,0,0.12)',
-              padding: '8px 20px', borderRadius: 99,
-            }}>
-              {slide.hack.toUpperCase()}
-            </span>
-          )}
-
-          {/* Título */}
-          <p style={{
-            fontFamily: '"Bebas Neue", sans-serif', fontSize: 88, color: T,
-            margin: '0 0 32px', lineHeight: 1.05, letterSpacing: 1, zIndex: 1,
-          }}>
-            {slide.titulo}
-          </p>
-
-          {/* Corpo */}
-          <p style={{
-            fontSize: 40, color: 'rgba(255,255,255,0.65)',
-            fontFamily: 'DM Sans, sans-serif', margin: 0, lineHeight: 1.5, zIndex: 1,
-          }}>
-            {slide.corpo}
-          </p>
-
-          {/* Watermark */}
-          <span style={{
-            position: 'absolute', bottom: 36, right: 48, fontSize: 28,
-            fontFamily: '"Bebas Neue", sans-serif',
-            color: hasWatermark ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.08)',
-            letterSpacing: 2,
-          }}>
-            ConteudOS
-          </span>
+          <SlideRenderer
+            slide={slide}
+            index={i}
+            total={slides.length}
+            template={selectedTemplate}
+            imageStyle={imageStyle}
+            scale={EXPORT_SCALE}
+            hasWatermark={hasWatermark}
+          />
         </div>
       ))}
     </div>
@@ -686,8 +862,8 @@ function StatePreview({
 
         {/* Slide cards */}
         {slides.map((slide, idx) => (
+          <React.Fragment key={slide.id}>
           <div
-            key={slide.id}
             onClick={() => setActiveSlide(idx)}
             style={{
               backgroundColor: activeSlide === idx ? 'rgba(200,255,0,0.06)' : S2,
@@ -696,24 +872,47 @@ function StatePreview({
               cursor: 'pointer', position: 'relative', transition: 'all 0.15s',
             }}
           >
-            {/* Slide number + remove */}
+            {/* Slide number + controls */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700, letterSpacing: 1 }}>
                 SLIDE {idx + 1}
               </span>
-              {slides.length > 1 && (
+              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                {/* Mover ↑ */}
                 <button
-                  onClick={(e) => { e.stopPropagation(); removeSlide(slide.id) }}
+                  onClick={(e) => { e.stopPropagation(); moveSlide(slide.id, 'up') }}
+                  disabled={idx === 0}
                   style={{
-                    background: 'none', border: 'none', color: M, cursor: 'pointer',
-                    padding: 2, display: 'flex', opacity: 0.6, transition: 'opacity 0.15s',
+                    background: 'none', border: 'none', color: idx === 0 ? M2 : M, cursor: idx === 0 ? 'default' : 'pointer',
+                    padding: 2, display: 'flex', fontSize: 11, lineHeight: 1,
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = '#f87171' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.6'; e.currentTarget.style.color = M }}
-                >
-                  <X size={13} />
-                </button>
-              )}
+                  title="Mover para cima"
+                >↑</button>
+                {/* Mover ↓ */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); moveSlide(slide.id, 'down') }}
+                  disabled={idx === slides.length - 1}
+                  style={{
+                    background: 'none', border: 'none', color: idx === slides.length - 1 ? M2 : M, cursor: idx === slides.length - 1 ? 'default' : 'pointer',
+                    padding: 2, display: 'flex', fontSize: 11, lineHeight: 1,
+                  }}
+                  title="Mover para baixo"
+                >↓</button>
+                {/* Remover */}
+                {slides.length > 1 && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); removeSlide(slide.id) }}
+                    style={{
+                      background: 'none', border: 'none', color: M, cursor: 'pointer',
+                      padding: 2, display: 'flex', opacity: 0.6, transition: 'opacity 0.15s',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = '#f87171' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.6'; e.currentTarget.style.color = M }}
+                  >
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Título */}
@@ -746,45 +945,283 @@ function StatePreview({
               </p>
             )}
 
-            {/* Corpo */}
-            {editingField?.id === slide.id && editingField.field === 'corpo' ? (
-              <textarea
-                autoFocus
-                value={slide.corpo}
-                onChange={(e) => updateSlide(slide.id, 'corpo', e.target.value)}
-                onBlur={() => setEditingField(null)}
-                onClick={(e) => e.stopPropagation()}
-                rows={3}
-                style={{
-                  backgroundColor: 'rgba(0,0,0,0.3)', border: `1px solid rgba(200,255,0,0.4)`,
-                  borderRadius: 6, color: M, fontFamily: ff, fontSize: 11, lineHeight: 1.5,
-                  padding: '4px 8px', width: '100%', outline: 'none', resize: 'none',
-                  boxSizing: 'border-box',
-                }}
-              />
+            {/* Corpo — Comparação mid slide: mostrar ANTES / DEPOIS separados */}
+            {selectedTemplate === 'comparacao' && idx !== 0 && idx !== slides.length - 1 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }} onClick={(e) => e.stopPropagation()}>
+                <div>
+                  <span style={{ fontSize: 9, color: '#ff7070', fontFamily: ff, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Antes</span>
+                  <textarea
+                    value={slide.beforeText ?? ''}
+                    onChange={(e) => updateSlide(slide.id, 'beforeText', e.target.value)}
+                    rows={2}
+                    style={{
+                      backgroundColor: 'rgba(0,0,0,0.3)', border: `1px solid rgba(255,112,112,0.35)`,
+                      borderRadius: 6, color: M, fontFamily: ff, fontSize: 11, lineHeight: 1.5,
+                      padding: '4px 8px', width: '100%', outline: 'none', resize: 'vertical',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+                <div>
+                  <span style={{ fontSize: 9, color: A, fontFamily: ff, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Depois</span>
+                  <textarea
+                    value={slide.afterText ?? ''}
+                    onChange={(e) => updateSlide(slide.id, 'afterText', e.target.value)}
+                    rows={2}
+                    style={{
+                      backgroundColor: 'rgba(0,0,0,0.3)', border: `1px solid rgba(200,255,0,0.35)`,
+                      borderRadius: 6, color: M, fontFamily: ff, fontSize: 11, lineHeight: 1.5,
+                      padding: '4px 8px', width: '100%', outline: 'none', resize: 'vertical',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              </div>
             ) : (
-              <p
-                onClick={(e) => { e.stopPropagation(); setActiveSlide(idx); setEditingField({ id: slide.id, field: 'corpo' }) }}
-                style={{
-                  fontSize: 11, color: M, fontFamily: ff, margin: 0, lineHeight: 1.5,
-                  cursor: 'text', padding: '2px 4px', borderRadius: 4,
-                }}
-                title="Clique para editar"
-              >
-                {slide.corpo}
-              </p>
+              /* Corpo padrão */
+              editingField?.id === slide.id && editingField.field === 'corpo' ? (
+                <textarea
+                  autoFocus
+                  value={slide.corpo}
+                  onChange={(e) => updateSlide(slide.id, 'corpo', e.target.value)}
+                  onBlur={() => setEditingField(null)}
+                  onClick={(e) => e.stopPropagation()}
+                  rows={3}
+                  style={{
+                    backgroundColor: 'rgba(0,0,0,0.3)', border: `1px solid rgba(200,255,0,0.4)`,
+                    borderRadius: 6, color: M, fontFamily: ff, fontSize: 11, lineHeight: 1.5,
+                    padding: '4px 8px', width: '100%', outline: 'none', resize: 'vertical',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              ) : (
+                <p
+                  onClick={(e) => { e.stopPropagation(); setActiveSlide(idx); setEditingField({ id: slide.id, field: 'corpo' }) }}
+                  style={{
+                    fontSize: 11, color: M, fontFamily: ff, margin: 0, lineHeight: 1.5,
+                    cursor: 'text', padding: '2px 4px', borderRadius: 4,
+                    whiteSpace: 'pre-wrap',
+                  }}
+                  title="Clique para editar"
+                >
+                  {slide.corpo || <span style={{ opacity: 0.4, fontStyle: 'italic' }}>vazio</span>}
+                </p>
+              )
             )}
 
-            {slide.hack && (
-              <span style={{
-                display: 'inline-block', marginTop: 8, fontSize: 9, color: A,
-                fontFamily: ff, fontWeight: 700, letterSpacing: 0.8,
-                backgroundColor: 'rgba(200,255,0,0.1)', padding: '2px 6px', borderRadius: 99,
-              }}>
-                {slide.hack}
-              </span>
+            {/* Posição do texto */}
+            {idx !== 0 && (
+              <div style={{ display: 'flex', gap: 4, marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
+                {(['top', 'center', 'bottom'] as const).map((pos) => {
+                  const labels = { top: 'Topo', center: 'Centro', bottom: 'Base' }
+                  const sel = (slide.textPosition ?? 'bottom') === pos
+                  return (
+                    <button key={pos} onClick={() => updateTextPosition(slide.id, pos)} style={{
+                      flex: 1, padding: '3px 0', borderRadius: 5, fontSize: 10, fontFamily: ff,
+                      backgroundColor: sel ? 'rgba(200,255,0,0.1)' : 'transparent',
+                      border: `1px solid ${sel ? 'rgba(200,255,0,0.4)' : B}`,
+                      color: sel ? A : M, cursor: 'pointer', transition: 'all 0.15s',
+                    }}>
+                      {labels[pos]}
+                    </button>
+                  )
+                })}
+              </div>
             )}
+
+            {/* Controles de imagem */}
+            {slide.bgImageUrl && (
+              <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }} onClick={(e) => e.stopPropagation()}>
+                {/* Opacidade da imagem */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span style={{ fontSize: 10, color: M, fontFamily: ff }}>Opacidade da imagem</span>
+                    <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700 }}>
+                      {slide.imageOpacity ?? 100}%
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={10}
+                    max={100}
+                    value={slide.imageOpacity ?? 100}
+                    onChange={(e) => updateImageOpacity(slide.id, Number(e.target.value))}
+                    style={{ width: '100%', accentColor: A, cursor: 'pointer' }}
+                  />
+                </div>
+                {/* Escuridão do fundo (overlay) */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span style={{ fontSize: 10, color: M, fontFamily: ff }}>Escuridão do fundo</span>
+                    <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700 }}>
+                      {slide.overlayOpacity ?? 50}%
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={90}
+                    value={slide.overlayOpacity ?? 50}
+                    onChange={(e) => updateOverlayOpacity(slide.id, Number(e.target.value))}
+                    style={{ width: '100%', accentColor: A, cursor: 'pointer' }}
+                  />
+                </div>
+              </div>
+            )}
+
           </div>
+
+          {/* ── Painel de formatação — aparece abaixo do card ativo quando texto está selecionado ── */}
+          {selectedEl && activeSlide === idx && (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                backgroundColor: '#0D0D0D', border: `1px solid rgba(200,255,0,0.25)`,
+                borderRadius: 10, padding: '14px', display: 'flex', flexDirection: 'column', gap: 12,
+              }}
+            >
+              <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>
+                Formatação — {selectedEl === 'titulo' ? 'Título' : 'Corpo'}
+              </span>
+
+              {/* Tamanho da fonte */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <span style={{ fontSize: 10, color: M, fontFamily: ff }}>Tamanho</span>
+                  <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700 }}>
+                    {selectedEl === 'titulo' ? (slide.titleFontSize ?? 28) : (slide.bodyFontSize ?? 12)}px
+                  </span>
+                </div>
+                <input
+                  type="range" min={12} max={72}
+                  value={selectedEl === 'titulo' ? (slide.titleFontSize ?? 28) : (slide.bodyFontSize ?? 12)}
+                  onChange={(e) => updateSlideFormat(slide.id, selectedEl === 'titulo'
+                    ? { titleFontSize: Number(e.target.value) }
+                    : { bodyFontSize: Number(e.target.value) }
+                  )}
+                  style={{ width: '100%', accentColor: A, cursor: 'pointer' }}
+                />
+              </div>
+
+              {/* Fonte — só para título */}
+              {selectedEl === 'titulo' && (
+                <div>
+                  <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 6 }}>Fonte</span>
+                  <select
+                    value={slide.fontFamily ?? '"Bebas Neue", sans-serif'}
+                    onChange={(e) => updateSlideFormat(slide.id, { fontFamily: e.target.value })}
+                    style={{
+                      width: '100%', backgroundColor: S2, border: `1px solid ${B}`,
+                      borderRadius: 6, color: T, fontFamily: ff, fontSize: 12,
+                      padding: '6px 8px', outline: 'none', cursor: 'pointer',
+                    }}
+                  >
+                    {FONT_OPTIONS.map((f) => (
+                      <option key={f.value} value={f.value} style={{ fontFamily: f.value }}>
+                        {f.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Peso — só para título */}
+              {selectedEl === 'titulo' && (
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {(['normal', 'bold'] as const).map((w) => {
+                    const sel = (slide.fontWeightTitle ?? 'normal') === w
+                    return (
+                      <button key={w} onClick={() => updateSlideFormat(slide.id, { fontWeightTitle: w })} style={{
+                        flex: 1, padding: '4px 0', borderRadius: 6, fontSize: 11, fontFamily: ff,
+                        fontWeight: w === 'bold' ? 700 : 400,
+                        backgroundColor: sel ? 'rgba(200,255,0,0.1)' : 'transparent',
+                        border: `1px solid ${sel ? 'rgba(200,255,0,0.4)' : B}`,
+                        color: sel ? A : M, cursor: 'pointer',
+                      }}>
+                        {w === 'normal' ? 'Normal' : 'Negrito'}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* Cor do texto */}
+              <div>
+                <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 6 }}>Cor</span>
+                <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap' }}>
+                  {TEXT_COLORS.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => updateSlideFormat(slide.id, { textColor: c })}
+                      style={{
+                        width: 22, height: 22, borderRadius: '50%', backgroundColor: c, border: 'none',
+                        cursor: 'pointer', flexShrink: 0,
+                        outline: (slide.textColor ?? '#F5F5F5') === c ? `2px solid ${A}` : '2px solid transparent',
+                        outlineOffset: 2, boxSizing: 'border-box',
+                      }}
+                    />
+                  ))}
+                  {/* Color picker personalizado */}
+                  <input
+                    type="color"
+                    value={slide.textColor ?? '#F5F5F5'}
+                    onChange={(e) => updateSlideFormat(slide.id, { textColor: e.target.value })}
+                    title="Cor personalizada"
+                    style={{
+                      width: 22, height: 22, borderRadius: '50%', border: `1px solid ${B}`,
+                      cursor: 'pointer', flexShrink: 0, padding: 0, backgroundColor: 'transparent',
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Alinhamento */}
+              <div style={{ display: 'flex', gap: 6 }}>
+                {(['left', 'center', 'right'] as const).map((a) => {
+                  const labels = { left: '←', center: '≡', right: '→' }
+                  const sel = (slide.textAlign ?? 'left') === a
+                  return (
+                    <button key={a} onClick={() => updateSlideFormat(slide.id, { textAlign: a })} style={{
+                      flex: 1, padding: '4px 0', borderRadius: 6, fontSize: 14, fontFamily: ff,
+                      backgroundColor: sel ? 'rgba(200,255,0,0.1)' : 'transparent',
+                      border: `1px solid ${sel ? 'rgba(200,255,0,0.4)' : B}`,
+                      color: sel ? A : M, cursor: 'pointer',
+                    }}>
+                      {labels[a]}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Espaço entre blocos */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <span style={{ fontSize: 10, color: M, fontFamily: ff }}>Espaço entre blocos</span>
+                  <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700 }}>
+                    {slide.blockSpacing ?? 16}px
+                  </span>
+                </div>
+                <input
+                  type="range" min={0} max={48}
+                  value={slide.blockSpacing ?? 16}
+                  onChange={(e) => updateSlideFormat(slide.id, { blockSpacing: Number(e.target.value) })}
+                  style={{ width: '100%', accentColor: A, cursor: 'pointer' }}
+                />
+              </div>
+
+              {/* Fechar */}
+              <button
+                onClick={() => setSelectedEl(null)}
+                style={{
+                  background: 'none', border: `1px solid ${B}`, borderRadius: 6,
+                  color: M, fontSize: 11, fontFamily: ff, cursor: 'pointer', padding: '4px 0',
+                }}
+              >
+                Fechar
+              </button>
+            </div>
+          )}
+          </React.Fragment>
         ))}
 
         {/* Add slide */}
@@ -836,16 +1273,32 @@ function StatePreview({
         alignItems: 'center', justifyContent: 'flex-start',
         padding: '32px 24px 32px', gap: 20,
       }}>
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          style={{ display: 'none' }}
+          onChange={(e) => {
+            const file = e.target.files?.[0]
+            if (file && uploadTargetSlideId.current) {
+              handleUploadImage(uploadTargetSlideId.current, file)
+            }
+            e.target.value = ''
+          }}
+        />
+
         {/* Phone mockup */}
-        <div style={{
-          width: 280, flexShrink: 0,
-          backgroundColor: '#111',
-          border: '8px solid #1A1A1A',
-          borderRadius: 44,
-          overflow: 'hidden',
-          boxShadow: '0 32px 80px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.06)',
-          position: 'relative',
-        }}>
+        <div
+          style={{
+            width: 280, flexShrink: 0,
+            backgroundColor: '#111',
+            border: '8px solid #1A1A1A',
+            borderRadius: 44,
+            overflow: 'hidden',
+            boxShadow: '0 32px 80px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.06)',
+            position: 'relative',
+          }}>
           {/* Câmera */}
           <div style={{
             height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -853,6 +1306,35 @@ function StatePreview({
           }}>
             <div style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#222', border: '1px solid #333' }} />
           </div>
+
+          {/* Botão trocar imagem — fixo no canto inferior direito do mockup */}
+          {carouselId && current && (
+            <button
+              onClick={() => {
+                if (uploadingSlideId) return
+                uploadTargetSlideId.current = current.id
+                fileInputRef.current?.click()
+              }}
+              disabled={!!uploadingSlideId}
+              style={{
+                position: 'absolute', bottom: 28, right: 10,
+                zIndex: 20,
+                backgroundColor: 'rgba(0,0,0,0.72)',
+                border: '1px solid rgba(255,255,255,0.18)',
+                borderRadius: 8, height: 28,
+                padding: '0 10px',
+                display: 'flex', alignItems: 'center', gap: 5,
+                cursor: uploadingSlideId ? 'default' : 'pointer',
+                color: uploadingSlideId ? 'rgba(255,255,255,0.4)' : T,
+                fontSize: 11, fontFamily: ff, fontWeight: 600,
+                backdropFilter: 'blur(6px)',
+                transition: 'background 0.15s',
+              }}
+            >
+              <Camera size={12} />
+              {uploadingSlideId === current.id ? 'Enviando...' : 'Trocar'}
+            </button>
+          )}
 
           {/* Slide display */}
           <AnimatePresence mode="wait">
@@ -864,50 +1346,28 @@ function StatePreview({
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.25 }}
                 style={{
-                  height: 440, background: BG_STYLES[bgStyle],
-                  display: 'flex', flexDirection: 'column',
-                  justifyContent: 'flex-end', padding: '28px 22px',
-                  position: 'relative', overflow: 'hidden',
+                  height: 440,
+                  ...getSlideContainerStyle(current, activeSlide, slides.length, selectedTemplate, imageStyle, 1),
                 }}
               >
-                {/* Watermark slide number */}
-                <span style={{
-                  position: 'absolute', top: '50%', left: '50%',
-                  transform: 'translate(-50%,-50%)',
-                  fontFamily: '"Bebas Neue", sans-serif',
-                  fontSize: 120, color: 'rgba(255,255,255,0.03)',
-                  letterSpacing: 4, userSelect: 'none', lineHeight: 1,
-                }}>
-                  {activeSlide + 1}
-                </span>
-
-                {/* Hack badge */}
-                {current.hack && (
-                  <span style={{
-                    position: 'absolute', top: 14, left: 14,
-                    fontSize: 8, color: A, fontFamily: ff, fontWeight: 700,
-                    letterSpacing: 1, backgroundColor: 'rgba(200,255,0,0.12)',
-                    padding: '3px 7px', borderRadius: 99,
-                  }}>
-                    {current.hack.toUpperCase()}
-                  </span>
-                )}
-
-                <p style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 22, color: T, margin: '0 0 10px', lineHeight: 1.15, letterSpacing: 0.5, zIndex: 1 }}>
-                  {current.titulo}
-                </p>
-                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)', fontFamily: ff, margin: 0, lineHeight: 1.55, zIndex: 1 }}>
-                  {current.corpo}
-                </p>
-
-                {/* Logo watermark */}
-                <span style={{
-                  position: 'absolute', bottom: 10, right: 14, fontSize: 9,
-                  fontFamily: '"Bebas Neue", sans-serif', color: 'rgba(255,255,255,0.2)',
-                  letterSpacing: 1,
-                }}>
-                  ConteudOS
-                </span>
+                <SlideRenderer
+                  slide={current}
+                  index={activeSlide}
+                  total={slides.length}
+                  template={selectedTemplate}
+                  imageStyle={imageStyle}
+                  scale={1}
+                  selectedEl={selectedEl}
+                  onSelectEl={setSelectedEl}
+                  onTitleMouseDown={(e) => {
+                    if (selectedEl !== 'titulo') return
+                    e.preventDefault()
+                    isDraggingTitle.current = true
+                    const pos = current?.titlePos ?? { x: 0, y: 0 }
+                    dragStart.current = { mx: e.clientX, my: e.clientY, ox: pos.x, oy: pos.y }
+                  }}
+                  hasWatermark={hasWatermark}
+                />
               </motion.div>
             )}
           </AnimatePresence>
@@ -961,23 +1421,81 @@ function StatePreview({
           {activeSlide + 1} / {slides.length}
         </p>
 
-        {/* Background style selector */}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-          {Object.keys(BG_STYLES).map((s) => {
-            const sel = bgStyle === s
-            return (
-              <button key={s} onClick={() => setBgStyle(s)} style={{
-                padding: '7px 14px', borderRadius: 8,
-                backgroundColor: sel ? 'rgba(200,255,0,0.1)' : S2,
-                border: `1px solid ${sel ? A : B}`,
-                color: sel ? A : M, fontSize: 12, fontFamily: ff,
-                fontWeight: sel ? 600 : 400, cursor: 'pointer', transition: 'all 0.15s',
-              }}>
-                {s}
-              </button>
-            )
-          })}
+        {/* ── Seletor de template ── */}
+        <div style={{ width: '100%' }}>
+          <p style={{ fontSize: 11, color: M, fontFamily: ff, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', margin: '0 0 10px' }}>
+            Estrutura do Carrossel
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+            {TEMPLATES.map(({ key, icon, name, desc }) => {
+              const sel = selectedTemplate === key
+              return (
+                <button
+                  key={key}
+                  onClick={() => setSelectedTemplate(key)}
+                  style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
+                    padding: '8px 10px', borderRadius: 8, cursor: 'pointer', textAlign: 'left',
+                    backgroundColor: sel ? 'rgba(200,255,0,0.07)' : S2,
+                    border: `1px solid ${sel ? A : B}`,
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  <span style={{ fontSize: 16, marginBottom: 3 }}>{icon}</span>
+                  <span style={{ fontSize: 11, fontFamily: ff, fontWeight: 700, color: sel ? A : T, lineHeight: 1.2 }}>{name}</span>
+                  <span style={{ fontSize: 9, fontFamily: ff, color: M, lineHeight: 1.3, marginTop: 2 }}>{desc}</span>
+                </button>
+              )
+            })}
+          </div>
         </div>
+
+        {/* Geração de imagem IA */}
+        {carouselId && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center', width: '100%' }}>
+            {/* Seletor de estilo IA */}
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
+              {[
+                { key: 'cinematic', label: 'Cinemático' },
+                { key: 'illustration', label: 'Ilustração' },
+                { key: 'abstract', label: 'Abstrato' },
+                { key: 'minimal', label: 'Minimal' },
+                { key: 'gradient', label: 'Gradiente' },
+              ].map(({ key, label }) => {
+                const sel = imageStyle === key
+                return (
+                  <button key={key} onClick={() => setImageStyle(key)} style={{
+                    padding: '5px 12px', borderRadius: 6,
+                    backgroundColor: sel ? 'rgba(0,180,216,0.15)' : S2,
+                    border: `1px solid ${sel ? '#00B4D8' : B}`,
+                    color: sel ? '#00B4D8' : M, fontSize: 11, fontFamily: ff,
+                    fontWeight: sel ? 600 : 400, cursor: 'pointer', transition: 'all 0.15s',
+                  }}>
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Botão gerar + progresso */}
+            <button
+              onClick={handleGenerateImages}
+              disabled={generatingImages}
+              style={{
+                height: 36, padding: '0 20px', borderRadius: 8,
+                backgroundColor: generatingImages ? S2 : 'rgba(0,180,216,0.1)',
+                border: `1px solid ${generatingImages ? B : '#00B4D8'}`,
+                color: generatingImages ? M : '#00B4D8',
+                fontSize: 12, fontFamily: ff, fontWeight: 600,
+                cursor: generatingImages ? 'not-allowed' : 'pointer',
+                transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 6,
+              }}
+            >
+              <Zap size={13} />
+              {imageGenProgress ?? 'Gerar fundos com IA'}
+            </button>
+          </div>
+        )}
       </div>
     </motion.div>
 
@@ -1040,10 +1558,73 @@ function StatePreview({
 // ─── Main ─────────────────────────────────────────────────────
 export default function Studio() {
   const [searchParams] = useSearchParams()
-  const temaFromURL = searchParams.get('tema') ?? ''
+  const temaFromURL       = searchParams.get('tema') ?? ''
+  const carouselIdFromURL = searchParams.get('carousel_id') ?? ''
+
   const [appState, setAppState] = useState<AppState>('input')
   const [generateConfig, setGenerateConfig] = useState<GenerateConfig | null>(null)
   const [generateResult, setGenerateResult] = useState<GenerateResult | null>(null)
+
+  // Carrossel carregado do banco (quando abre pelo dashboard)
+  const [loadedCarousel, setLoadedCarousel] = useState<{
+    carouselId: string
+    slides: Slide[]
+    legenda: string
+    hasWatermark: boolean
+  } | null>(null)
+  const [loadingCarousel, setLoadingCarousel] = useState(!!carouselIdFromURL)
+
+  useEffect(() => {
+    if (!carouselIdFromURL) return
+
+    async function loadCarousel() {
+      setLoadingCarousel(true)
+      const [{ data: carousel }, { data: slidesData }] = await Promise.all([
+        supabase
+          .from('carousels')
+          .select('id, legenda, has_watermark')
+          .eq('id', carouselIdFromURL)
+          .single(),
+        supabase
+          .from('carousel_slides')
+          .select('position, titulo, corpo, hack_aplicado, bg_image_url, font_size_title, font_size_body, font_weight_title, text_color, text_align, title_position_x, title_position_y')
+          .eq('carousel_id', carouselIdFromURL)
+          .order('position', { ascending: true }),
+      ])
+
+      if (!carousel || !slidesData) {
+        setLoadingCarousel(false)
+        return
+      }
+
+      const slides: Slide[] = (slidesData as Array<Record<string, unknown>>).map((s) => ({
+        id: `slide-${carouselIdFromURL}-${s.position}`,
+        titulo: (s.titulo as string) ?? '',
+        corpo: (s.corpo as string) ?? '',
+        hack: (s.hack_aplicado as string) ?? '',
+        bgImageUrl: (s.bg_image_url as string) ?? undefined,
+        titleFontSize: (s.font_size_title as number) ?? undefined,
+        bodyFontSize: (s.font_size_body as number) ?? undefined,
+        fontWeightTitle: (s.font_weight_title as 'normal' | 'bold') ?? undefined,
+        textColor: (s.text_color as string) ?? undefined,
+        textAlign: (s.text_align as 'left' | 'center' | 'right') ?? undefined,
+        titlePos: (s.title_position_x != null && s.title_position_y != null)
+          ? { x: s.title_position_x as number, y: s.title_position_y as number }
+          : undefined,
+      }))
+
+      setLoadedCarousel({
+        carouselId: carouselIdFromURL,
+        slides,
+        legenda: (carousel as Record<string, unknown>).legenda as string ?? '',
+        hasWatermark: (carousel as Record<string, unknown>).has_watermark as boolean ?? true,
+      })
+      setAppState('preview')
+      setLoadingCarousel(false)
+    }
+
+    loadCarousel()
+  }, [carouselIdFromURL])
 
   const handleGenerate = useCallback((config: GenerateConfig) => {
     setGenerateConfig(config)
@@ -1059,19 +1640,17 @@ export default function Studio() {
     setAppState('input')
   }, [])
 
-  // Converte slides da API para o formato interno
-  const previewSlides: Slide[] = (generateResult?.slides ?? []).map((s) => ({
-    id: String(s.position),
+  // Slides para o StatePreview: banco (edição) ou API (novo)
+  const previewSlides: Slide[] = loadedCarousel?.slides ?? (generateResult?.slides ?? []).map((s) => ({
+    id: `slide-${generateResult!.carousel_id}-${s.position}`,
     titulo: s.titulo,
     corpo: s.corpo,
-    hack: s.hack_aplicado,
+    hack: '',
+    bgImageUrl: s.bg_image_url ?? undefined,
   }))
-
-  const previewLegenda = generateResult
-    ? [generateResult.legenda.gancho, generateResult.legenda.corpo, generateResult.legenda.cta]
-        .filter(Boolean)
-        .join('\n\n')
-    : ''
+  const previewLegenda    = loadedCarousel?.legenda ?? generateResult?.legenda ?? ''
+  const previewCarouselId = loadedCarousel?.carouselId ?? generateResult?.carousel_id
+  const previewWatermark  = loadedCarousel?.hasWatermark ?? generateResult?.has_watermark ?? true
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: BG, overflow: 'hidden' }}>
@@ -1084,24 +1663,37 @@ export default function Studio() {
         overflow: 'hidden',
       }}>
         <AnimatePresence mode="wait">
-          {appState === 'input' && (
+          {/* Loading spinner ao abrir carrossel do banco */}
+          {loadingCarousel && (
+            <div key="loading" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: '50%',
+                border: `3px solid rgba(200,255,0,0.15)`,
+                borderTopColor: A,
+                animation: 'spin 0.8s linear infinite',
+              }} />
+              <span style={{ fontFamily: ff, fontSize: 14, color: M }}>Carregando carrossel...</span>
+              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            </div>
+          )}
+          {!loadingCarousel && appState === 'input' && (
             <div style={{ width: '100%', maxWidth: 640, padding: '40px 24px' }}>
               <StateInput temaInit={temaFromURL} onGenerate={handleGenerate} />
             </div>
           )}
-          {appState === 'generating' && generateConfig && (
+          {!loadingCarousel && appState === 'generating' && generateConfig && (
             <div style={{ width: '100%', maxWidth: 480, padding: '40px 24px' }}>
               <StateGenerating config={generateConfig} onDone={handleDone} onError={handleError} />
             </div>
           )}
-          {appState === 'preview' && (
+          {!loadingCarousel && appState === 'preview' && (
             <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
               <StatePreview
                 onBack={() => setAppState('input')}
                 initialSlides={previewSlides.length > 0 ? previewSlides : MOCK_SLIDES}
                 initialLegenda={previewLegenda || undefined}
-                carouselId={generateResult?.carousel_id}
-                hasWatermark={generateResult?.has_watermark ?? true}
+                carouselId={previewCarouselId}
+                hasWatermark={previewWatermark}
               />
             </div>
           )}

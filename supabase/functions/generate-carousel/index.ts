@@ -20,17 +20,20 @@ serve(async (req) => {
   try {
     // ── Auth ──────────────────────────────────────────────────────────
     const authHeader = req.headers.get('Authorization')
-    if (!authHeader) return json({ error: 'missing_authorization' }, 401)
+    if (!authHeader?.startsWith('Bearer ')) return json({ error: 'unauthorized' }, 401)
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    // Verify JWT and get user
     const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-    if (authError || !user) return json({ error: 'invalid_token' }, 401)
+    const base64Url = token.split('.')[1]
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+    const payload = JSON.parse(atob(base64))
+    const userId = payload.sub
+
+    if (!userId) return json({ error: 'unauthorized' }, 401)
 
     // ── Parse body ────────────────────────────────────────────────────
     const { tema, tom, num_slides, cta_tipo } = await req.json() as {
@@ -46,10 +49,19 @@ serve(async (req) => {
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('voice_profile, visual_kit, niche, plan, exports_used_this_month, exports_limit')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .single()
 
     if (profileError || !profile) return json({ error: 'profile_not_found' }, 404)
+
+    // ── Verifica limite de exportações ────────────────────────────────
+    // Planos profissional e agencia têm exportações ilimitadas
+    const unlimitedPlans = ['profissional', 'agencia']
+    if (!unlimitedPlans.includes(profile.plan)) {
+      if (profile.exports_used_this_month >= profile.exports_limit) {
+        return json({ error: 'export_limit_reached' }, 403)
+      }
+    }
 
     // ── Monta system prompt ───────────────────────────────────────────
     const vp = profile.voice_profile ?? {}
@@ -57,22 +69,27 @@ serve(async (req) => {
     const palavrasChave = vp.palavras_chave?.join(', ') ?? ''
     const exemploTexto = vp.exemplo_texto ?? ''
 
-    const systemPrompt = `Você é um especialista em conteúdo viral para Instagram Brasil 2026.
-Crie um carrossel sobre o tema fornecido.
+    const systemPrompt = `Você é um especialista em carrosseis virais para Instagram que dominam o algoritmo de retenção. Crie carrosseis que parecem escritos por um humano que entende profundamente o tema — não por IA.
+
+ESTRUTURA NARRATIVA OBRIGATÓRIA:
+- Slide 1 (CAPA): Apenas um hook de impacto. Máximo 5 palavras. Deve criar uma lacuna mental que só fecha lendo o resto. Sem corpo, sem explicação. Exemplos de padrão: "Você está perdendo dinheiro agora", "Ninguém te conta isso", "Isso vai mudar tudo". titulo apenas, corpo vazio.
+- Slides 2 a N-1: Cada slide aprofunda o anterior e cria tensão para o próximo. O último parágrafo de cada slide deve terminar com uma ideia incompleta ou uma pergunta implícita que força o próximo swipe. Copy humana: frases curtas, dados concretos quando relevante, sem jargão de coach.
+- Último slide (DESFECHO + CTA): Fecha a narrativa com uma conclusão poderosa. Depois o CTA baseado no tipo solicitado: Engajamento = pergunta pessoal; Seguir = "Segue pra não perder o próximo"; Salvar = "Salva isso antes que precise"; DM = "Me manda uma mensagem"; Link na bio = "Link na bio pra ir fundo nisso".
+
+REGRAS DE VOZ:
+- Escreve como alguém falando com um amigo que precisa saber disso agora
+- Dados e especificidades criam credibilidade ("73% dos compradores", "em menos de 3 segundos", "desde 2022")
+- Cada slide tem UMA ideia central — nunca duas
+- Transições naturais: o fim de um slide planta a semente do próximo
+- ZERO frases genéricas como "é importante ressaltar", "vale destacar", "sendo assim"
+- ZERO travessão em qualquer campo
+- ZERO ponto de exclamação
+- ZERO conectivos de IA: portanto, ademais, sendo assim
 
 TOM DO CRIADOR: ${tom}
 PALAVRAS QUE NUNCA USA: ${palavrasProibidas}
 PALAVRAS QUE O DEFINEM: ${palavrasChave}
-EXEMPLO DO ESTILO DELE: ${exemploTexto}
-
-REGRAS ABSOLUTAS — sem exceção:
-- ZERO travessão em qualquer campo (use vírgula ou reescreva)
-- ZERO ponto de exclamação
-- ZERO conectivos de IA: portanto, ademais, vale destacar, sendo assim
-- Tom direto, observacional, humano
-- Cada slide = UMA ideia
-- Frases variam em tamanho (natural, não uniforme)
-- Títulos em MAIÚSCULAS, curtos e impactantes`
+EXEMPLO DO ESTILO DELE: ${exemploTexto}`
 
     const userPrompt = `Tema: ${tema}
 CTA desejado: ${cta_tipo}
@@ -81,18 +98,11 @@ Número de slides: ${num_slides}
 Retorne APENAS um JSON válido, sem markdown, sem explicação, sem código fence:
 {
   "slides": [
-    {
-      "position": 1,
-      "titulo": "...",
-      "corpo": "...",
-      "hack_aplicado": "Pattern Interrupt | Curiosity Gap | Identity Mirror | Zeigarnik Effect | Social Proof"
-    }
+    {"position": 1, "titulo": "...", "corpo": ""},
+    {"position": 2, "titulo": "...", "corpo": "..."},
+    {"position": N, "titulo": "...", "corpo": "... [CTA]"}
   ],
-  "legenda": {
-    "gancho": "...",
-    "corpo": "...",
-    "cta": "..."
-  }
+  "legenda": "legenda completa para o post com hook + desenvolvimento + CTA + hashtags relevantes"
 }`
 
     // ── Chama Claude API ──────────────────────────────────────────────
@@ -122,9 +132,8 @@ Retorne APENAS um JSON válido, sem markdown, sem explicação, sem código fenc
     const tokensUsed = (claudeData.usage?.input_tokens ?? 0) + (claudeData.usage?.output_tokens ?? 0)
 
     // ── Parse JSON retornado ──────────────────────────────────────────
-    let parsed: { slides: Array<{ position: number; titulo: string; corpo: string; hack_aplicado: string }>; legenda: { gancho: string; corpo: string; cta: string } }
+    let parsed: { slides: Array<{ position: number; titulo: string; corpo: string }>; legenda: string }
     try {
-      // Remove possíveis code fences caso o modelo inclua
       const clean = rawContent.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
       parsed = JSON.parse(clean)
     } catch {
@@ -132,28 +141,24 @@ Retorne APENAS um JSON válido, sem markdown, sem explicação, sem código fenc
       return json({ error: 'invalid_claude_response', raw: rawContent }, 502)
     }
 
-    // ── Custo estimado (Sonnet: $3/1M input, $15/1M output) ──────────
+    // ── Custo estimado ────────────────────────────────────────────────
     const inputTokens = claudeData.usage?.input_tokens ?? 0
     const outputTokens = claudeData.usage?.output_tokens ?? 0
     const costUsd = (inputTokens * 3 + outputTokens * 15) / 1_000_000
-    const costBrl = costUsd * 5.8  // câmbio aproximado
+    const costBrl = costUsd * 5.8
 
     const hasWatermark = profile.plan === 'free'
 
     // ── Salva carrossel ───────────────────────────────────────────────
-    const legendaText = [parsed.legenda.gancho, parsed.legenda.corpo, parsed.legenda.cta]
-      .filter(Boolean)
-      .join('\n\n')
-
     const { data: carousel, error: carouselError } = await supabase
       .from('carousels')
       .insert({
-        user_id: user.id,
+        user_id: userId,
         tema,
         tom,
         num_slides: parsed.slides.length,
         slides_json: parsed.slides,
-        legenda: legendaText,
+        legenda: parsed.legenda,
         has_watermark: hasWatermark,
         status: 'draft',
       })
@@ -171,7 +176,7 @@ Retorne APENAS um JSON válido, sem markdown, sem explicação, sem código fenc
       position: s.position,
       titulo: s.titulo,
       corpo: s.corpo,
-      hack_aplicado: s.hack_aplicado,
+      bg_image_url: '',
     }))
 
     const { error: slidesError } = await supabase
@@ -182,7 +187,7 @@ Retorne APENAS um JSON válido, sem markdown, sem explicação, sem código fenc
 
     // ── Log de uso ────────────────────────────────────────────────────
     await supabase.from('usage_logs').insert({
-      user_id: user.id,
+      user_id: userId,
       action: 'generate_carousel',
       tokens_used: tokensUsed,
       cost_brl: costBrl,
@@ -192,7 +197,7 @@ Retorne APENAS um JSON válido, sem markdown, sem explicação, sem código fenc
     await supabase
       .from('profiles')
       .update({ exports_used_this_month: profile.exports_used_this_month + 1 })
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
 
     return json({
       carousel_id: carousel.id,

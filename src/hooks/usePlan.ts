@@ -4,10 +4,17 @@ import { useAuth } from './useAuth'
 import type { Plan, Profile } from '@/types'
 
 const EXPORT_LIMITS: Record<Plan, number> = {
-  free:    1,
-  starter: 20,
-  pro:     50,
-  agency:  150,
+  free:         3,
+  criador:      20,
+  profissional: 999999,
+  agencia:      999999,
+}
+
+const AI_IMAGE_LIMITS: Record<Plan, number> = {
+  free:         0,
+  criador:      20,
+  profissional: 60,
+  agencia:      200,
 }
 
 export function usePlan() {
@@ -29,20 +36,30 @@ export function usePlan() {
       })
   }, [user])
 
-  const canExport = profile
-    ? profile.exports_used_this_month < profile.exports_limit
-    : false
+  const plan = (profile?.plan ?? 'free') as Plan
 
-  const exportsRemaining = profile
-    ? Math.max(0, profile.exports_limit - profile.exports_used_this_month)
-    : 0
+  // Exportações
+  const exportLimit      = profile?.exports_limit ?? EXPORT_LIMITS[plan]
+  const exportsUsed      = profile?.exports_used_this_month ?? 0
+  const exportsRemaining = plan === 'profissional' || plan === 'agencia'
+    ? 999999
+    : Math.max(0, exportLimit - exportsUsed)
+  const canExport = exportsRemaining > 0
+
+  // Imagens IA
+  const aiImageLimit      = profile?.ai_images_limit ?? AI_IMAGE_LIMITS[plan]
+  const aiImagesUsed      = profile?.ai_images_used_this_month ?? 0
+  const aiImagesRemaining = Math.max(0, aiImageLimit - aiImagesUsed)
 
   return {
     profile,
     loading,
-    plan: profile?.plan ?? 'free',
+    plan,
     canExport,
     exportsRemaining,
-    exportLimit: profile?.plan ? EXPORT_LIMITS[profile.plan] : 1,
+    exportLimit,
+    aiImageLimit,
+    aiImagesUsed,
+    aiImagesRemaining,
   }
 }
