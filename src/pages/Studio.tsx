@@ -41,8 +41,8 @@ interface Slide {
   hack: string
   bgImageUrl?: string
   textPosition?: 'top' | 'center' | 'bottom'
-  overlayOpacity?: number       // 0–90, default 50
   imageOpacity?: number         // 10–100, default 100
+  paddingX?: number             // margem lateral px, default 24
   titleFontSize?: number        // mockup px, default 28
   bodyFontSize?: number         // mockup px, default 12
   fontWeightTitle?: 'normal' | 'bold'
@@ -585,9 +585,6 @@ function StatePreview({
   const updateTextPosition = (id: string, pos: 'top' | 'center' | 'bottom') =>
     setSlides((prev) => prev.map((s) => s.id === id ? { ...s, textPosition: pos } : s))
 
-  const updateOverlayOpacity = (id: string, val: number) =>
-    setSlides((prev) => prev.map((s) => s.id === id ? { ...s, overlayOpacity: val } : s))
-
   // Global mouse events for title drag
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
@@ -642,6 +639,9 @@ function StatePreview({
 
   const updateImageOpacity = (id: string, val: number) =>
     setSlides((prev) => prev.map((s) => s.id === id ? { ...s, imageOpacity: val } : s))
+
+  const updatePaddingX = (id: string, val: number) =>
+    setSlides((prev) => prev.map((s) => s.id === id ? { ...s, paddingX: val } : s))
 
   const handleUploadImage = async (slideId: string, file: File) => {
     if (!carouselId) return
@@ -1009,27 +1009,7 @@ function StatePreview({
               )
             )}
 
-            {/* Posição do texto */}
-            {idx !== 0 && (
-              <div style={{ display: 'flex', gap: 4, marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
-                {(['top', 'center', 'bottom'] as const).map((pos) => {
-                  const labels = { top: 'Topo', center: 'Centro', bottom: 'Base' }
-                  const sel = (slide.textPosition ?? 'bottom') === pos
-                  return (
-                    <button key={pos} onClick={() => updateTextPosition(slide.id, pos)} style={{
-                      flex: 1, padding: '3px 0', borderRadius: 5, fontSize: 10, fontFamily: ff,
-                      backgroundColor: sel ? 'rgba(200,255,0,0.1)' : 'transparent',
-                      border: `1px solid ${sel ? 'rgba(200,255,0,0.4)' : B}`,
-                      color: sel ? A : M, cursor: 'pointer', transition: 'all 0.15s',
-                    }}>
-                      {labels[pos]}
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-
-            {/* Controles de imagem */}
+            {/* Controles de imagem — slider + posição do texto */}
             {slide.bgImageUrl && (
               <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }} onClick={(e) => e.stopPropagation()}>
                 {/* Opacidade da imagem */}
@@ -1049,23 +1029,29 @@ function StatePreview({
                     style={{ width: '100%', accentColor: A, cursor: 'pointer' }}
                   />
                 </div>
-                {/* Escuridão do fundo (overlay) */}
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <span style={{ fontSize: 10, color: M, fontFamily: ff }}>Escuridão do fundo</span>
-                    <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700 }}>
-                      {slide.overlayOpacity ?? 50}%
-                    </span>
+
+                {/* Posição do texto — só em slides não-capa */}
+                {idx !== 0 && (
+                  <div>
+                    <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 4 }}>Posição do texto</span>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      {(['top', 'center', 'bottom'] as const).map((pos) => {
+                        const labels = { top: 'Topo', center: 'Centro', bottom: 'Base' }
+                        const sel = (slide.textPosition ?? 'bottom') === pos
+                        return (
+                          <button key={pos} onClick={() => updateTextPosition(slide.id, pos)} style={{
+                            flex: 1, padding: '3px 0', borderRadius: 5, fontSize: 10, fontFamily: ff,
+                            backgroundColor: sel ? 'rgba(200,255,0,0.1)' : 'transparent',
+                            border: `1px solid ${sel ? 'rgba(200,255,0,0.4)' : B}`,
+                            color: sel ? A : M, cursor: 'pointer', transition: 'all 0.15s',
+                          }}>
+                            {labels[pos]}
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={90}
-                    value={slide.overlayOpacity ?? 50}
-                    onChange={(e) => updateOverlayOpacity(slide.id, Number(e.target.value))}
-                    style={{ width: '100%', accentColor: A, cursor: 'pointer' }}
-                  />
-                </div>
+                )}
               </div>
             )}
 
@@ -1205,6 +1191,22 @@ function StatePreview({
                   type="range" min={0} max={48}
                   value={slide.blockSpacing ?? 16}
                   onChange={(e) => updateSlideFormat(slide.id, { blockSpacing: Number(e.target.value) })}
+                  style={{ width: '100%', accentColor: A, cursor: 'pointer' }}
+                />
+              </div>
+
+              {/* Margem lateral */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <span style={{ fontSize: 10, color: M, fontFamily: ff }}>Margem lateral</span>
+                  <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700 }}>
+                    {slide.paddingX ?? 24}px
+                  </span>
+                </div>
+                <input
+                  type="range" min={0} max={60}
+                  value={slide.paddingX ?? 24}
+                  onChange={(e) => updatePaddingX(slide.id, Number(e.target.value))}
                   style={{ width: '100%', accentColor: A, cursor: 'pointer' }}
                 />
               </div>

@@ -84,9 +84,6 @@ enabled = true
 policy = "oneshot"
 inspector_port = 8083
 
-[functions.reset-monthly-counters]
-schedule = "0 0 1 * *"
-
 [analytics]
 enabled = false
 port = 54327

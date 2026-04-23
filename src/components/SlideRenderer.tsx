@@ -27,6 +27,7 @@ export interface SlideData {
   imageOpacity?: number
   beforeText?: string   // Comparação template — coluna ANTES
   afterText?: string    // Comparação template — coluna DEPOIS
+  paddingX?: number     // margem lateral px, default 24
 }
 
 export interface SlideRenderProps {
@@ -110,12 +111,14 @@ export function getSlideContainerStyle(
     display: 'flex', flexDirection: 'column',
   }
 
+  const px = slide.paddingX !== undefined ? slide.paddingX * scale : pad
+
   if (template === 'editorial' || template === 'lista' || template === 'comparacao') {
     return {
       ...base,
       background: '#0a0a0a',
       justifyContent: index === 0 ? 'flex-start' : template === 'comparacao' ? 'center' : justify,
-      padding: `${pad}px ${pad}px`,
+      paddingTop: pad, paddingBottom: pad, paddingLeft: px, paddingRight: px,
     }
   }
 
@@ -125,7 +128,8 @@ export function getSlideContainerStyle(
     ...bg,
     justifyContent: index === 0 ? 'center' : justify,
     alignItems: index === 0 ? 'center' : 'stretch',
-    padding: index === 0 ? `${pad}px` : `${pad}px ${pad}px`,
+    paddingTop: pad, paddingBottom: pad,
+    paddingLeft: px, paddingRight: px,
   }
 }
 
