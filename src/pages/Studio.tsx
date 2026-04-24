@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Camera, Check, ChevronLeft, ChevronRight, Copy, Download, Plus, X, Zap } from 'lucide-react'
+import { Camera, Check, ChevronLeft, ChevronRight, Copy, Download, Image, Link, Plus, Share2, Sparkles, Trash2, X, Zap } from 'lucide-react'
 import { toast } from 'sonner'
 import { toPng } from 'html-to-image'
 import JSZip from 'jszip'
@@ -104,24 +104,11 @@ const inputSt: React.CSSProperties = {
   color: T, fontFamily: ff, outline: 'none', transition: 'border-color 0.2s',
 }
 
-function ToggleChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
-  return (
-    <button onClick={onClick} style={{
-      height: 36, padding: '0 14px',
-      backgroundColor: active ? A : S2,
-      color: active ? '#000' : M,
-      border: `1px solid ${active ? A : B}`,
-      borderRadius: 8, fontSize: 13, fontWeight: active ? 700 : 400,
-      fontFamily: ff, cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
-    }}>
-      {label}
-    </button>
-  )
-}
 
 // ─── Header ───────────────────────────────────────────────────
 function Header() {
   const { plan, exportsRemaining, exportLimit } = usePlan()
+  const navigate = useNavigate()
   const PLAN_COLORS: Record<string, string> = { free: M2, criador: '#00B4D8', profissional: A, agencia: '#A855F7' }
   const color = PLAN_COLORS[plan] ?? M2
 
@@ -132,9 +119,30 @@ function Header() {
       borderBottom: `1px solid ${B}`, padding: '0 24px',
       display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 56,
     }}>
-      <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 22, color: T, letterSpacing: 1.5 }}>
-        Conteúd<span style={{ color: A }}>OS</span>
-      </span>
+      {/* Left: back button + logo */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <button
+          onClick={() => navigate('/dashboard')}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: M, fontFamily: ff, fontSize: 13,
+            padding: '6px 10px 6px 6px', borderRadius: 8,
+            transition: 'color 0.15s, background 0.15s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.color = T; e.currentTarget.style.background = B }}
+          onMouseLeave={e => { e.currentTarget.style.color = M; e.currentTarget.style.background = 'none' }}
+        >
+          <ChevronLeft size={16} />
+          Dashboard
+        </button>
+        <div style={{ width: 1, height: 20, background: B }} />
+        <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 22, color: T, letterSpacing: 1.5 }}>
+          Conteúd<span style={{ color: A }}>OS</span>
+        </span>
+      </div>
+
+      {/* Right: plan badge + exports */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <span style={{
           fontSize: 11, fontFamily: ff, fontWeight: 700, color,
@@ -152,6 +160,64 @@ function Header() {
   )
 }
 
+// ─── Tooltip chip wrapper ──────────────────────────────────────
+function TooltipChip({
+  label, active, onClick, tooltip,
+}: { label: string; active: boolean; onClick: () => void; tooltip: string }) {
+  const [show, setShow] = useState(false)
+  return (
+    <div style={{ position: 'relative', display: 'inline-block' }}>
+      <button
+        onClick={onClick}
+        onMouseEnter={() => setShow(true)}
+        onMouseLeave={() => setShow(false)}
+        style={{
+          height: 36, padding: '0 14px',
+          backgroundColor: active ? A : S2,
+          color: active ? '#000' : M,
+          border: `1px solid ${active ? A : B}`,
+          borderRadius: 8, fontSize: 13, fontWeight: active ? 700 : 400,
+          fontFamily: ff, cursor: 'pointer', transition: 'all 0.15s', whiteSpace: 'nowrap',
+        }}
+      >
+        {label}
+      </button>
+      <AnimatePresence>
+        {show && (
+          <motion.div
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.15 }}
+            style={{
+              position: 'absolute', bottom: 'calc(100% + 8px)', left: '50%',
+              transform: 'translateX(-50%)',
+              background: '#1A1A1A', border: '1px solid rgba(255,255,255,0.12)',
+              borderRadius: 8, padding: '8px 12px',
+              fontFamily: ff, fontSize: 12, color: T,
+              whiteSpace: 'nowrap', zIndex: 50,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.6)',
+              maxWidth: 220, whiteSpaceCollapse: 'collapse',
+              textAlign: 'center', lineHeight: 1.4,
+            } as React.CSSProperties}
+          >
+            {tooltip}
+            {/* Arrow */}
+            <div style={{
+              position: 'absolute', top: '100%', left: '50%',
+              transform: 'translateX(-50%)',
+              width: 0, height: 0,
+              borderLeft: '6px solid transparent',
+              borderRight: '6px solid transparent',
+              borderTop: '6px solid #1A1A1A',
+            }} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 // ─── Estado 1: Input ──────────────────────────────────────────
 function StateInput({
   temaInit, onGenerate,
@@ -159,12 +225,39 @@ function StateInput({
   temaInit: string
   onGenerate: (config: { tema: string; slides: number; tom: string; cta: string }) => void
 }) {
-  const [tema, setTema] = useState(temaInit)
-  const [slides, setSlides] = useState(7)
-  const [tom, setTom] = useState('Provocador')
-  const [cta, setCta] = useState('Engajamento')
+  const [tema, setTema]         = useState(temaInit)
+  const [slides, setSlides]     = useState(7)
+  const [tom, setTom]           = useState('Provocador')
+  const [cta, setCta]           = useState('Engajamento')
+  const [viralOpen, setViralOpen] = useState(false)
+  const [viralMode, setViralMode] = useState<'link' | 'texto'>('link')
+  const [viralLink, setViralLink] = useState('')
+  const [viralText, setViralText] = useState('')
 
   const canCreate = tema.trim().length >= 4
+
+  const SLIDE_TOOLTIPS: Record<number, string> = {
+    5:  '5 slides — formato direto: capa, 3 pontos e CTA',
+    7:  '7 slides — fluxo completo com capa, desenvolvimento e CTA',
+    10: '10 slides — aprofundamento com contexto e exemplos',
+    12: '12 slides — storytelling longo com arco narrativo',
+    15: '15 slides — conteúdo denso, ideal para tutoriais',
+  }
+  const TOM_TOOLTIPS: Record<string, string> = {
+    Provocador: 'Questiona crenças e provoca reflexão — alto engajamento',
+    Educativo:  'Ensina de forma clara e didática — ideal para autoridade',
+    Bastidor:   'Mostra o processo por trás — humaniza e cria conexão',
+    Humor:      'Usa leveza e ironia para comunicar — viraliza rápido',
+  }
+
+  function applyViral() {
+    const content = viralMode === 'link' ? viralLink.trim() : viralText.trim()
+    if (!content) return
+    setTema(content.length > 120 ? content.slice(0, 120) : content)
+    setViralOpen(false)
+    setViralLink('')
+    setViralText('')
+  }
 
   return (
     <motion.div
@@ -173,10 +266,7 @@ function StateInput({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -16 }}
       transition={{ duration: 0.25 }}
-      style={{
-        width: '100%', maxWidth: 640,
-        display: 'flex', flexDirection: 'column', gap: 20,
-      }}
+      style={{ width: '100%', maxWidth: 640, display: 'flex', flexDirection: 'column', gap: 20 }}
     >
       {/* Título */}
       <h1 style={{
@@ -194,15 +284,132 @@ function StateInput({
         value={tema}
         onChange={(e) => setTema(e.target.value)}
         onClick={(e) => e.stopPropagation()}
-        placeholder="Ex: por que a maioria das pessoas nunca para de procrastinar"
+        placeholder="Ex: por que 97% das pessoas nunca atingem a meta que definem"
         onKeyDown={(e) => { if (e.key === 'Enter' && canCreate) onGenerate({ tema, slides, tom, cta }) }}
         style={{
-          ...inputSt, width: '100%', height: 64, padding: '0 20px',
-          fontSize: 16, boxSizing: 'border-box',
+          ...inputSt, width: '100%', height: 72, padding: '0 20px',
+          fontSize: 18, boxSizing: 'border-box',
         }}
         onFocus={(e) => { e.target.style.borderColor = A }}
         onBlur={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.3)' }}
       />
+
+      {/* Botão "Analisar conteúdo viral" */}
+      <div>
+        <button
+          onClick={() => setViralOpen(v => !v)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            background: viralOpen ? 'rgba(0,180,216,0.15)' : 'rgba(0,180,216,0.08)',
+            border: '1px solid #00B4D8',
+            borderRadius: viralOpen ? '10px 10px 0 0' : 10,
+            color: '#00B4D8', fontFamily: ff, fontSize: 13,
+            padding: '10px 16px', cursor: 'pointer',
+            transition: 'background 0.15s',
+            width: '100%',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,180,216,0.18)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = viralOpen ? 'rgba(0,180,216,0.15)' : 'rgba(0,180,216,0.08)' }}
+        >
+          <Link size={15} />
+          Analisar conteúdo do YouTube ou Instagram
+          <span style={{ marginLeft: 'auto', opacity: 0.7, fontSize: 12 }}>
+            {viralOpen ? '▲' : '▼'}
+          </span>
+        </button>
+
+        <AnimatePresence>
+          {viralOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.22, ease: 'easeInOut' }}
+              style={{ overflow: 'hidden' }}
+            >
+              <div style={{
+                background: 'rgba(0,180,216,0.05)',
+                border: '1px solid #00B4D8', borderTop: 'none',
+                borderRadius: '0 0 10px 10px',
+                padding: '20px 18px',
+                display: 'flex', flexDirection: 'column', gap: 14,
+              }}>
+                <p style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 16, color: T, margin: 0, letterSpacing: 1 }}>
+                  COLE O LINK OU O TEXTO DO CONTEÚDO VIRAL
+                </p>
+
+                {/* Toggle Link / Texto */}
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {(['link', 'texto'] as const).map(mode => (
+                    <button
+                      key={mode}
+                      onClick={() => setViralMode(mode)}
+                      style={{
+                        padding: '6px 16px', borderRadius: 8,
+                        background: viralMode === mode ? '#00B4D8' : 'transparent',
+                        border: `1px solid ${viralMode === mode ? '#00B4D8' : 'rgba(0,180,216,0.3)'}`,
+                        color: viralMode === mode ? '#000' : '#00B4D8',
+                        fontFamily: ff, fontSize: 13, cursor: 'pointer',
+                        textTransform: 'capitalize', transition: 'all 0.15s',
+                      }}
+                    >
+                      {mode === 'link' ? 'Link' : 'Texto'}
+                    </button>
+                  ))}
+                </div>
+
+                {viralMode === 'link' ? (
+                  <input
+                    type="url"
+                    value={viralLink}
+                    onChange={e => setViralLink(e.target.value)}
+                    placeholder="youtube.com/watch?v=... ou link do post do Instagram"
+                    style={{
+                      ...inputSt, width: '100%', height: 44, padding: '0 14px',
+                      fontSize: 14, boxSizing: 'border-box',
+                      border: '1px solid rgba(0,180,216,0.4)',
+                    }}
+                    onFocus={e => { e.target.style.borderColor = '#00B4D8' }}
+                    onBlur={e => { e.target.style.borderColor = 'rgba(0,180,216,0.4)' }}
+                  />
+                ) : (
+                  <textarea
+                    value={viralText}
+                    onChange={e => setViralText(e.target.value)}
+                    placeholder="Cole aqui a transcrição, legenda ou texto do conteúdo viral..."
+                    rows={5}
+                    style={{
+                      ...inputSt, width: '100%', padding: '12px 14px',
+                      fontSize: 14, boxSizing: 'border-box', resize: 'vertical',
+                      border: '1px solid rgba(0,180,216,0.4)',
+                    }}
+                    onFocus={e => { e.target.style.borderColor = '#00B4D8' }}
+                    onBlur={e => { e.target.style.borderColor = 'rgba(0,180,216,0.4)' }}
+                  />
+                )}
+
+                <p style={{ fontFamily: ff, fontSize: 12, color: 'rgba(0,180,216,0.7)', margin: 0, lineHeight: 1.5 }}>
+                  A IA vai identificar os hacks psicológicos usados e recriar na sua voz
+                </p>
+
+                <button
+                  onClick={applyViral}
+                  disabled={!(viralMode === 'link' ? viralLink.trim() : viralText.trim())}
+                  style={{
+                    background: '#00B4D8', color: '#000', border: 'none',
+                    borderRadius: 8, padding: '11px 0', cursor: 'pointer',
+                    fontFamily: '"Bebas Neue", sans-serif', fontSize: 16, letterSpacing: 1,
+                    opacity: !(viralMode === 'link' ? viralLink.trim() : viralText.trim()) ? 0.4 : 1,
+                    transition: 'opacity 0.15s',
+                  }}
+                >
+                  EXTRAIR E ANALISAR →
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* Opções */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -210,15 +417,27 @@ function StateInput({
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 12, color: M, fontFamily: ff, minWidth: 48 }}>Slides:</span>
           {[5, 7, 10, 12, 15].map((n) => (
-            <ToggleChip key={n} label={String(n)} active={slides === n} onClick={() => setSlides(n)} />
+            <TooltipChip
+              key={n}
+              label={String(n)}
+              active={slides === n}
+              onClick={() => setSlides(n)}
+              tooltip={SLIDE_TOOLTIPS[n]}
+            />
           ))}
         </div>
 
         {/* Tom */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 12, color: M, fontFamily: ff, minWidth: 48 }}>Tom:</span>
-          {['Provocador', 'Educativo', 'Bastidor', 'Humor'].map((t) => (
-            <ToggleChip key={t} label={t} active={tom === t} onClick={() => setTom(t)} />
+          {(['Provocador', 'Educativo', 'Bastidor', 'Humor'] as const).map((t) => (
+            <TooltipChip
+              key={t}
+              label={t}
+              active={tom === t}
+              onClick={() => setTom(t)}
+              tooltip={TOM_TOOLTIPS[t]}
+            />
           ))}
         </div>
 
@@ -242,37 +461,31 @@ function StateInput({
       </div>
 
       {/* Botão principal */}
-      <button
-        onClick={() => onGenerate({ tema, slides, tom, cta })}
-        disabled={!canCreate}
-        style={{
-          width: '100%', height: 56,
-          backgroundColor: canCreate ? A : S2,
-          color: canCreate ? '#000' : M,
-          border: 'none', borderRadius: 10,
-          fontFamily: '"Bebas Neue", sans-serif', fontSize: 22,
-          letterSpacing: 1.5, cursor: canCreate ? 'pointer' : 'not-allowed',
-          opacity: canCreate ? 1 : 0.5,
-          transition: 'all 0.2s', display: 'flex', alignItems: 'center',
-          justifyContent: 'center', gap: 10,
-        }}
-        onMouseEnter={(e) => { if (canCreate) e.currentTarget.style.backgroundColor = '#ADDF00' }}
-        onMouseLeave={(e) => { if (canCreate) e.currentTarget.style.backgroundColor = A }}
-      >
-        <Zap size={18} />
-        ANALISAR E CRIAR CARROSSEL →
-      </button>
-
-      {/* Link secundário */}
-      <button
-        style={{
-          background: 'none', border: 'none', color: M, fontSize: 13,
-          fontFamily: ff, cursor: 'pointer', textAlign: 'center',
-          textDecoration: 'underline', textDecorationColor: 'rgba(255,255,255,0.2)',
-        }}
-      >
-        Tenho um conteúdo viral para analisar primeiro →
-      </button>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+        <button
+          onClick={() => onGenerate({ tema, slides, tom, cta })}
+          disabled={!canCreate}
+          style={{
+            width: '100%', height: 56,
+            backgroundColor: canCreate ? A : S2,
+            color: canCreate ? '#000' : M,
+            border: 'none', borderRadius: 10,
+            fontFamily: '"Bebas Neue", sans-serif', fontSize: 22,
+            letterSpacing: 1.5, cursor: canCreate ? 'pointer' : 'not-allowed',
+            opacity: canCreate ? 1 : 0.5,
+            transition: 'all 0.2s', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', gap: 10,
+          }}
+          onMouseEnter={(e) => { if (canCreate) e.currentTarget.style.backgroundColor = '#ADDF00' }}
+          onMouseLeave={(e) => { if (canCreate) e.currentTarget.style.backgroundColor = A }}
+        >
+          <Zap size={18} />
+          ANALISAR E CRIAR CARROSSEL →
+        </button>
+        <span style={{ fontFamily: ff, fontSize: 12, color: M, textAlign: 'center' }}>
+          Gera copy, aplica hacks virais e monta o carrossel em ~30 segundos
+        </span>
+      </div>
     </motion.div>
   )
 }
@@ -538,12 +751,14 @@ function StatePreview({
   initialLegenda,
   carouselId,
   hasWatermark,
+  previewToken,
 }: {
   onBack: () => void
   initialSlides: Slide[]
   initialLegenda?: string
   carouselId?: string
   hasWatermark?: boolean
+  previewToken?: string
 }) {
   const { canExport, plan, exportsRemaining } = usePlan()
   const [slides, setSlides] = useState<Slide[]>(initialSlides)
@@ -558,6 +773,10 @@ function StatePreview({
   const [imageGenProgress, setImageGenProgress] = useState<string | null>(null)
   const [uploadingSlideId, setUploadingSlideId] = useState<string | null>(null)
   const [selectedEl, setSelectedEl] = useState<'titulo' | 'corpo' | null>(null)
+  const [dragId, setDragId] = useState<string | null>(null)
+  const [dragOverId, setDragOverId] = useState<string | null>(null)
+  const [showSchedule, setShowSchedule] = useState(false)
+  const [scheduleDate, setScheduleDate] = useState('')
   const exportRefs = useRef<(HTMLDivElement | null)[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const uploadTargetSlideId = useRef<string>('')
@@ -692,18 +911,6 @@ function StatePreview({
     if (activeSlide >= next.length) setActiveSlide(Math.max(0, next.length - 1))
   }
 
-  const moveSlide = (id: string, dir: 'up' | 'down') => {
-    setSlides((prev) => {
-      const idx = prev.findIndex((s) => s.id === id)
-      if (dir === 'up' && idx === 0) return prev
-      if (dir === 'down' && idx === prev.length - 1) return prev
-      const next = [...prev]
-      const target = dir === 'up' ? idx - 1 : idx + 1
-      ;[next[idx], next[target]] = [next[target], next[idx]]
-      setActiveSlide(target)
-      return next
-    })
-  }
 
   const addSlide = () => {
     const newSlide: Slide = {
@@ -711,6 +918,45 @@ function StatePreview({
     }
     setSlides((prev) => [...prev, newSlide])
     setActiveSlide(slides.length)
+  }
+
+  const duplicateSlide = (id: string) => {
+    setSlides((prev) => {
+      const idx = prev.findIndex((s) => s.id === id)
+      if (idx === -1) return prev
+      const copy: Slide = { ...prev[idx], id: String(Date.now()) }
+      const next = [...prev]
+      next.splice(idx + 1, 0, copy)
+      setActiveSlide(idx + 1)
+      return next
+    })
+  }
+
+  const reorderSlide = (fromId: string, toId: string) => {
+    setSlides((prev) => {
+      const from = prev.findIndex((s) => s.id === fromId)
+      const to   = prev.findIndex((s) => s.id === toId)
+      if (from === -1 || to === -1 || from === to) return prev
+      const next = [...prev]
+      const [moved] = next.splice(from, 1)
+      next.splice(to, 0, moved)
+      setActiveSlide(to)
+      return next
+    })
+  }
+
+  const schedulePost = async () => {
+    if (!carouselId || !scheduleDate) return
+    const { error } = await supabase.from('scheduled_posts').insert({
+      carousel_id: carouselId,
+      scheduled_at: new Date(scheduleDate).toISOString(),
+      notify_minutes_before: 10,
+      status: 'pending',
+    })
+    if (error) { toast.error('Erro ao agendar'); return }
+    toast.success('Post agendado')
+    setShowSchedule(false)
+    setScheduleDate('')
   }
 
   const current = slides[activeSlide]
@@ -853,419 +1099,334 @@ function StatePreview({
       {/* ── Editor (esq 40%) ── */}
       <div style={{
         width: '40%', minWidth: 300, height: '100%',
-        overflowY: 'auto', borderRight: `1px solid ${B}`,
-        padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: 16,
+        display: 'flex', flexDirection: 'column',
+        borderRight: `1px solid ${B}`, overflow: 'hidden',
       }}>
-        <h3 style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 20, color: A, margin: 0, letterSpacing: 1.5 }}>
-          SEUS SLIDES
-        </h3>
+        {/* Panel header */}
+        <div style={{
+          padding: '12px 16px', borderBottom: `1px solid ${B}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          flexShrink: 0, background: BG,
+        }}>
+          <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 14, color: A, letterSpacing: 1 }}>
+            {slides.length} SLIDES
+          </span>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button
+              onClick={() => toast.success('Rascunho salvo')}
+              style={{
+                background: 'none', border: `1px solid ${B}`, borderRadius: 6,
+                color: M, fontFamily: ff, fontSize: 11, cursor: 'pointer', padding: '5px 10px',
+                transition: 'border-color 0.15s, color 0.15s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.color = T }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = B; e.currentTarget.style.color = M }}
+            >
+              Salvar rascunho
+            </button>
+            <button
+              onClick={onBack}
+              style={{
+                background: 'none', border: 'none', color: M, fontFamily: ff, fontSize: 12,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+                transition: 'color 0.15s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = T)}
+              onMouseLeave={(e) => (e.currentTarget.style.color = M)}
+            >
+              <ChevronLeft size={14} /> Voltar
+            </button>
+          </div>
+        </div>
 
-        {/* Slide cards */}
-        {slides.map((slide, idx) => (
-          <React.Fragment key={slide.id}>
+        {/* Scrollable list */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {slides.map((slide, idx) => {
+            const isActive = activeSlide === idx
+            return (
+              <div
+                key={slide.id}
+                draggable
+                onDragStart={() => setDragId(slide.id)}
+                onDragOver={(e) => { e.preventDefault(); setDragOverId(slide.id) }}
+                onDrop={() => {
+                  if (dragId && dragId !== slide.id) reorderSlide(dragId, slide.id)
+                  setDragId(null); setDragOverId(null)
+                }}
+                onDragEnd={() => { setDragId(null); setDragOverId(null) }}
+                onClick={() => setActiveSlide(idx)}
+                style={{
+                  backgroundColor: isActive ? 'rgba(200,255,0,0.06)' : S2,
+                  border: `1px solid ${dragOverId === slide.id ? A : isActive ? 'rgba(200,255,0,0.4)' : B}`,
+                  borderRadius: 10, padding: isActive ? '12px 14px' : '9px 14px',
+                  cursor: 'grab', position: 'relative', transition: 'all 0.15s',
+                  opacity: dragId === slide.id ? 0.4 : 1,
+                }}
+              >
+                {/* Header row */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isActive ? 8 : 0 }}>
+                  <span style={{ fontSize: 10, color: isActive ? A : M, fontFamily: ff, fontWeight: 700, letterSpacing: 1 }}>
+                    SLIDE {idx + 1}
+                  </span>
+                  <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); duplicateSlide(slide.id) }}
+                      title="Duplicar"
+                      style={{ background: 'none', border: 'none', color: M, cursor: 'pointer', padding: 2, display: 'flex', opacity: 0.6, transition: 'opacity 0.15s' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = T }}
+                      onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.6'; e.currentTarget.style.color = M }}
+                    >
+                      <Copy size={12} />
+                    </button>
+                    {slides.length > 1 && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); removeSlide(slide.id) }}
+                        title="Remover"
+                        style={{ background: 'none', border: 'none', color: M, cursor: 'pointer', padding: 2, display: 'flex', opacity: 0.6, transition: 'opacity 0.15s' }}
+                        onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = '#f87171' }}
+                        onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.6'; e.currentTarget.style.color = M }}
+                      >
+                        <X size={12} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Compact: truncated title */}
+                {!isActive && (
+                  <p style={{
+                    fontFamily: '"Bebas Neue", sans-serif', fontSize: 13, color: T,
+                    margin: '4px 0 0', letterSpacing: 0.5,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {slide.titulo}
+                  </p>
+                )}
+
+                {/* Expanded: full edit fields */}
+                {isActive && (
+                  <>
+                    {editingField?.id === slide.id && editingField.field === 'titulo' ? (
+                      <input autoFocus value={slide.titulo}
+                        onChange={(e) => updateSlide(slide.id, 'titulo', e.target.value)}
+                        onBlur={() => setEditingField(null)}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ backgroundColor: 'rgba(0,0,0,0.3)', border: `1px solid rgba(200,255,0,0.4)`, borderRadius: 6, color: T, fontFamily: '"Bebas Neue", sans-serif', fontSize: 14, letterSpacing: 0.5, padding: '4px 8px', width: '100%', outline: 'none', boxSizing: 'border-box', marginBottom: 6 }}
+                      />
+                    ) : (
+                      <p onClick={(e) => { e.stopPropagation(); setActiveSlide(idx); setEditingField({ id: slide.id, field: 'titulo' }) }}
+                        style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 14, color: T, margin: '0 0 6px', letterSpacing: 0.5, cursor: 'text', padding: '2px 4px', borderRadius: 4, transition: 'background 0.15s' }}
+                      >
+                        {slide.titulo}
+                      </p>
+                    )}
+
+                    {selectedTemplate === 'comparacao' && idx !== 0 && idx !== slides.length - 1 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }} onClick={(e) => e.stopPropagation()}>
+                        <div>
+                          <span style={{ fontSize: 9, color: '#ff7070', fontFamily: ff, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Antes</span>
+                          <textarea value={slide.beforeText ?? ''} onChange={(e) => updateSlide(slide.id, 'beforeText', e.target.value)} rows={2}
+                            style={{ backgroundColor: 'rgba(0,0,0,0.3)', border: `1px solid rgba(255,112,112,0.35)`, borderRadius: 6, color: M, fontFamily: ff, fontSize: 11, lineHeight: 1.5, padding: '4px 8px', width: '100%', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }} />
+                        </div>
+                        <div>
+                          <span style={{ fontSize: 9, color: A, fontFamily: ff, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Depois</span>
+                          <textarea value={slide.afterText ?? ''} onChange={(e) => updateSlide(slide.id, 'afterText', e.target.value)} rows={2}
+                            style={{ backgroundColor: 'rgba(0,0,0,0.3)', border: `1px solid rgba(200,255,0,0.35)`, borderRadius: 6, color: M, fontFamily: ff, fontSize: 11, lineHeight: 1.5, padding: '4px 8px', width: '100%', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }} />
+                        </div>
+                      </div>
+                    ) : (
+                      editingField?.id === slide.id && editingField.field === 'corpo' ? (
+                        <textarea autoFocus value={slide.corpo}
+                          onChange={(e) => updateSlide(slide.id, 'corpo', e.target.value)}
+                          onBlur={() => setEditingField(null)}
+                          onClick={(e) => e.stopPropagation()}
+                          rows={3}
+                          style={{ backgroundColor: 'rgba(0,0,0,0.3)', border: `1px solid rgba(200,255,0,0.4)`, borderRadius: 6, color: M, fontFamily: ff, fontSize: 11, lineHeight: 1.5, padding: '4px 8px', width: '100%', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }}
+                        />
+                      ) : (
+                        <p onClick={(e) => { e.stopPropagation(); setActiveSlide(idx); setEditingField({ id: slide.id, field: 'corpo' }) }}
+                          style={{ fontSize: 11, color: M, fontFamily: ff, margin: 0, lineHeight: 1.5, cursor: 'text', padding: '2px 4px', borderRadius: 4, whiteSpace: 'pre-wrap' }}
+                        >
+                          {slide.corpo || <span style={{ opacity: 0.4, fontStyle: 'italic' }}>vazio</span>}
+                        </p>
+                      )
+                    )}
+
+                    {slide.bgImageUrl && (
+                      <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }} onClick={(e) => e.stopPropagation()}>
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                            <span style={{ fontSize: 10, color: M, fontFamily: ff }}>Opacidade da imagem</span>
+                            <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700 }}>{slide.imageOpacity ?? 100}%</span>
+                          </div>
+                          <input type="range" min={10} max={100} value={slide.imageOpacity ?? 100}
+                            onChange={(e) => updateImageOpacity(slide.id, Number(e.target.value))}
+                            style={{ width: '100%', accentColor: A, cursor: 'pointer' }} />
+                        </div>
+                        {idx !== 0 && (
+                          <div>
+                            <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 4 }}>Posição do texto</span>
+                            <div style={{ display: 'flex', gap: 4 }}>
+                              {(['top', 'center', 'bottom'] as const).map((pos) => {
+                                const labels = { top: 'Topo', center: 'Centro', bottom: 'Base' }
+                                const sel = (slide.textPosition ?? 'bottom') === pos
+                                return (
+                                  <button key={pos} onClick={() => updateTextPosition(slide.id, pos)} style={{
+                                    flex: 1, padding: '3px 0', borderRadius: 5, fontSize: 10, fontFamily: ff,
+                                    backgroundColor: sel ? 'rgba(200,255,0,0.1)' : 'transparent',
+                                    border: `1px solid ${sel ? 'rgba(200,255,0,0.4)' : B}`,
+                                    color: sel ? A : M, cursor: 'pointer', transition: 'all 0.15s',
+                                  }}>{labels[pos]}</button>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )
+          })}
+
+          {/* Add slide */}
+          <button onClick={addSlide} style={{
+            backgroundColor: 'transparent', border: `1px dashed ${B}`, borderRadius: 10,
+            padding: '10px 14px', color: M, fontSize: 13, fontFamily: ff,
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            transition: 'border-color 0.15s',
+          }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = B }}>
+            <Plus size={14} /> Adicionar slide vazio
+          </button>
+
+          {/* Legenda */}
+          <div style={{ marginTop: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <h3 style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 18, color: A, margin: 0, letterSpacing: 1.5 }}>LEGENDA</h3>
+              <button onClick={copyLegenda} style={{ backgroundColor: 'rgba(200,255,0,0.08)', border: `1px solid rgba(200,255,0,0.2)`, borderRadius: 6, padding: '5px 10px', color: A, fontSize: 11, fontFamily: ff, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Copy size={11} /> Copiar
+              </button>
+            </div>
+            <textarea value={legenda} onChange={(e) => setLegenda(e.target.value)} rows={6}
+              style={{ width: '100%', backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 8, color: T, fontSize: 12, fontFamily: ff, lineHeight: 1.7, padding: '10px 12px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+              onFocus={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.3)' }}
+              onBlur={(e) => { e.target.style.borderColor = B }}
+            />
+          </div>
+        </div>
+
+        {/* Formatting panel — sticky bottom */}
+        {selectedEl && current && (
           <div
-            onClick={() => setActiveSlide(idx)}
+            onClick={(e) => e.stopPropagation()}
             style={{
-              backgroundColor: activeSlide === idx ? 'rgba(200,255,0,0.06)' : S2,
-              border: `1px solid ${activeSlide === idx ? 'rgba(200,255,0,0.4)' : B}`,
-              borderRadius: 10, padding: '12px 14px',
-              cursor: 'pointer', position: 'relative', transition: 'all 0.15s',
+              position: 'sticky', bottom: 0,
+              backgroundColor: BG, borderTop: `1px solid rgba(200,255,0,0.25)`,
+              padding: '14px', display: 'flex', flexDirection: 'column', gap: 12,
+              maxHeight: '52vh', overflowY: 'auto', flexShrink: 0,
             }}
           >
-            {/* Slide number + controls */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700, letterSpacing: 1 }}>
-                SLIDE {idx + 1}
-              </span>
-              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                {/* Mover ↑ */}
-                <button
-                  onClick={(e) => { e.stopPropagation(); moveSlide(slide.id, 'up') }}
-                  disabled={idx === 0}
-                  style={{
-                    background: 'none', border: 'none', color: idx === 0 ? M2 : M, cursor: idx === 0 ? 'default' : 'pointer',
-                    padding: 2, display: 'flex', fontSize: 11, lineHeight: 1,
-                  }}
-                  title="Mover para cima"
-                >↑</button>
-                {/* Mover ↓ */}
-                <button
-                  onClick={(e) => { e.stopPropagation(); moveSlide(slide.id, 'down') }}
-                  disabled={idx === slides.length - 1}
-                  style={{
-                    background: 'none', border: 'none', color: idx === slides.length - 1 ? M2 : M, cursor: idx === slides.length - 1 ? 'default' : 'pointer',
-                    padding: 2, display: 'flex', fontSize: 11, lineHeight: 1,
-                  }}
-                  title="Mover para baixo"
-                >↓</button>
-                {/* Remover */}
-                {slides.length > 1 && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); removeSlide(slide.id) }}
-                    style={{
-                      background: 'none', border: 'none', color: M, cursor: 'pointer',
-                      padding: 2, display: 'flex', opacity: 0.6, transition: 'opacity 0.15s',
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = '#f87171' }}
-                    onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.6'; e.currentTarget.style.color = M }}
-                  >
-                    <X size={13} />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Título */}
-            {editingField?.id === slide.id && editingField.field === 'titulo' ? (
-              <input
-                autoFocus
-                value={slide.titulo}
-                onChange={(e) => updateSlide(slide.id, 'titulo', e.target.value)}
-                onBlur={() => setEditingField(null)}
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                  backgroundColor: 'rgba(0,0,0,0.3)', border: `1px solid rgba(200,255,0,0.4)`,
-                  borderRadius: 6, color: T, fontFamily: '"Bebas Neue", sans-serif', fontSize: 14,
-                  letterSpacing: 0.5, padding: '4px 8px', width: '100%', outline: 'none',
-                  boxSizing: 'border-box', marginBottom: 6,
-                }}
-              />
-            ) : (
-              <p
-                onClick={(e) => { e.stopPropagation(); setActiveSlide(idx); setEditingField({ id: slide.id, field: 'titulo' }) }}
-                style={{
-                  fontFamily: '"Bebas Neue", sans-serif', fontSize: 14, color: T,
-                  margin: '0 0 6px', letterSpacing: 0.5, cursor: 'text',
-                  padding: '2px 4px', borderRadius: 4,
-                  transition: 'background 0.15s',
-                }}
-                title="Clique para editar"
-              >
-                {slide.titulo}
-              </p>
-            )}
-
-            {/* Corpo — Comparação mid slide: mostrar ANTES / DEPOIS separados */}
-            {selectedTemplate === 'comparacao' && idx !== 0 && idx !== slides.length - 1 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }} onClick={(e) => e.stopPropagation()}>
-                <div>
-                  <span style={{ fontSize: 9, color: '#ff7070', fontFamily: ff, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Antes</span>
-                  <textarea
-                    value={slide.beforeText ?? ''}
-                    onChange={(e) => updateSlide(slide.id, 'beforeText', e.target.value)}
-                    rows={2}
-                    style={{
-                      backgroundColor: 'rgba(0,0,0,0.3)', border: `1px solid rgba(255,112,112,0.35)`,
-                      borderRadius: 6, color: M, fontFamily: ff, fontSize: 11, lineHeight: 1.5,
-                      padding: '4px 8px', width: '100%', outline: 'none', resize: 'vertical',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                </div>
-                <div>
-                  <span style={{ fontSize: 9, color: A, fontFamily: ff, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Depois</span>
-                  <textarea
-                    value={slide.afterText ?? ''}
-                    onChange={(e) => updateSlide(slide.id, 'afterText', e.target.value)}
-                    rows={2}
-                    style={{
-                      backgroundColor: 'rgba(0,0,0,0.3)', border: `1px solid rgba(200,255,0,0.35)`,
-                      borderRadius: 6, color: M, fontFamily: ff, fontSize: 11, lineHeight: 1.5,
-                      padding: '4px 8px', width: '100%', outline: 'none', resize: 'vertical',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                </div>
-              </div>
-            ) : (
-              /* Corpo padrão */
-              editingField?.id === slide.id && editingField.field === 'corpo' ? (
-                <textarea
-                  autoFocus
-                  value={slide.corpo}
-                  onChange={(e) => updateSlide(slide.id, 'corpo', e.target.value)}
-                  onBlur={() => setEditingField(null)}
-                  onClick={(e) => e.stopPropagation()}
-                  rows={3}
-                  style={{
-                    backgroundColor: 'rgba(0,0,0,0.3)', border: `1px solid rgba(200,255,0,0.4)`,
-                    borderRadius: 6, color: M, fontFamily: ff, fontSize: 11, lineHeight: 1.5,
-                    padding: '4px 8px', width: '100%', outline: 'none', resize: 'vertical',
-                    boxSizing: 'border-box',
-                  }}
-                />
-              ) : (
-                <p
-                  onClick={(e) => { e.stopPropagation(); setActiveSlide(idx); setEditingField({ id: slide.id, field: 'corpo' }) }}
-                  style={{
-                    fontSize: 11, color: M, fontFamily: ff, margin: 0, lineHeight: 1.5,
-                    cursor: 'text', padding: '2px 4px', borderRadius: 4,
-                    whiteSpace: 'pre-wrap',
-                  }}
-                  title="Clique para editar"
-                >
-                  {slide.corpo || <span style={{ opacity: 0.4, fontStyle: 'italic' }}>vazio</span>}
-                </p>
-              )
-            )}
-
-            {/* Controles de imagem — slider + posição do texto */}
-            {slide.bgImageUrl && (
-              <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }} onClick={(e) => e.stopPropagation()}>
-                {/* Opacidade da imagem */}
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <span style={{ fontSize: 10, color: M, fontFamily: ff }}>Opacidade da imagem</span>
-                    <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700 }}>
-                      {slide.imageOpacity ?? 100}%
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min={10}
-                    max={100}
-                    value={slide.imageOpacity ?? 100}
-                    onChange={(e) => updateImageOpacity(slide.id, Number(e.target.value))}
-                    style={{ width: '100%', accentColor: A, cursor: 'pointer' }}
-                  />
-                </div>
-
-                {/* Posição do texto — só em slides não-capa */}
-                {idx !== 0 && (
-                  <div>
-                    <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 4 }}>Posição do texto</span>
-                    <div style={{ display: 'flex', gap: 4 }}>
-                      {(['top', 'center', 'bottom'] as const).map((pos) => {
-                        const labels = { top: 'Topo', center: 'Centro', bottom: 'Base' }
-                        const sel = (slide.textPosition ?? 'bottom') === pos
-                        return (
-                          <button key={pos} onClick={() => updateTextPosition(slide.id, pos)} style={{
-                            flex: 1, padding: '3px 0', borderRadius: 5, fontSize: 10, fontFamily: ff,
-                            backgroundColor: sel ? 'rgba(200,255,0,0.1)' : 'transparent',
-                            border: `1px solid ${sel ? 'rgba(200,255,0,0.4)' : B}`,
-                            color: sel ? A : M, cursor: 'pointer', transition: 'all 0.15s',
-                          }}>
-                            {labels[pos]}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-          </div>
-
-          {/* ── Painel de formatação — aparece abaixo do card ativo quando texto está selecionado ── */}
-          {selectedEl && activeSlide === idx && (
-            <div
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                backgroundColor: '#0D0D0D', border: `1px solid rgba(200,255,0,0.25)`,
-                borderRadius: 10, padding: '14px', display: 'flex', flexDirection: 'column', gap: 12,
-              }}
-            >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>
                 Formatação — {selectedEl === 'titulo' ? 'Título' : 'Corpo'}
               </span>
+              <button onClick={() => setSelectedEl(null)} style={{ background: 'none', border: 'none', color: M, cursor: 'pointer', padding: 2, display: 'flex' }}>
+                <X size={14} />
+              </button>
+            </div>
 
-              {/* Tamanho da fonte */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <span style={{ fontSize: 10, color: M, fontFamily: ff }}>Tamanho</span>
-                  <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700 }}>
-                    {selectedEl === 'titulo' ? (slide.titleFontSize ?? 28) : (slide.bodyFontSize ?? 12)}px
-                  </span>
-                </div>
-                <input
-                  type="range" min={12} max={72}
-                  value={selectedEl === 'titulo' ? (slide.titleFontSize ?? 28) : (slide.bodyFontSize ?? 12)}
-                  onChange={(e) => updateSlideFormat(slide.id, selectedEl === 'titulo'
-                    ? { titleFontSize: Number(e.target.value) }
-                    : { bodyFontSize: Number(e.target.value) }
-                  )}
-                  style={{ width: '100%', accentColor: A, cursor: 'pointer' }}
-                />
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span style={{ fontSize: 10, color: M, fontFamily: ff }}>Tamanho</span>
+                <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700 }}>
+                  {selectedEl === 'titulo' ? (current.titleFontSize ?? 28) : (current.bodyFontSize ?? 12)}px
+                </span>
               </div>
+              <input type="range" min={12} max={72}
+                value={selectedEl === 'titulo' ? (current.titleFontSize ?? 28) : (current.bodyFontSize ?? 12)}
+                onChange={(e) => updateSlideFormat(current.id, selectedEl === 'titulo' ? { titleFontSize: Number(e.target.value) } : { bodyFontSize: Number(e.target.value) })}
+                style={{ width: '100%', accentColor: A, cursor: 'pointer' }} />
+            </div>
 
-              {/* Fonte — só para título */}
-              {selectedEl === 'titulo' && (
+            {selectedEl === 'titulo' && (
+              <>
                 <div>
                   <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 6 }}>Fonte</span>
-                  <select
-                    value={slide.fontFamily ?? '"Bebas Neue", sans-serif'}
-                    onChange={(e) => updateSlideFormat(slide.id, { fontFamily: e.target.value })}
-                    style={{
-                      width: '100%', backgroundColor: S2, border: `1px solid ${B}`,
-                      borderRadius: 6, color: T, fontFamily: ff, fontSize: 12,
-                      padding: '6px 8px', outline: 'none', cursor: 'pointer',
-                    }}
+                  <select value={current.fontFamily ?? '"Bebas Neue", sans-serif'}
+                    onChange={(e) => updateSlideFormat(current.id, { fontFamily: e.target.value })}
+                    style={{ width: '100%', backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, padding: '6px 8px', outline: 'none', cursor: 'pointer' }}
                   >
-                    {FONT_OPTIONS.map((f) => (
-                      <option key={f.value} value={f.value} style={{ fontFamily: f.value }}>
-                        {f.label}
-                      </option>
-                    ))}
+                    {FONT_OPTIONS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
                   </select>
                 </div>
-              )}
-
-              {/* Peso — só para título */}
-              {selectedEl === 'titulo' && (
                 <div style={{ display: 'flex', gap: 6 }}>
                   {(['normal', 'bold'] as const).map((w) => {
-                    const sel = (slide.fontWeightTitle ?? 'normal') === w
+                    const sel = (current.fontWeightTitle ?? 'normal') === w
                     return (
-                      <button key={w} onClick={() => updateSlideFormat(slide.id, { fontWeightTitle: w })} style={{
-                        flex: 1, padding: '4px 0', borderRadius: 6, fontSize: 11, fontFamily: ff,
-                        fontWeight: w === 'bold' ? 700 : 400,
+                      <button key={w} onClick={() => updateSlideFormat(current.id, { fontWeightTitle: w })} style={{
+                        flex: 1, padding: '4px 0', borderRadius: 6, fontSize: 11, fontFamily: ff, fontWeight: w === 'bold' ? 700 : 400,
                         backgroundColor: sel ? 'rgba(200,255,0,0.1)' : 'transparent',
                         border: `1px solid ${sel ? 'rgba(200,255,0,0.4)' : B}`,
                         color: sel ? A : M, cursor: 'pointer',
-                      }}>
-                        {w === 'normal' ? 'Normal' : 'Negrito'}
-                      </button>
+                      }}>{w === 'normal' ? 'Normal' : 'Negrito'}</button>
                     )
                   })}
                 </div>
-              )}
+              </>
+            )}
 
-              {/* Cor do texto */}
-              <div>
-                <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 6 }}>Cor</span>
-                <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap' }}>
-                  {TEXT_COLORS.map((c) => (
-                    <button
-                      key={c}
-                      onClick={() => updateSlideFormat(slide.id, { textColor: c })}
-                      style={{
-                        width: 22, height: 22, borderRadius: '50%', backgroundColor: c, border: 'none',
-                        cursor: 'pointer', flexShrink: 0,
-                        outline: (slide.textColor ?? '#F5F5F5') === c ? `2px solid ${A}` : '2px solid transparent',
-                        outlineOffset: 2, boxSizing: 'border-box',
-                      }}
-                    />
-                  ))}
-                  {/* Color picker personalizado */}
-                  <input
-                    type="color"
-                    value={slide.textColor ?? '#F5F5F5'}
-                    onChange={(e) => updateSlideFormat(slide.id, { textColor: e.target.value })}
-                    title="Cor personalizada"
-                    style={{
-                      width: 22, height: 22, borderRadius: '50%', border: `1px solid ${B}`,
-                      cursor: 'pointer', flexShrink: 0, padding: 0, backgroundColor: 'transparent',
-                    }}
-                  />
-                </div>
+            <div>
+              <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 6 }}>Cor</span>
+              <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap' }}>
+                {TEXT_COLORS.map((c) => (
+                  <button key={c} onClick={() => updateSlideFormat(current.id, { textColor: c })}
+                    style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: c, border: 'none', cursor: 'pointer', flexShrink: 0, outline: (current.textColor ?? '#F5F5F5') === c ? `2px solid ${A}` : '2px solid transparent', outlineOffset: 2 }} />
+                ))}
+                <input type="color" value={current.textColor ?? '#F5F5F5'}
+                  onChange={(e) => updateSlideFormat(current.id, { textColor: e.target.value })}
+                  style={{ width: 22, height: 22, borderRadius: '50%', border: `1px solid ${B}`, cursor: 'pointer', flexShrink: 0, padding: 0, backgroundColor: 'transparent' }} />
               </div>
-
-              {/* Alinhamento */}
-              <div style={{ display: 'flex', gap: 6 }}>
-                {(['left', 'center', 'right'] as const).map((a) => {
-                  const labels = { left: '←', center: '≡', right: '→' }
-                  const sel = (slide.textAlign ?? 'left') === a
-                  return (
-                    <button key={a} onClick={() => updateSlideFormat(slide.id, { textAlign: a })} style={{
-                      flex: 1, padding: '4px 0', borderRadius: 6, fontSize: 14, fontFamily: ff,
-                      backgroundColor: sel ? 'rgba(200,255,0,0.1)' : 'transparent',
-                      border: `1px solid ${sel ? 'rgba(200,255,0,0.4)' : B}`,
-                      color: sel ? A : M, cursor: 'pointer',
-                    }}>
-                      {labels[a]}
-                    </button>
-                  )
-                })}
-              </div>
-
-              {/* Espaço entre blocos */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <span style={{ fontSize: 10, color: M, fontFamily: ff }}>Espaço entre blocos</span>
-                  <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700 }}>
-                    {slide.blockSpacing ?? 16}px
-                  </span>
-                </div>
-                <input
-                  type="range" min={0} max={48}
-                  value={slide.blockSpacing ?? 16}
-                  onChange={(e) => updateSlideFormat(slide.id, { blockSpacing: Number(e.target.value) })}
-                  style={{ width: '100%', accentColor: A, cursor: 'pointer' }}
-                />
-              </div>
-
-              {/* Margem lateral */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <span style={{ fontSize: 10, color: M, fontFamily: ff }}>Margem lateral</span>
-                  <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700 }}>
-                    {slide.paddingX ?? 24}px
-                  </span>
-                </div>
-                <input
-                  type="range" min={0} max={60}
-                  value={slide.paddingX ?? 24}
-                  onChange={(e) => updatePaddingX(slide.id, Number(e.target.value))}
-                  style={{ width: '100%', accentColor: A, cursor: 'pointer' }}
-                />
-              </div>
-
-              {/* Fechar */}
-              <button
-                onClick={() => setSelectedEl(null)}
-                style={{
-                  background: 'none', border: `1px solid ${B}`, borderRadius: 6,
-                  color: M, fontSize: 11, fontFamily: ff, cursor: 'pointer', padding: '4px 0',
-                }}
-              >
-                Fechar
-              </button>
             </div>
-          )}
-          </React.Fragment>
-        ))}
 
-        {/* Add slide */}
-        <button onClick={addSlide} style={{
-          backgroundColor: 'transparent', border: `1px dashed ${B}`, borderRadius: 10,
-          padding: '10px 14px', color: M, fontSize: 13, fontFamily: ff,
-          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-          transition: 'border-color 0.15s',
-        }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = B }}>
-          <Plus size={14} /> Adicionar slide vazio
-        </button>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {(['left', 'center', 'right'] as const).map((a) => {
+                const labels = { left: '←', center: '≡', right: '→' }
+                const sel = (current.textAlign ?? 'left') === a
+                return (
+                  <button key={a} onClick={() => updateSlideFormat(current.id, { textAlign: a })} style={{
+                    flex: 1, padding: '4px 0', borderRadius: 6, fontSize: 14, fontFamily: ff,
+                    backgroundColor: sel ? 'rgba(200,255,0,0.1)' : 'transparent',
+                    border: `1px solid ${sel ? 'rgba(200,255,0,0.4)' : B}`,
+                    color: sel ? A : M, cursor: 'pointer',
+                  }}>{labels[a]}</button>
+                )
+              })}
+            </div>
 
-        {/* Legenda */}
-        <div style={{ marginTop: 8 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <h3 style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 18, color: A, margin: 0, letterSpacing: 1.5 }}>
-              LEGENDA
-            </h3>
-            <button onClick={copyLegenda} style={{
-              backgroundColor: 'rgba(200,255,0,0.08)', border: `1px solid rgba(200,255,0,0.2)`,
-              borderRadius: 6, padding: '5px 10px', color: A, fontSize: 11,
-              fontFamily: ff, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
-            }}>
-              <Copy size={11} /> Copiar
-            </button>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span style={{ fontSize: 10, color: M, fontFamily: ff }}>Espaço entre blocos</span>
+                <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700 }}>{current.blockSpacing ?? 16}px</span>
+              </div>
+              <input type="range" min={0} max={48} value={current.blockSpacing ?? 16}
+                onChange={(e) => updateSlideFormat(current.id, { blockSpacing: Number(e.target.value) })}
+                style={{ width: '100%', accentColor: A, cursor: 'pointer' }} />
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span style={{ fontSize: 10, color: M, fontFamily: ff }}>Margem lateral</span>
+                <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700 }}>{current.paddingX ?? 24}px</span>
+              </div>
+              <input type="range" min={0} max={60} value={current.paddingX ?? 24}
+                onChange={(e) => updatePaddingX(current.id, Number(e.target.value))}
+                style={{ width: '100%', accentColor: A, cursor: 'pointer' }} />
+            </div>
           </div>
-          <textarea
-            value={legenda}
-            onChange={(e) => setLegenda(e.target.value)}
-            rows={6}
-            style={{
-              width: '100%', backgroundColor: S2, border: `1px solid ${B}`,
-              borderRadius: 8, color: T, fontSize: 12, fontFamily: ff, lineHeight: 1.7,
-              padding: '10px 12px', outline: 'none', resize: 'vertical', boxSizing: 'border-box',
-              transition: 'border-color 0.2s',
-            }}
-            onFocus={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.3)' }}
-            onBlur={(e) => { e.target.style.borderColor = B }}
-          />
-        </div>
+        )}
       </div>
 
       {/* ── Preview (dir 60%) ── */}
@@ -1290,10 +1451,58 @@ function StatePreview({
           }}
         />
 
+        {/* Quick actions above mockup */}
+        <div style={{ display: 'flex', gap: 8, width: '100%', justifyContent: 'center' }}>
+          <button
+            onClick={() => { if (current && carouselId) { uploadTargetSlideId.current = current.id; fileInputRef.current?.click() } }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              background: S2, border: `1px solid ${B}`, borderRadius: 8,
+              color: M, fontFamily: ff, fontSize: 12, cursor: 'pointer', padding: '7px 14px',
+              transition: 'border-color 0.15s, color 0.15s',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.color = T }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = B; e.currentTarget.style.color = M }}
+          >
+            <Image size={13} /> Trocar fundo
+          </button>
+          {carouselId && (
+            <button
+              onClick={handleGenerateImages}
+              disabled={generatingImages}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                background: 'rgba(0,180,216,0.08)', border: `1px solid #00B4D8`, borderRadius: 8,
+                color: '#00B4D8', fontFamily: ff, fontSize: 12, cursor: generatingImages ? 'not-allowed' : 'pointer',
+                padding: '7px 14px', opacity: generatingImages ? 0.6 : 1, transition: 'background 0.15s',
+              }}
+              onMouseEnter={(e) => { if (!generatingImages) e.currentTarget.style.background = 'rgba(0,180,216,0.18)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0,180,216,0.08)' }}
+            >
+              <Sparkles size={13} /> {imageGenProgress ?? 'Gerar com IA'}
+            </button>
+          )}
+          {current?.bgImageUrl && (
+            <button
+              onClick={() => setSlides((prev) => prev.map((s) => s.id === current.id ? { ...s, bgImageUrl: undefined } : s))}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                background: 'none', border: `1px solid rgba(248,113,113,0.4)`, borderRadius: 8,
+                color: '#f87171', fontFamily: ff, fontSize: 12, cursor: 'pointer', padding: '7px 14px',
+                transition: 'border-color 0.15s',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.borderColor = '#f87171'}
+              onMouseLeave={(e) => e.currentTarget.style.borderColor = 'rgba(248,113,113,0.4)'}
+            >
+              <Trash2 size={13} /> Remover fundo
+            </button>
+          )}
+        </div>
+
         {/* Phone mockup */}
         <div
           style={{
-            width: 280, flexShrink: 0,
+            width: 320, flexShrink: 0,
             backgroundColor: '#111',
             border: '8px solid #1A1A1A',
             borderRadius: 44,
@@ -1418,32 +1627,47 @@ function StatePreview({
           ><ChevronRight size={16} /></button>
         </div>
 
-        {/* Slide counter */}
-        <p style={{ fontSize: 12, color: M, fontFamily: ff, margin: 0 }}>
-          {activeSlide + 1} / {slides.length}
-        </p>
+        {/* Slide counter + hack badge */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+          <p style={{ fontSize: 12, color: M, fontFamily: ff, margin: 0 }}>{activeSlide + 1} / {slides.length}</p>
+          {current?.hack && (
+            <span style={{
+              fontFamily: ff, fontSize: 11, color: A,
+              background: 'rgba(200,255,0,0.08)', border: '1px solid rgba(200,255,0,0.25)',
+              borderRadius: 20, padding: '3px 10px', display: 'flex', alignItems: 'center', gap: 4,
+            }}>⚡ {current.hack}</span>
+          )}
+        </div>
 
-        {/* ── Seletor de template ── */}
+        {/* Template carousel — scroll-snap, 2 per view */}
         <div style={{ width: '100%' }}>
           <p style={{ fontSize: 11, color: M, fontFamily: ff, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', margin: '0 0 10px' }}>
             Estrutura do Carrossel
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollSnapType: 'x mandatory', paddingBottom: 6, scrollbarWidth: 'none' }}>
             {TEMPLATES.map(({ key, icon, name, desc }) => {
               const sel = selectedTemplate === key
               return (
-                <button
-                  key={key}
-                  onClick={() => setSelectedTemplate(key)}
-                  style={{
-                    display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
-                    padding: '8px 10px', borderRadius: 8, cursor: 'pointer', textAlign: 'left',
-                    backgroundColor: sel ? 'rgba(200,255,0,0.07)' : S2,
-                    border: `1px solid ${sel ? A : B}`,
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  <span style={{ fontSize: 16, marginBottom: 3 }}>{icon}</span>
+                <button key={key} onClick={() => setSelectedTemplate(key)} style={{
+                  scrollSnapAlign: 'start', flexShrink: 0, width: 'calc(50% - 4px)',
+                  display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
+                  padding: '10px 12px', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
+                  backgroundColor: sel ? 'rgba(200,255,0,0.07)' : S2,
+                  border: `1px solid ${sel ? A : B}`, transition: 'all 0.15s',
+                }}>
+                  <div style={{
+                    width: '100%', height: 38, borderRadius: 6, marginBottom: 8,
+                    background: key === 'impacto' ? 'linear-gradient(135deg,#111,#1a1a1a)' :
+                                key === 'editorial' ? 'linear-gradient(135deg,#0a0a14,#141428)' :
+                                key === 'lista' ? 'linear-gradient(135deg,#0a1a0a,#0f2010)' :
+                                key === 'citacao' ? 'linear-gradient(135deg,#1a0a1a,#200f20)' :
+                                key === 'comparacao' ? 'linear-gradient(90deg,#1a0a0a 50%,#0a1a0a 50%)' :
+                                'linear-gradient(135deg,#1a1000,#2a1800)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
+                  }}>
+                    <span style={{ fontSize: 18 }}>{icon}</span>
+                    {sel && <div style={{ position: 'absolute', inset: 0, border: `1.5px solid ${A}`, borderRadius: 6 }} />}
+                  </div>
                   <span style={{ fontSize: 11, fontFamily: ff, fontWeight: 700, color: sel ? A : T, lineHeight: 1.2 }}>{name}</span>
                   <span style={{ fontSize: 9, fontFamily: ff, color: M, lineHeight: 1.3, marginTop: 2 }}>{desc}</span>
                 </button>
@@ -1452,54 +1676,80 @@ function StatePreview({
           </div>
         </div>
 
-        {/* Geração de imagem IA */}
+        {/* Seletor de estilo IA */}
         {carouselId && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center', width: '100%' }}>
-            {/* Seletor de estilo IA */}
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
-              {[
-                { key: 'cinematic', label: 'Cinemático' },
-                { key: 'illustration', label: 'Ilustração' },
-                { key: 'abstract', label: 'Abstrato' },
-                { key: 'minimal', label: 'Minimal' },
-                { key: 'gradient', label: 'Gradiente' },
-              ].map(({ key, label }) => {
-                const sel = imageStyle === key
-                return (
-                  <button key={key} onClick={() => setImageStyle(key)} style={{
-                    padding: '5px 12px', borderRadius: 6,
-                    backgroundColor: sel ? 'rgba(0,180,216,0.15)' : S2,
-                    border: `1px solid ${sel ? '#00B4D8' : B}`,
-                    color: sel ? '#00B4D8' : M, fontSize: 11, fontFamily: ff,
-                    fontWeight: sel ? 600 : 400, cursor: 'pointer', transition: 'all 0.15s',
-                  }}>
-                    {label}
-                  </button>
-                )
-              })}
-            </div>
-
-            {/* Botão gerar + progresso */}
-            <button
-              onClick={handleGenerateImages}
-              disabled={generatingImages}
-              style={{
-                height: 36, padding: '0 20px', borderRadius: 8,
-                backgroundColor: generatingImages ? S2 : 'rgba(0,180,216,0.1)',
-                border: `1px solid ${generatingImages ? B : '#00B4D8'}`,
-                color: generatingImages ? M : '#00B4D8',
-                fontSize: 12, fontFamily: ff, fontWeight: 600,
-                cursor: generatingImages ? 'not-allowed' : 'pointer',
-                transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 6,
-              }}
-            >
-              <Zap size={13} />
-              {imageGenProgress ?? 'Gerar fundos com IA'}
-            </button>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
+            {[
+              { key: 'cinematic', label: 'Cinemático' },
+              { key: 'illustration', label: 'Ilustração' },
+              { key: 'abstract', label: 'Abstrato' },
+              { key: 'minimal', label: 'Minimal' },
+              { key: 'gradient', label: 'Gradiente' },
+            ].map(({ key, label }) => {
+              const sel = imageStyle === key
+              return (
+                <button key={key} onClick={() => setImageStyle(key)} style={{
+                  padding: '5px 12px', borderRadius: 6,
+                  backgroundColor: sel ? 'rgba(0,180,216,0.15)' : S2,
+                  border: `1px solid ${sel ? '#00B4D8' : B}`,
+                  color: sel ? '#00B4D8' : M, fontSize: 11, fontFamily: ff,
+                  fontWeight: sel ? 600 : 400, cursor: 'pointer', transition: 'all 0.15s',
+                }}>{label}</button>
+              )
+            })}
           </div>
         )}
       </div>
     </motion.div>
+
+    {/* Schedule modal */}
+    <AnimatePresence>
+      {showSchedule && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 100, backgroundColor: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setShowSchedule(false)}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 16 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 16 }}
+            transition={{ duration: 0.18 }}
+            onClick={(e) => e.stopPropagation()}
+            style={{ backgroundColor: S, border: `1px solid ${B}`, borderRadius: 16, padding: '28px 28px', width: 340, display: 'flex', flexDirection: 'column', gap: 16 }}
+          >
+            <h3 style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 22, color: T, margin: 0, letterSpacing: 1 }}>AGENDAR POST</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontFamily: ff, fontSize: 12, color: M }}>Data e hora</label>
+              <input
+                type="datetime-local"
+                value={scheduleDate}
+                onChange={(e) => setScheduleDate(e.target.value)}
+                style={{
+                  backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 8,
+                  color: T, fontFamily: ff, fontSize: 13, padding: '10px 12px', outline: 'none',
+                  colorScheme: 'dark',
+                }}
+                onFocus={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.4)' }}
+                onBlur={(e) => { e.target.style.borderColor = B }}
+              />
+            </div>
+            <p style={{ fontFamily: ff, fontSize: 12, color: M, margin: 0, lineHeight: 1.5 }}>
+              Você receberá uma notificação {'{'}10 minutos{'}'} antes via Telegram se configurado.
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => setShowSchedule(false)} style={{ flex: 1, height: 40, background: 'none', border: `1px solid ${B}`, borderRadius: 8, color: M, fontFamily: ff, fontSize: 13, cursor: 'pointer' }}>
+                Cancelar
+              </button>
+              <button
+                onClick={schedulePost}
+                disabled={!scheduleDate || !carouselId}
+                style={{ flex: 2, height: 40, backgroundColor: !scheduleDate || !carouselId ? S2 : A, border: 'none', borderRadius: 8, color: !scheduleDate || !carouselId ? M : '#000', fontFamily: ff, fontSize: 13, fontWeight: 700, cursor: !scheduleDate || !carouselId ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}
+              >
+                Confirmar agendamento
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
 
     {/* Bottom bar */}
     <div style={{
@@ -1510,25 +1760,43 @@ function StatePreview({
     }}>
       <button
         onClick={onBack}
-        style={{
-          background: 'none', border: 'none', color: M, fontSize: 13,
-          fontFamily: ff, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
-        }}
+        style={{ background: 'none', border: 'none', color: M, fontSize: 13, fontFamily: ff, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
       >
         <ChevronLeft size={14} /> Novo tema
       </button>
 
-      <div style={{ display: 'flex', gap: 10 }}>
-        <button style={{
-          height: 38, padding: '0 18px', backgroundColor: S2,
-          border: `1px solid ${B}`, borderRadius: 8, color: T,
-          fontSize: 13, fontFamily: ff, fontWeight: 600, cursor: 'pointer',
-          transition: 'border-color 0.15s',
-        }}
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button
+          onClick={() => setShowSchedule(true)}
+          style={{
+            height: 38, padding: '0 16px', backgroundColor: S2,
+            border: `1px solid ${B}`, borderRadius: 8, color: T,
+            fontSize: 13, fontFamily: ff, fontWeight: 600, cursor: 'pointer', transition: 'border-color 0.15s',
+          }}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = B }}>
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = B }}
+        >
           Agendar
         </button>
+        {previewToken && (
+          <button
+            onClick={() => {
+              const url = `https://conteudos.tech/preview/${previewToken}`
+              navigator.clipboard.writeText(url).then(() => toast.success('Link copiado'))
+            }}
+            style={{
+              height: 38, padding: '0 16px', backgroundColor: 'none',
+              background: 'rgba(200,255,0,0.06)', border: `1px solid rgba(200,255,0,0.3)`,
+              borderRadius: 8, color: A,
+              fontSize: 13, fontFamily: ff, fontWeight: 600, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 6, transition: 'background 0.15s',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(200,255,0,0.12)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(200,255,0,0.06)' }}
+          >
+            <Share2 size={13} /> Compartilhar
+          </button>
+        )}
         <button
           onClick={handleExport}
           disabled={exporting}
@@ -1538,10 +1806,8 @@ function StatePreview({
             border: exporting ? `1px solid ${B}` : 'none',
             borderRadius: 8, color: exporting ? M : '#000',
             fontSize: 13, fontFamily: ff, fontWeight: 700,
-            cursor: exporting ? 'not-allowed' : 'pointer',
-            transition: 'all 0.15s',
-            display: 'flex', alignItems: 'center', gap: 7,
-            opacity: exporting ? 0.7 : 1,
+            cursor: exporting ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
+            display: 'flex', alignItems: 'center', gap: 7, opacity: exporting ? 0.7 : 1,
           }}
           onMouseEnter={(e) => { if (!exporting) e.currentTarget.style.backgroundColor = '#ADDF00' }}
           onMouseLeave={(e) => { if (!exporting) e.currentTarget.style.backgroundColor = A }}
@@ -1573,6 +1839,7 @@ export default function Studio() {
     slides: Slide[]
     legenda: string
     hasWatermark: boolean
+    previewToken: string
   } | null>(null)
   const [loadingCarousel, setLoadingCarousel] = useState(!!carouselIdFromURL)
 
@@ -1584,7 +1851,7 @@ export default function Studio() {
       const [{ data: carousel }, { data: slidesData }] = await Promise.all([
         supabase
           .from('carousels')
-          .select('id, legenda, has_watermark')
+          .select('id, legenda, has_watermark, preview_token')
           .eq('id', carouselIdFromURL)
           .single(),
         supabase
@@ -1620,6 +1887,7 @@ export default function Studio() {
         slides,
         legenda: (carousel as Record<string, unknown>).legenda as string ?? '',
         hasWatermark: (carousel as Record<string, unknown>).has_watermark as boolean ?? true,
+        previewToken: (carousel as Record<string, unknown>).preview_token as string ?? '',
       })
       setAppState('preview')
       setLoadingCarousel(false)
@@ -1653,6 +1921,7 @@ export default function Studio() {
   const previewLegenda    = loadedCarousel?.legenda ?? generateResult?.legenda ?? ''
   const previewCarouselId = loadedCarousel?.carouselId ?? generateResult?.carousel_id
   const previewWatermark  = loadedCarousel?.hasWatermark ?? generateResult?.has_watermark ?? true
+  const previewTokenVal   = loadedCarousel?.previewToken ?? generateResult?.preview_token ?? ''
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: BG, overflow: 'hidden' }}>
@@ -1696,6 +1965,7 @@ export default function Studio() {
                 initialLegenda={previewLegenda || undefined}
                 carouselId={previewCarouselId}
                 hasWatermark={previewWatermark}
+                previewToken={previewTokenVal || undefined}
               />
             </div>
           )}
