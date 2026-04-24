@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Camera, Check, ChevronLeft, ChevronRight, Copy, Download, Image, Link, Plus, Share2, Sparkles, Trash2, X, Zap } from 'lucide-react'
+import { Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Copy, Download, Grid, Image, Link, Maximize2, Plus, Share2, Sparkles, Trash2, X, Zap } from 'lucide-react'
 import { toast } from 'sonner'
 import { toPng } from 'html-to-image'
 import JSZip from 'jszip'
@@ -42,6 +42,7 @@ interface Slide {
   bgImageUrl?: string
   textPosition?: 'top' | 'center' | 'bottom'
   imageOpacity?: number         // 10–100, default 100
+  overlayOpacity?: number       // 0–90, darkening overlay
   paddingX?: number             // margem lateral px, default 24
   titleFontSize?: number        // mockup px, default 28
   bodyFontSize?: number         // mockup px, default 12
@@ -53,6 +54,10 @@ interface Slide {
   blockSpacing?: number         // gap px between title and body, default 16
   beforeText?: string           // Comparação template — coluna ANTES
   afterText?: string            // Comparação template — coluna DEPOIS
+  bgZoom?: number               // 50–200, default 100
+  bgPositionX?: number          // 0–100, default 50
+  bgPositionY?: number          // 0–100, default 50
+  bgFilter?: string             // CSS filter string
 }
 
 const EXPORT_SCALE = 4  // mockup → export resolution multiplier
@@ -744,6 +749,84 @@ function UpgradeModal({ onClose, plan }: { onClose: () => void; plan: string }) 
   )
 }
 
+// ─── Helpers for Estado 3 ─────────────────────────────────────
+
+const BG_FILTER_OPTIONS = [
+  { label: 'Original',  value: 'none' },
+  { label: 'P&B',       value: 'grayscale(1)' },
+  { label: 'Sépia',     value: 'sepia(0.8)' },
+  { label: 'Frio',      value: 'hue-rotate(180deg) saturate(1.2)' },
+  { label: 'Quente',    value: 'sepia(0.3) saturate(1.4)' },
+  { label: 'Vintage',   value: 'contrast(1.1) brightness(0.9) sepia(0.2)' },
+]
+
+function CollapsibleSection({
+  title, isOpen, onToggle, children, rightSlot,
+}: {
+  title: string; isOpen: boolean; onToggle: () => void
+  children: React.ReactNode; rightSlot?: React.ReactNode
+}) {
+  return (
+    <div style={{ borderBottom: `1px solid ${B}` }}>
+      <button
+        onClick={onToggle}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer',
+        }}
+      >
+        <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 11, color: A, letterSpacing: 1 }}>
+          {title}
+        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {rightSlot}
+          <motion.span
+            animate={{ rotate: isOpen ? 180 : 0 }}
+            transition={{ duration: 0.2 }}
+            style={{ display: 'flex', color: M }}
+          >
+            <ChevronDown size={14} />
+          </motion.span>
+        </div>
+      </button>
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            style={{ overflow: 'hidden' }}
+          >
+            <div style={{ padding: '0 14px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {children}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+function SliderRow({
+  label, value, min, max, onChange, suffix = '',
+}: {
+  label: string; value: number; min: number; max: number
+  onChange: (v: number) => void; suffix?: string
+}) {
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+        <span style={{ fontSize: 10, color: M, fontFamily: ff }}>{label}</span>
+        <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700 }}>{value}{suffix}</span>
+      </div>
+      <input type="range" min={min} max={max} value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        style={{ width: '100%', accentColor: A, cursor: 'pointer' }} />
+    </div>
+  )
+}
+
 // ─── Estado 3: Preview + Editor ───────────────────────────────
 function StatePreview({
   onBack,
@@ -763,10 +846,16 @@ function StatePreview({
   const { canExport, plan, exportsRemaining } = usePlan()
   const [slides, setSlides] = useState<Slide[]>(initialSlides)
   const [activeSlide, setActiveSlide] = useState(0)
-  const [editingField, setEditingField] = useState<{ id: string; field: 'titulo' | 'corpo' } | null>(null)
+  const [_editingField, _setEditingField] = useState<{ id: string; field: 'titulo' | 'corpo' } | null>(null)
   const [imageStyle, setImageStyle] = useState<string>('cinematic')
   const [selectedTemplate, setSelectedTemplate] = useState<CarouselTemplate>('impacto')
   const [legenda, setLegenda] = useState(initialLegenda ?? '')
+  // view & section state
+  const [viewMode, setViewMode] = useState<'slide' | 'grid'>('slide')
+  const [secTexto,   setSecTexto]   = useState(true)
+  const [secImagem,  setSecImagem]  = useState(false)
+  const [secFormato, setSecFormato] = useState(false)
+  const [secLegenda, setSecLegenda] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [generatingImages, setGeneratingImages] = useState(false)
@@ -861,6 +950,21 @@ function StatePreview({
 
   const updatePaddingX = (id: string, val: number) =>
     setSlides((prev) => prev.map((s) => s.id === id ? { ...s, paddingX: val } : s))
+
+  const updateBgZoom = (id: string, val: number) =>
+    setSlides((prev) => prev.map((s) => s.id === id ? { ...s, bgZoom: val } : s))
+
+  const updateBgPositionX = (id: string, val: number) =>
+    setSlides((prev) => prev.map((s) => s.id === id ? { ...s, bgPositionX: val } : s))
+
+  const updateBgPositionY = (id: string, val: number) =>
+    setSlides((prev) => prev.map((s) => s.id === id ? { ...s, bgPositionY: val } : s))
+
+  const updateBgFilter = (id: string, val: string) =>
+    setSlides((prev) => prev.map((s) => s.id === id ? { ...s, bgFilter: val } : s))
+
+  const updateOverlayOpacity = (id: string, val: number) =>
+    setSlides((prev) => prev.map((s) => s.id === id ? { ...s, overlayOpacity: val } : s))
 
   const handleUploadImage = async (slideId: string, file: File) => {
     if (!carouselId) return
@@ -963,6 +1067,9 @@ function StatePreview({
 
   // keep currentSlideIdRef in sync for title drag closure
   useEffect(() => { currentSlideIdRef.current = current?.id }, [current])
+
+  // auto-open formatting section when element is selected
+  useEffect(() => { if (selectedEl) { setSecFormato(true) } }, [selectedEl])
 
   // slideStyle replaced by getSlideContainerStyle in the motion.div below
 
@@ -1083,622 +1190,687 @@ function StatePreview({
     </div>
   )
 
+  const isComparacaoMiddle = selectedTemplate === 'comparacao' && activeSlide !== 0 && activeSlide !== slides.length - 1
+
   return (
     <>
       {exportContainer}
       {showUpgrade && <UpgradeModal plan={plan} onClose={() => setShowUpgrade(false)} />}
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file && uploadTargetSlideId.current) handleUploadImage(uploadTargetSlideId.current, file)
+          e.target.value = ''
+        }}
+      />
+
     <motion.div
       key="preview"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      style={{
-        width: '100%', flex: 1, minHeight: 0, display: 'flex',
-        flexDirection: 'row', overflow: 'hidden',
-      }}
+      style={{ width: '100%', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
     >
-      {/* ── Editor (esq 40%) ── */}
-      <div style={{
-        width: '40%', minWidth: 300, height: '100%',
-        display: 'flex', flexDirection: 'column',
-        borderRight: `1px solid ${B}`, overflow: 'hidden',
-      }}>
-        {/* Panel header */}
+      {/* ── Main editor row ── */}
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'row', overflow: 'hidden' }}>
+
+        {/* ── LEFT SIDEBAR 300px ── */}
         <div style={{
-          padding: '12px 16px', borderBottom: `1px solid ${B}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          flexShrink: 0, background: BG,
+          width: 300, flexShrink: 0, height: '100%',
+          display: 'flex', flexDirection: 'column',
+          borderRight: `1px solid ${B}`,
+          overflowY: 'auto',
+          scrollbarWidth: 'thin',
+          scrollbarColor: `rgba(200,255,0,0.3) transparent`,
         }}>
-          <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 14, color: A, letterSpacing: 1 }}>
-            {slides.length} SLIDES
-          </span>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <button
-              onClick={() => toast.success('Rascunho salvo')}
-              style={{
-                background: 'none', border: `1px solid ${B}`, borderRadius: 6,
-                color: M, fontFamily: ff, fontSize: 11, cursor: 'pointer', padding: '5px 10px',
-                transition: 'border-color 0.15s, color 0.15s',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.color = T }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = B; e.currentTarget.style.color = M }}
-            >
-              Salvar rascunho
-            </button>
-            <button
-              onClick={onBack}
-              style={{
-                background: 'none', border: 'none', color: M, fontFamily: ff, fontSize: 12,
-                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
-                transition: 'color 0.15s',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = T)}
-              onMouseLeave={(e) => (e.currentTarget.style.color = M)}
-            >
-              <ChevronLeft size={14} /> Voltar
-            </button>
-          </div>
-        </div>
 
-        {/* Scrollable list */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {slides.map((slide, idx) => {
-            const isActive = activeSlide === idx
-            return (
-              <div
-                key={slide.id}
-                draggable
-                onDragStart={() => setDragId(slide.id)}
-                onDragOver={(e) => { e.preventDefault(); setDragOverId(slide.id) }}
-                onDrop={() => {
-                  if (dragId && dragId !== slide.id) reorderSlide(dragId, slide.id)
-                  setDragId(null); setDragOverId(null)
-                }}
-                onDragEnd={() => { setDragId(null); setDragOverId(null) }}
-                onClick={() => setActiveSlide(idx)}
-                style={{
-                  backgroundColor: isActive ? 'rgba(200,255,0,0.06)' : S2,
-                  border: `1px solid ${dragOverId === slide.id ? A : isActive ? 'rgba(200,255,0,0.4)' : B}`,
-                  borderRadius: 10, padding: isActive ? '12px 14px' : '9px 14px',
-                  cursor: 'grab', position: 'relative', transition: 'all 0.15s',
-                  opacity: dragId === slide.id ? 0.4 : 1,
-                }}
-              >
-                {/* Header row */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isActive ? 8 : 0 }}>
-                  <span style={{ fontSize: 10, color: isActive ? A : M, fontFamily: ff, fontWeight: 700, letterSpacing: 1 }}>
-                    SLIDE {idx + 1}
-                  </span>
-                  <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); duplicateSlide(slide.id) }}
-                      title="Duplicar"
-                      style={{ background: 'none', border: 'none', color: M, cursor: 'pointer', padding: 2, display: 'flex', opacity: 0.6, transition: 'opacity 0.15s' }}
-                      onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = T }}
-                      onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.6'; e.currentTarget.style.color = M }}
-                    >
-                      <Copy size={12} />
-                    </button>
-                    {slides.length > 1 && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); removeSlide(slide.id) }}
-                        title="Remover"
-                        style={{ background: 'none', border: 'none', color: M, cursor: 'pointer', padding: 2, display: 'flex', opacity: 0.6, transition: 'opacity 0.15s' }}
-                        onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = '#f87171' }}
-                        onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.6'; e.currentTarget.style.color = M }}
-                      >
-                        <X size={12} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Compact: truncated title */}
-                {!isActive && (
-                  <p style={{
-                    fontFamily: '"Bebas Neue", sans-serif', fontSize: 13, color: T,
-                    margin: '4px 0 0', letterSpacing: 0.5,
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}>
-                    {slide.titulo}
-                  </p>
-                )}
-
-                {/* Expanded: full edit fields */}
-                {isActive && (
-                  <>
-                    {editingField?.id === slide.id && editingField.field === 'titulo' ? (
-                      <input autoFocus value={slide.titulo}
-                        onChange={(e) => updateSlide(slide.id, 'titulo', e.target.value)}
-                        onBlur={() => setEditingField(null)}
-                        onClick={(e) => e.stopPropagation()}
-                        style={{ backgroundColor: 'rgba(0,0,0,0.3)', border: `1px solid rgba(200,255,0,0.4)`, borderRadius: 6, color: T, fontFamily: '"Bebas Neue", sans-serif', fontSize: 14, letterSpacing: 0.5, padding: '4px 8px', width: '100%', outline: 'none', boxSizing: 'border-box', marginBottom: 6 }}
-                      />
-                    ) : (
-                      <p onClick={(e) => { e.stopPropagation(); setActiveSlide(idx); setEditingField({ id: slide.id, field: 'titulo' }) }}
-                        style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 14, color: T, margin: '0 0 6px', letterSpacing: 0.5, cursor: 'text', padding: '2px 4px', borderRadius: 4, transition: 'background 0.15s' }}
-                      >
-                        {slide.titulo}
-                      </p>
-                    )}
-
-                    {selectedTemplate === 'comparacao' && idx !== 0 && idx !== slides.length - 1 ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }} onClick={(e) => e.stopPropagation()}>
-                        <div>
-                          <span style={{ fontSize: 9, color: '#ff7070', fontFamily: ff, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Antes</span>
-                          <textarea value={slide.beforeText ?? ''} onChange={(e) => updateSlide(slide.id, 'beforeText', e.target.value)} rows={2}
-                            style={{ backgroundColor: 'rgba(0,0,0,0.3)', border: `1px solid rgba(255,112,112,0.35)`, borderRadius: 6, color: M, fontFamily: ff, fontSize: 11, lineHeight: 1.5, padding: '4px 8px', width: '100%', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }} />
-                        </div>
-                        <div>
-                          <span style={{ fontSize: 9, color: A, fontFamily: ff, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 3 }}>Depois</span>
-                          <textarea value={slide.afterText ?? ''} onChange={(e) => updateSlide(slide.id, 'afterText', e.target.value)} rows={2}
-                            style={{ backgroundColor: 'rgba(0,0,0,0.3)', border: `1px solid rgba(200,255,0,0.35)`, borderRadius: 6, color: M, fontFamily: ff, fontSize: 11, lineHeight: 1.5, padding: '4px 8px', width: '100%', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }} />
-                        </div>
-                      </div>
-                    ) : (
-                      editingField?.id === slide.id && editingField.field === 'corpo' ? (
-                        <textarea autoFocus value={slide.corpo}
-                          onChange={(e) => updateSlide(slide.id, 'corpo', e.target.value)}
-                          onBlur={() => setEditingField(null)}
-                          onClick={(e) => e.stopPropagation()}
-                          rows={3}
-                          style={{ backgroundColor: 'rgba(0,0,0,0.3)', border: `1px solid rgba(200,255,0,0.4)`, borderRadius: 6, color: M, fontFamily: ff, fontSize: 11, lineHeight: 1.5, padding: '4px 8px', width: '100%', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }}
-                        />
-                      ) : (
-                        <p onClick={(e) => { e.stopPropagation(); setActiveSlide(idx); setEditingField({ id: slide.id, field: 'corpo' }) }}
-                          style={{ fontSize: 11, color: M, fontFamily: ff, margin: 0, lineHeight: 1.5, cursor: 'text', padding: '2px 4px', borderRadius: 4, whiteSpace: 'pre-wrap' }}
-                        >
-                          {slide.corpo || <span style={{ opacity: 0.4, fontStyle: 'italic' }}>vazio</span>}
-                        </p>
-                      )
-                    )}
-
-                    {slide.bgImageUrl && (
-                      <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }} onClick={(e) => e.stopPropagation()}>
-                        <div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                            <span style={{ fontSize: 10, color: M, fontFamily: ff }}>Opacidade da imagem</span>
-                            <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700 }}>{slide.imageOpacity ?? 100}%</span>
-                          </div>
-                          <input type="range" min={10} max={100} value={slide.imageOpacity ?? 100}
-                            onChange={(e) => updateImageOpacity(slide.id, Number(e.target.value))}
-                            style={{ width: '100%', accentColor: A, cursor: 'pointer' }} />
-                        </div>
-                        {idx !== 0 && (
-                          <div>
-                            <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 4 }}>Posição do texto</span>
-                            <div style={{ display: 'flex', gap: 4 }}>
-                              {(['top', 'center', 'bottom'] as const).map((pos) => {
-                                const labels = { top: 'Topo', center: 'Centro', bottom: 'Base' }
-                                const sel = (slide.textPosition ?? 'bottom') === pos
-                                return (
-                                  <button key={pos} onClick={() => updateTextPosition(slide.id, pos)} style={{
-                                    flex: 1, padding: '3px 0', borderRadius: 5, fontSize: 10, fontFamily: ff,
-                                    backgroundColor: sel ? 'rgba(200,255,0,0.1)' : 'transparent',
-                                    border: `1px solid ${sel ? 'rgba(200,255,0,0.4)' : B}`,
-                                    color: sel ? A : M, cursor: 'pointer', transition: 'all 0.15s',
-                                  }}>{labels[pos]}</button>
-                                )
-                              })}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            )
-          })}
-
-          {/* Add slide */}
-          <button onClick={addSlide} style={{
-            backgroundColor: 'transparent', border: `1px dashed ${B}`, borderRadius: 10,
-            padding: '10px 14px', color: M, fontSize: 13, fontFamily: ff,
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            transition: 'border-color 0.15s',
-          }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = B }}>
-            <Plus size={14} /> Adicionar slide vazio
-          </button>
-
-          {/* Legenda */}
-          <div style={{ marginTop: 8 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <h3 style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 18, color: A, margin: 0, letterSpacing: 1.5 }}>LEGENDA</h3>
-              <button onClick={copyLegenda} style={{ backgroundColor: 'rgba(200,255,0,0.08)', border: `1px solid rgba(200,255,0,0.2)`, borderRadius: 6, padding: '5px 10px', color: A, fontSize: 11, fontFamily: ff, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Copy size={11} /> Copiar
-              </button>
-            </div>
-            <textarea value={legenda} onChange={(e) => setLegenda(e.target.value)} rows={6}
-              style={{ width: '100%', backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 8, color: T, fontSize: 12, fontFamily: ff, lineHeight: 1.7, padding: '10px 12px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
-              onFocus={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.3)' }}
-              onBlur={(e) => { e.target.style.borderColor = B }}
-            />
-          </div>
-        </div>
-
-        {/* Formatting panel — sticky bottom */}
-        {selectedEl && current && (
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              position: 'sticky', bottom: 0,
-              backgroundColor: BG, borderTop: `1px solid rgba(200,255,0,0.25)`,
-              padding: '14px', display: 'flex', flexDirection: 'column', gap: 12,
-              maxHeight: '52vh', overflowY: 'auto', flexShrink: 0,
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>
-                Formatação — {selectedEl === 'titulo' ? 'Título' : 'Corpo'}
+          {/* ─ Section 1: SLIDES ─ */}
+          <div style={{ borderBottom: `1px solid ${B}` }}>
+            <div style={{
+              padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            }}>
+              <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 11, color: A, letterSpacing: 1 }}>
+                SLIDES — {slides.length}
               </span>
-              <button onClick={() => setSelectedEl(null)} style={{ background: 'none', border: 'none', color: M, cursor: 'pointer', padding: 2, display: 'flex' }}>
-                <X size={14} />
+              <button
+                onClick={() => toast.success('Rascunho salvo')}
+                style={{
+                  background: 'none', border: `1px solid ${B}`, borderRadius: 5,
+                  color: M, fontFamily: ff, fontSize: 10, cursor: 'pointer', padding: '3px 8px',
+                  transition: 'border-color 0.15s, color 0.15s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.color = T }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = B; e.currentTarget.style.color = M }}
+              >
+                Salvar
               </button>
             </div>
 
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                <span style={{ fontSize: 10, color: M, fontFamily: ff }}>Tamanho</span>
-                <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700 }}>
-                  {selectedEl === 'titulo' ? (current.titleFontSize ?? 28) : (current.bodyFontSize ?? 12)}px
-                </span>
-              </div>
-              <input type="range" min={12} max={72}
-                value={selectedEl === 'titulo' ? (current.titleFontSize ?? 28) : (current.bodyFontSize ?? 12)}
-                onChange={(e) => updateSlideFormat(current.id, selectedEl === 'titulo' ? { titleFontSize: Number(e.target.value) } : { bodyFontSize: Number(e.target.value) })}
-                style={{ width: '100%', accentColor: A, cursor: 'pointer' }} />
-            </div>
-
-            {selectedEl === 'titulo' && (
-              <>
-                <div>
-                  <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 6 }}>Fonte</span>
-                  <select value={current.fontFamily ?? '"Bebas Neue", sans-serif'}
-                    onChange={(e) => updateSlideFormat(current.id, { fontFamily: e.target.value })}
-                    style={{ width: '100%', backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, padding: '6px 8px', outline: 'none', cursor: 'pointer' }}
-                  >
-                    {FONT_OPTIONS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
-                  </select>
-                </div>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  {(['normal', 'bold'] as const).map((w) => {
-                    const sel = (current.fontWeightTitle ?? 'normal') === w
-                    return (
-                      <button key={w} onClick={() => updateSlideFormat(current.id, { fontWeightTitle: w })} style={{
-                        flex: 1, padding: '4px 0', borderRadius: 6, fontSize: 11, fontFamily: ff, fontWeight: w === 'bold' ? 700 : 400,
-                        backgroundColor: sel ? 'rgba(200,255,0,0.1)' : 'transparent',
-                        border: `1px solid ${sel ? 'rgba(200,255,0,0.4)' : B}`,
-                        color: sel ? A : M, cursor: 'pointer',
-                      }}>{w === 'normal' ? 'Normal' : 'Negrito'}</button>
-                    )
-                  })}
-                </div>
-              </>
-            )}
-
-            <div>
-              <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 6 }}>Cor</span>
-              <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap' }}>
-                {TEXT_COLORS.map((c) => (
-                  <button key={c} onClick={() => updateSlideFormat(current.id, { textColor: c })}
-                    style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: c, border: 'none', cursor: 'pointer', flexShrink: 0, outline: (current.textColor ?? '#F5F5F5') === c ? `2px solid ${A}` : '2px solid transparent', outlineOffset: 2 }} />
-                ))}
-                <input type="color" value={current.textColor ?? '#F5F5F5'}
-                  onChange={(e) => updateSlideFormat(current.id, { textColor: e.target.value })}
-                  style={{ width: 22, height: 22, borderRadius: '50%', border: `1px solid ${B}`, cursor: 'pointer', flexShrink: 0, padding: 0, backgroundColor: 'transparent' }} />
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: 6 }}>
-              {(['left', 'center', 'right'] as const).map((a) => {
-                const labels = { left: '←', center: '≡', right: '→' }
-                const sel = (current.textAlign ?? 'left') === a
+            {/* Horizontal thumbnails */}
+            <div style={{
+              display: 'flex', gap: 8, overflowX: 'auto', padding: '0 12px 12px',
+              scrollbarWidth: 'none',
+            }}>
+              {slides.map((slide, idx) => {
+                const isActive = activeSlide === idx
                 return (
-                  <button key={a} onClick={() => updateSlideFormat(current.id, { textAlign: a })} style={{
-                    flex: 1, padding: '4px 0', borderRadius: 6, fontSize: 14, fontFamily: ff,
-                    backgroundColor: sel ? 'rgba(200,255,0,0.1)' : 'transparent',
-                    border: `1px solid ${sel ? 'rgba(200,255,0,0.4)' : B}`,
-                    color: sel ? A : M, cursor: 'pointer',
-                  }}>{labels[a]}</button>
+                  <div
+                    key={slide.id}
+                    draggable
+                    onDragStart={() => setDragId(slide.id)}
+                    onDragOver={(e) => { e.preventDefault(); setDragOverId(slide.id) }}
+                    onDrop={() => {
+                      if (dragId && dragId !== slide.id) reorderSlide(dragId, slide.id)
+                      setDragId(null); setDragOverId(null)
+                    }}
+                    onDragEnd={() => { setDragId(null); setDragOverId(null) }}
+                    onClick={() => setActiveSlide(idx)}
+                    style={{
+                      width: 56, height: 70, flexShrink: 0,
+                      background: dragOverId === slide.id ? 'rgba(200,255,0,0.08)' : '#0A0A0A',
+                      border: `1.5px solid ${isActive ? A : dragOverId === slide.id ? 'rgba(200,255,0,0.5)' : B}`,
+                      borderRadius: 6, cursor: 'grab', position: 'relative',
+                      display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+                      paddingBottom: 4,
+                      opacity: dragId === slide.id ? 0.35 : 1,
+                      transition: 'border-color 0.15s, opacity 0.15s',
+                      ...(slide.bgImageUrl ? {
+                        backgroundImage: `url("${slide.bgImageUrl}")`,
+                        backgroundSize: 'cover', backgroundPosition: 'center',
+                      } : {}),
+                    }}
+                  >
+                    <span style={{
+                      fontFamily: '"Bebas Neue", sans-serif', fontSize: 9, letterSpacing: 0.5,
+                      color: isActive ? A : 'rgba(255,255,255,0.5)',
+                      background: 'rgba(0,0,0,0.6)', borderRadius: 3, padding: '1px 4px',
+                    }}>
+                      {idx + 1}
+                    </span>
+                  </div>
                 )
               })}
             </div>
 
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                <span style={{ fontSize: 10, color: M, fontFamily: ff }}>Espaço entre blocos</span>
-                <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700 }}>{current.blockSpacing ?? 16}px</span>
-              </div>
-              <input type="range" min={0} max={48} value={current.blockSpacing ?? 16}
-                onChange={(e) => updateSlideFormat(current.id, { blockSpacing: Number(e.target.value) })}
-                style={{ width: '100%', accentColor: A, cursor: 'pointer' }} />
-            </div>
-
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                <span style={{ fontSize: 10, color: M, fontFamily: ff }}>Margem lateral</span>
-                <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700 }}>{current.paddingX ?? 24}px</span>
-              </div>
-              <input type="range" min={0} max={60} value={current.paddingX ?? 24}
-                onChange={(e) => updatePaddingX(current.id, Number(e.target.value))}
-                style={{ width: '100%', accentColor: A, cursor: 'pointer' }} />
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── Preview (dir 60%) ── */}
-      <div style={{
-        flex: 1, height: '100%', overflowY: 'auto',
-        display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'flex-start',
-        padding: '32px 24px 32px', gap: 20,
-      }}>
-        {/* Hidden file input */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          style={{ display: 'none' }}
-          onChange={(e) => {
-            const file = e.target.files?.[0]
-            if (file && uploadTargetSlideId.current) {
-              handleUploadImage(uploadTargetSlideId.current, file)
-            }
-            e.target.value = ''
-          }}
-        />
-
-        {/* Quick actions above mockup */}
-        <div style={{ display: 'flex', gap: 8, width: '100%', justifyContent: 'center' }}>
-          <button
-            onClick={() => { if (current && carouselId) { uploadTargetSlideId.current = current.id; fileInputRef.current?.click() } }}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 5,
-              background: S2, border: `1px solid ${B}`, borderRadius: 8,
-              color: M, fontFamily: ff, fontSize: 12, cursor: 'pointer', padding: '7px 14px',
-              transition: 'border-color 0.15s, color 0.15s',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.color = T }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = B; e.currentTarget.style.color = M }}
-          >
-            <Image size={13} /> Trocar fundo
-          </button>
-          {carouselId && (
-            <button
-              onClick={handleGenerateImages}
-              disabled={generatingImages}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                background: 'rgba(0,180,216,0.08)', border: `1px solid #00B4D8`, borderRadius: 8,
-                color: '#00B4D8', fontFamily: ff, fontSize: 12, cursor: generatingImages ? 'not-allowed' : 'pointer',
-                padding: '7px 14px', opacity: generatingImages ? 0.6 : 1, transition: 'background 0.15s',
+            {/* Thumb action buttons */}
+            <div style={{ display: 'flex', gap: 6, padding: '0 12px 12px' }}>
+              <button onClick={addSlide} style={{
+                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                height: 30, background: 'transparent', border: `1px dashed ${B}`,
+                borderRadius: 6, color: M, fontFamily: ff, fontSize: 11, cursor: 'pointer',
+                transition: 'border-color 0.15s, color 0.15s',
               }}
-              onMouseEnter={(e) => { if (!generatingImages) e.currentTarget.style.background = 'rgba(0,180,216,0.18)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0,180,216,0.08)' }}
-            >
-              <Sparkles size={13} /> {imageGenProgress ?? 'Gerar com IA'}
-            </button>
-          )}
-          {current?.bgImageUrl && (
-            <button
-              onClick={() => setSlides((prev) => prev.map((s) => s.id === current.id ? { ...s, bgImageUrl: undefined } : s))}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                background: 'none', border: `1px solid rgba(248,113,113,0.4)`, borderRadius: 8,
-                color: '#f87171', fontFamily: ff, fontSize: 12, cursor: 'pointer', padding: '7px 14px',
-                transition: 'border-color 0.15s',
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.borderColor = '#f87171'}
-              onMouseLeave={(e) => e.currentTarget.style.borderColor = 'rgba(248,113,113,0.4)'}
-            >
-              <Trash2 size={13} /> Remover fundo
-            </button>
-          )}
-        </div>
-
-        {/* Phone mockup */}
-        <div
-          style={{
-            width: 320, flexShrink: 0,
-            backgroundColor: '#111',
-            border: '8px solid #1A1A1A',
-            borderRadius: 44,
-            overflow: 'hidden',
-            boxShadow: '0 32px 80px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.06)',
-            position: 'relative',
-          }}>
-          {/* Câmera */}
-          <div style={{
-            height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            backgroundColor: '#111',
-          }}>
-            <div style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#222', border: '1px solid #333' }} />
-          </div>
-
-          {/* Botão trocar imagem — fixo no canto inferior direito do mockup */}
-          {carouselId && current && (
-            <button
-              onClick={() => {
-                if (uploadingSlideId) return
-                uploadTargetSlideId.current = current.id
-                fileInputRef.current?.click()
-              }}
-              disabled={!!uploadingSlideId}
-              style={{
-                position: 'absolute', bottom: 28, right: 10,
-                zIndex: 20,
-                backgroundColor: 'rgba(0,0,0,0.72)',
-                border: '1px solid rgba(255,255,255,0.18)',
-                borderRadius: 8, height: 28,
-                padding: '0 10px',
-                display: 'flex', alignItems: 'center', gap: 5,
-                cursor: uploadingSlideId ? 'default' : 'pointer',
-                color: uploadingSlideId ? 'rgba(255,255,255,0.4)' : T,
-                fontSize: 11, fontFamily: ff, fontWeight: 600,
-                backdropFilter: 'blur(6px)',
-                transition: 'background 0.15s',
-              }}
-            >
-              <Camera size={12} />
-              {uploadingSlideId === current.id ? 'Enviando...' : 'Trocar'}
-            </button>
-          )}
-
-          {/* Slide display */}
-          <AnimatePresence mode="wait">
-            {current && (
-              <motion.div
-                key={current.id}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.25 }}
-                style={{
-                  height: 440,
-                  ...getSlideContainerStyle(current, activeSlide, slides.length, selectedTemplate, imageStyle, 1),
-                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'; e.currentTarget.style.color = T }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = B; e.currentTarget.style.color = M }}
               >
-                <SlideRenderer
-                  slide={current}
-                  index={activeSlide}
-                  total={slides.length}
-                  template={selectedTemplate}
-                  imageStyle={imageStyle}
-                  scale={1}
-                  selectedEl={selectedEl}
-                  onSelectEl={setSelectedEl}
-                  onTitleMouseDown={(e) => {
-                    if (selectedEl !== 'titulo') return
-                    e.preventDefault()
-                    isDraggingTitle.current = true
-                    const pos = current?.titlePos ?? { x: 0, y: 0 }
-                    dragStart.current = { mx: e.clientX, my: e.clientY, ox: pos.x, oy: pos.y }
-                  }}
-                  hasWatermark={hasWatermark}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Bottom chrome */}
-          <div style={{ height: 20, backgroundColor: '#111' }} />
-        </div>
-
-        {/* Navigation */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <button
-            onClick={() => setActiveSlide((p) => Math.max(0, p - 1))}
-            disabled={activeSlide === 0}
-            style={{
-              width: 36, height: 36, borderRadius: '50%', backgroundColor: S2,
-              border: `1px solid ${B}`, color: activeSlide === 0 ? M2 : T,
-              cursor: activeSlide === 0 ? 'not-allowed' : 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'all 0.15s',
-            }}
-          ><ChevronLeft size={16} /></button>
-
-          {/* Dots */}
-          <div style={{ display: 'flex', gap: 6 }}>
-            {slides.map((_, i) => (
-              <button key={i} onClick={() => setActiveSlide(i)} style={{
-                width: i === activeSlide ? 18 : 6,
-                height: 6, borderRadius: 99,
-                backgroundColor: i === activeSlide ? A : B,
-                border: 'none', cursor: 'pointer', padding: 0,
-                transition: 'all 0.2s',
-              }} />
-            ))}
+                <Plus size={11} /> Adicionar
+              </button>
+              {current && (
+                <button onClick={() => duplicateSlide(current.id)} title="Duplicar" style={{
+                  width: 30, height: 30, background: S2, border: `1px solid ${B}`,
+                  borderRadius: 6, color: M, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'border-color 0.15s, color 0.15s',
+                }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.color = T }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = B; e.currentTarget.style.color = M }}
+                >
+                  <Copy size={12} />
+                </button>
+              )}
+              {slides.length > 1 && current && (
+                <button onClick={() => removeSlide(current.id)} title="Remover" style={{
+                  width: 30, height: 30, background: 'none', border: `1px solid rgba(248,113,113,0.3)`,
+                  borderRadius: 6, color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'border-color 0.15s',
+                }}
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = '#f87171'}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = 'rgba(248,113,113,0.3)'}
+                >
+                  <Trash2 size={12} />
+                </button>
+              )}
+            </div>
           </div>
 
-          <button
-            onClick={() => setActiveSlide((p) => Math.min(slides.length - 1, p + 1))}
-            disabled={activeSlide === slides.length - 1}
-            style={{
-              width: 36, height: 36, borderRadius: '50%', backgroundColor: S2,
-              border: `1px solid ${B}`, color: activeSlide === slides.length - 1 ? M2 : T,
-              cursor: activeSlide === slides.length - 1 ? 'not-allowed' : 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'all 0.15s',
-            }}
-          ><ChevronRight size={16} /></button>
-        </div>
-
-        {/* Slide counter + hack badge */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-          <p style={{ fontSize: 12, color: M, fontFamily: ff, margin: 0 }}>{activeSlide + 1} / {slides.length}</p>
-          {current?.hack && (
-            <span style={{
-              fontFamily: ff, fontSize: 11, color: A,
-              background: 'rgba(200,255,0,0.08)', border: '1px solid rgba(200,255,0,0.25)',
-              borderRadius: 20, padding: '3px 10px', display: 'flex', alignItems: 'center', gap: 4,
-            }}>⚡ {current.hack}</span>
-          )}
-        </div>
-
-        {/* Template carousel — scroll-snap, 2 per view */}
-        <div style={{ width: '100%' }}>
-          <p style={{ fontSize: 11, color: M, fontFamily: ff, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', margin: '0 0 10px' }}>
-            Estrutura do Carrossel
-          </p>
-          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollSnapType: 'x mandatory', paddingBottom: 6, scrollbarWidth: 'none' }}>
-            {TEMPLATES.map(({ key, icon, name, desc }) => {
-              const sel = selectedTemplate === key
-              return (
-                <button key={key} onClick={() => setSelectedTemplate(key)} style={{
-                  scrollSnapAlign: 'start', flexShrink: 0, width: 'calc(50% - 4px)',
-                  display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
-                  padding: '10px 12px', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
-                  backgroundColor: sel ? 'rgba(200,255,0,0.07)' : S2,
-                  border: `1px solid ${sel ? A : B}`, transition: 'all 0.15s',
-                }}>
-                  <div style={{
-                    width: '100%', height: 38, borderRadius: 6, marginBottom: 8,
-                    background: key === 'impacto' ? 'linear-gradient(135deg,#111,#1a1a1a)' :
-                                key === 'editorial' ? 'linear-gradient(135deg,#0a0a14,#141428)' :
-                                key === 'lista' ? 'linear-gradient(135deg,#0a1a0a,#0f2010)' :
-                                key === 'citacao' ? 'linear-gradient(135deg,#1a0a1a,#200f20)' :
-                                key === 'comparacao' ? 'linear-gradient(90deg,#1a0a0a 50%,#0a1a0a 50%)' :
-                                'linear-gradient(135deg,#1a1000,#2a1800)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
-                  }}>
-                    <span style={{ fontSize: 18 }}>{icon}</span>
-                    {sel && <div style={{ position: 'absolute', inset: 0, border: `1.5px solid ${A}`, borderRadius: 6 }} />}
+          {/* ─ Section 2: TEXTO DA CAPA ─ */}
+          {current && (
+            <CollapsibleSection title="TEXTO DA CAPA" isOpen={secTexto} onToggle={() => setSecTexto(v => !v)}>
+              {isComparacaoMiddle ? (
+                <>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontSize: 10, color: '#ff7070', fontFamily: ff, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>ANTES</span>
+                      <span style={{ fontSize: 10, color: M2, fontFamily: ff }}>{(current.beforeText ?? '').length}</span>
+                    </div>
+                    <textarea value={current.beforeText ?? ''}
+                      onChange={(e) => updateSlide(current.id, 'beforeText', e.target.value)}
+                      rows={3}
+                      style={{ width: '100%', backgroundColor: S2, border: `1px solid rgba(255,112,112,0.3)`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, lineHeight: 1.5, padding: '8px 10px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                      onFocus={(e) => { e.target.style.borderColor = '#ff7070' }}
+                      onBlur={(e) => { e.target.style.borderColor = 'rgba(255,112,112,0.3)' }}
+                    />
                   </div>
-                  <span style={{ fontSize: 11, fontFamily: ff, fontWeight: 700, color: sel ? A : T, lineHeight: 1.2 }}>{name}</span>
-                  <span style={{ fontSize: 9, fontFamily: ff, color: M, lineHeight: 1.3, marginTop: 2 }}>{desc}</span>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>DEPOIS</span>
+                      <span style={{ fontSize: 10, color: M2, fontFamily: ff }}>{(current.afterText ?? '').length}</span>
+                    </div>
+                    <textarea value={current.afterText ?? ''}
+                      onChange={(e) => updateSlide(current.id, 'afterText', e.target.value)}
+                      rows={3}
+                      style={{ width: '100%', backgroundColor: S2, border: `1px solid rgba(200,255,0,0.3)`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, lineHeight: 1.5, padding: '8px 10px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                      onFocus={(e) => { e.target.style.borderColor = A }}
+                      onBlur={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.3)' }}
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontSize: 10, color: M, fontFamily: ff }}>Título</span>
+                      <span style={{ fontSize: 10, color: M2, fontFamily: ff }}>{current.titulo.length}</span>
+                    </div>
+                    <textarea value={current.titulo}
+                      onChange={(e) => updateSlide(current.id, 'titulo', e.target.value)}
+                      rows={2}
+                      style={{ width: '100%', backgroundColor: S2, border: `1px solid rgba(200,255,0,0.25)`, borderRadius: 6, color: T, fontFamily: '"Bebas Neue", sans-serif', fontSize: 13, letterSpacing: 0.5, lineHeight: 1.3, padding: '8px 10px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                      onFocus={(e) => { e.target.style.borderColor = A }}
+                      onBlur={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.25)' }}
+                    />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontSize: 10, color: M, fontFamily: ff }}>Corpo</span>
+                      <span style={{ fontSize: 10, color: M2, fontFamily: ff }}>{current.corpo.length}</span>
+                    </div>
+                    <textarea value={current.corpo}
+                      onChange={(e) => updateSlide(current.id, 'corpo', e.target.value)}
+                      rows={3}
+                      style={{ width: '100%', backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 6, color: 'rgba(255,255,255,0.7)', fontFamily: ff, fontSize: 12, lineHeight: 1.6, padding: '8px 10px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                      onFocus={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.25)' }}
+                      onBlur={(e) => { e.target.style.borderColor = B }}
+                    />
+                  </div>
+                </>
+              )}
+            </CollapsibleSection>
+          )}
+
+          {/* ─ Section 3: IMAGEM DE FUNDO ─ */}
+          {current && (
+            <CollapsibleSection title="IMAGEM DE FUNDO" isOpen={secImagem} onToggle={() => setSecImagem(v => !v)}>
+              <SliderRow label="Zoom da imagem" value={current.bgZoom ?? 100} min={50} max={200}
+                onChange={(v) => updateBgZoom(current.id, v)} suffix="%" />
+              <SliderRow label="Posição vertical" value={current.bgPositionY ?? 50} min={0} max={100}
+                onChange={(v) => updateBgPositionY(current.id, v)} />
+              <SliderRow label="Posição horizontal" value={current.bgPositionX ?? 50} min={0} max={100}
+                onChange={(v) => updateBgPositionX(current.id, v)} />
+              <SliderRow label="Opacidade" value={current.imageOpacity ?? 100} min={10} max={100}
+                onChange={(v) => updateImageOpacity(current.id, v)} suffix="%" />
+              <SliderRow label="Escurecer" value={current.overlayOpacity ?? 55} min={0} max={90}
+                onChange={(v) => updateOverlayOpacity(current.id, v)} suffix="%" />
+
+              <div>
+                <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 6 }}>Efeito visual</span>
+                <select
+                  value={current.bgFilter ?? 'none'}
+                  onChange={(e) => updateBgFilter(current.id, e.target.value)}
+                  style={{
+                    width: '100%', backgroundColor: S2, border: `1px solid ${B}`,
+                    borderRadius: 6, color: T, fontFamily: ff, fontSize: 12,
+                    padding: '6px 8px', outline: 'none', cursor: 'pointer',
+                  }}
+                >
+                  {BG_FILTER_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value} style={{ backgroundColor: S2 }}>{o.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <button
+                  onClick={() => { if (carouselId && current) { uploadTargetSlideId.current = current.id; fileInputRef.current?.click() } }}
+                  style={{
+                    height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    background: S2, border: `1px solid ${B}`, borderRadius: 7,
+                    color: M, fontFamily: ff, fontSize: 12, cursor: 'pointer',
+                    transition: 'border-color 0.15s, color 0.15s',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.color = T }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = B; e.currentTarget.style.color = M }}
+                >
+                  <Image size={12} /> Trocar imagem
+                </button>
+                {carouselId && (
+                  <button
+                    onClick={handleGenerateImages}
+                    disabled={generatingImages}
+                    style={{
+                      height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      background: 'rgba(0,180,216,0.1)', border: `1px solid #00B4D8`, borderRadius: 7,
+                      color: '#00B4D8', fontFamily: ff, fontSize: 12,
+                      cursor: generatingImages ? 'not-allowed' : 'pointer',
+                      opacity: generatingImages ? 0.6 : 1, transition: 'background 0.15s',
+                    }}
+                    onMouseEnter={(e) => { if (!generatingImages) e.currentTarget.style.background = 'rgba(0,180,216,0.2)' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0,180,216,0.1)' }}
+                  >
+                    <Sparkles size={12} /> {imageGenProgress ?? 'Gerar com IA'}
+                  </button>
+                )}
+                {current.bgImageUrl && (
+                  <button
+                    onClick={() => setSlides((prev) => prev.map((s) => s.id === current.id ? { ...s, bgImageUrl: undefined } : s))}
+                    style={{
+                      height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      background: 'none', border: `1px solid rgba(248,113,113,0.35)`, borderRadius: 7,
+                      color: '#f87171', fontFamily: ff, fontSize: 12, cursor: 'pointer',
+                      transition: 'border-color 0.15s',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.borderColor = '#f87171'}
+                    onMouseLeave={(e) => e.currentTarget.style.borderColor = 'rgba(248,113,113,0.35)'}
+                  >
+                    <Trash2 size={12} /> Remover fundo
+                  </button>
+                )}
+              </div>
+            </CollapsibleSection>
+          )}
+
+          {/* ─ Section 4: FORMATAÇÃO ─ */}
+          {current && selectedEl && (
+            <CollapsibleSection
+              title={`FORMATAÇÃO — ${selectedEl === 'titulo' ? 'TÍTULO' : 'CORPO'}`}
+              isOpen={secFormato}
+              onToggle={() => setSecFormato(v => !v)}
+              rightSlot={
+                <button onClick={(e) => { e.stopPropagation(); setSelectedEl(null) }}
+                  style={{ background: 'none', border: 'none', color: M, cursor: 'pointer', display: 'flex', padding: 2 }}>
+                  <X size={12} />
+                </button>
+              }
+            >
+              <SliderRow
+                label={`Tamanho da fonte`}
+                value={selectedEl === 'titulo' ? (current.titleFontSize ?? 28) : (current.bodyFontSize ?? 12)}
+                min={12} max={72}
+                onChange={(v) => updateSlideFormat(current.id, selectedEl === 'titulo' ? { titleFontSize: v } : { bodyFontSize: v })}
+                suffix="px"
+              />
+
+              {selectedEl === 'titulo' && (
+                <>
+                  <div>
+                    <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 6 }}>Família da fonte</span>
+                    <select value={current.fontFamily ?? '"Bebas Neue", sans-serif'}
+                      onChange={(e) => updateSlideFormat(current.id, { fontFamily: e.target.value })}
+                      style={{ width: '100%', backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, padding: '6px 8px', outline: 'none', cursor: 'pointer' }}
+                    >
+                      {FONT_OPTIONS.map((f) => <option key={f.value} value={f.value} style={{ backgroundColor: S2 }}>{f.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 6 }}>Peso</span>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      {(['normal', 'bold'] as const).map((w) => {
+                        const sel = (current.fontWeightTitle ?? 'normal') === w
+                        return (
+                          <button key={w} onClick={() => updateSlideFormat(current.id, { fontWeightTitle: w })} style={{
+                            flex: 1, height: 30, borderRadius: 6, fontSize: 11, fontFamily: ff, fontWeight: w === 'bold' ? 700 : 400,
+                            backgroundColor: sel ? 'rgba(200,255,0,0.1)' : 'transparent',
+                            border: `1px solid ${sel ? 'rgba(200,255,0,0.4)' : B}`,
+                            color: sel ? A : M, cursor: 'pointer',
+                          }}>{w === 'normal' ? 'Normal' : 'Negrito'}</button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div>
+                <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 6 }}>Alinhamento</span>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {(['left', 'center', 'right'] as const).map((a) => {
+                    const labels = { left: '←', center: '≡', right: '→' }
+                    const sel = (current.textAlign ?? 'left') === a
+                    return (
+                      <button key={a} onClick={() => updateSlideFormat(current.id, { textAlign: a })} style={{
+                        flex: 1, height: 30, borderRadius: 6, fontSize: 14, fontFamily: ff,
+                        backgroundColor: sel ? 'rgba(200,255,0,0.1)' : 'transparent',
+                        border: `1px solid ${sel ? 'rgba(200,255,0,0.4)' : B}`,
+                        color: sel ? A : M, cursor: 'pointer',
+                      }}>{labels[a]}</button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 6 }}>Cor</span>
+                <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap' }}>
+                  {TEXT_COLORS.map((c) => (
+                    <button key={c} onClick={() => updateSlideFormat(current.id, { textColor: c })}
+                      style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: c, border: 'none', cursor: 'pointer', flexShrink: 0, outline: (current.textColor ?? '#F5F5F5') === c ? `2px solid ${A}` : '2px solid transparent', outlineOffset: 2 }} />
+                  ))}
+                  <input type="color" value={current.textColor ?? '#F5F5F5'}
+                    onChange={(e) => updateSlideFormat(current.id, { textColor: e.target.value })}
+                    style={{ width: 22, height: 22, borderRadius: '50%', border: `1px solid ${B}`, cursor: 'pointer', flexShrink: 0, padding: 0, backgroundColor: 'transparent' }} />
+                </div>
+              </div>
+
+              <SliderRow label="Margem lateral" value={current.paddingX ?? 24} min={0} max={60}
+                onChange={(v) => updatePaddingX(current.id, v)} suffix="px" />
+              <SliderRow label="Espaço entre blocos" value={current.blockSpacing ?? 16} min={0} max={48}
+                onChange={(v) => updateSlideFormat(current.id, { blockSpacing: v })} suffix="px" />
+
+              {selectedEl === 'titulo' && (
+                <div>
+                  <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 6 }}>Posição do texto</span>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {(['top', 'center', 'bottom'] as const).map((pos) => {
+                      const labels = { top: 'Topo', center: 'Centro', bottom: 'Base' }
+                      const sel = (current.textPosition ?? 'bottom') === pos
+                      return (
+                        <button key={pos} onClick={() => updateTextPosition(current.id, pos)} style={{
+                          flex: 1, height: 30, borderRadius: 6, fontSize: 10, fontFamily: ff,
+                          backgroundColor: sel ? 'rgba(200,255,0,0.1)' : 'transparent',
+                          border: `1px solid ${sel ? 'rgba(200,255,0,0.4)' : B}`,
+                          color: sel ? A : M, cursor: 'pointer',
+                        }}>{labels[pos]}</button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </CollapsibleSection>
+          )}
+
+          {/* ─ Section 5: LEGENDA ─ */}
+          <CollapsibleSection
+            title="LEGENDA"
+            isOpen={secLegenda}
+            onToggle={() => setSecLegenda(v => !v)}
+            rightSlot={
+              <button onClick={(e) => { e.stopPropagation(); copyLegenda() }}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(200,255,0,0.08)', border: `1px solid rgba(200,255,0,0.2)`, borderRadius: 4, padding: '2px 8px', color: A, fontFamily: ff, fontSize: 10, cursor: 'pointer' }}>
+                <Copy size={10} /> Copiar
+              </button>
+            }
+          >
+            <textarea value={legenda} onChange={(e) => setLegenda(e.target.value)} rows={6}
+              style={{ width: '100%', backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 7, color: T, fontSize: 12, fontFamily: ff, lineHeight: 1.7, padding: '10px 12px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+              onFocus={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.3)' }}
+              onBlur={(e) => { e.target.style.borderColor = B }}
+            />
+          </CollapsibleSection>
+
+        </div>
+
+        {/* ── RIGHT PANEL ── */}
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
+          {/* Toggle bar */}
+          <div style={{
+            height: 48, flexShrink: 0, borderBottom: `1px solid ${B}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+            padding: '0 16px', gap: 6,
+          }}>
+            {[
+              { mode: 'slide' as const, icon: <Maximize2 size={13} />, label: 'Slide por Slide' },
+              { mode: 'grid' as const,  icon: <Grid size={13} />, label: 'Grade' },
+            ].map(({ mode, icon, label }) => {
+              const sel = viewMode === mode
+              return (
+                <button key={mode} onClick={() => setViewMode(mode)} style={{
+                  height: 30, padding: '0 12px', display: 'flex', alignItems: 'center', gap: 5,
+                  borderRadius: 6, fontSize: 11, fontFamily: ff, cursor: 'pointer',
+                  backgroundColor: sel ? 'rgba(200,255,0,0.1)' : 'transparent',
+                  border: `1px solid ${sel ? 'rgba(200,255,0,0.4)' : B}`,
+                  color: sel ? A : M, transition: 'all 0.15s',
+                }}>
+                  {icon} {label}
                 </button>
               )
             })}
           </div>
-        </div>
 
-        {/* Seletor de estilo IA */}
-        {carouselId && (
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
-            {[
-              { key: 'cinematic', label: 'Cinemático' },
-              { key: 'illustration', label: 'Ilustração' },
-              { key: 'abstract', label: 'Abstrato' },
-              { key: 'minimal', label: 'Minimal' },
-              { key: 'gradient', label: 'Gradiente' },
-            ].map(({ key, label }) => {
-              const sel = imageStyle === key
-              return (
-                <button key={key} onClick={() => setImageStyle(key)} style={{
-                  padding: '5px 12px', borderRadius: 6,
-                  backgroundColor: sel ? 'rgba(0,180,216,0.15)' : S2,
-                  border: `1px solid ${sel ? '#00B4D8' : B}`,
-                  color: sel ? '#00B4D8' : M, fontSize: 11, fontFamily: ff,
-                  fontWeight: sel ? 600 : 400, cursor: 'pointer', transition: 'all 0.15s',
-                }}>{label}</button>
-              )
-            })}
-          </div>
-        )}
+          {/* ── Slide-by-slide view ── */}
+          {viewMode === 'slide' && (
+            <div style={{
+              flex: 1, overflowY: 'auto',
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'flex-start',
+              padding: '32px 24px', gap: 20,
+            }}>
+              {/* Phone mockup */}
+              <div style={{
+                width: 320, flexShrink: 0,
+                backgroundColor: '#111',
+                border: '8px solid #1A1A1A',
+                borderRadius: 44,
+                overflow: 'hidden',
+                boxShadow: '0 32px 80px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.06)',
+                position: 'relative',
+              }}>
+                <div style={{ height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#111' }}>
+                  <div style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#222', border: '1px solid #333' }} />
+                </div>
+
+                {carouselId && current && (
+                  <button
+                    onClick={() => { if (uploadingSlideId) return; uploadTargetSlideId.current = current.id; fileInputRef.current?.click() }}
+                    disabled={!!uploadingSlideId}
+                    style={{
+                      position: 'absolute', bottom: 28, right: 10, zIndex: 20,
+                      backgroundColor: 'rgba(0,0,0,0.72)', border: '1px solid rgba(255,255,255,0.18)',
+                      borderRadius: 8, height: 28, padding: '0 10px',
+                      display: 'flex', alignItems: 'center', gap: 5,
+                      cursor: uploadingSlideId ? 'default' : 'pointer',
+                      color: uploadingSlideId ? 'rgba(255,255,255,0.4)' : T,
+                      fontSize: 11, fontFamily: ff, fontWeight: 600, backdropFilter: 'blur(6px)',
+                    }}
+                  >
+                    <Camera size={12} />
+                    {uploadingSlideId === current.id ? 'Enviando...' : 'Trocar'}
+                  </button>
+                )}
+
+                <AnimatePresence mode="wait">
+                  {current && (
+                    <motion.div
+                      key={current.id}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ duration: 0.25 }}
+                      style={{ height: 440, ...getSlideContainerStyle(current, activeSlide, slides.length, selectedTemplate, imageStyle, 1) }}
+                    >
+                      <SlideRenderer
+                        slide={current}
+                        index={activeSlide}
+                        total={slides.length}
+                        template={selectedTemplate}
+                        imageStyle={imageStyle}
+                        scale={1}
+                        selectedEl={selectedEl}
+                        onSelectEl={setSelectedEl}
+                        onTitleMouseDown={(e) => {
+                          if (selectedEl !== 'titulo') return
+                          e.preventDefault()
+                          isDraggingTitle.current = true
+                          const pos = current?.titlePos ?? { x: 0, y: 0 }
+                          dragStart.current = { mx: e.clientX, my: e.clientY, ox: pos.x, oy: pos.y }
+                        }}
+                        hasWatermark={hasWatermark}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <div style={{ height: 20, backgroundColor: '#111' }} />
+              </div>
+
+              {/* Navigation */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <button onClick={() => setActiveSlide((p) => Math.max(0, p - 1))} disabled={activeSlide === 0}
+                  style={{ width: 36, height: 36, borderRadius: '50%', backgroundColor: S2, border: `1px solid ${B}`, color: activeSlide === 0 ? M2 : T, cursor: activeSlide === 0 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
+                  <ChevronLeft size={16} />
+                </button>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {slides.map((_, i) => (
+                    <button key={i} onClick={() => setActiveSlide(i)} style={{
+                      width: i === activeSlide ? 18 : 6, height: 6, borderRadius: 99,
+                      backgroundColor: i === activeSlide ? A : B,
+                      border: 'none', cursor: 'pointer', padding: 0, transition: 'all 0.2s',
+                    }} />
+                  ))}
+                </div>
+                <button onClick={() => setActiveSlide((p) => Math.min(slides.length - 1, p + 1))} disabled={activeSlide === slides.length - 1}
+                  style={{ width: 36, height: 36, borderRadius: '50%', backgroundColor: S2, border: `1px solid ${B}`, color: activeSlide === slides.length - 1 ? M2 : T, cursor: activeSlide === slides.length - 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+
+              {/* Counter + hack */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                <p style={{ fontSize: 12, color: M, fontFamily: ff, margin: 0 }}>{activeSlide + 1} / {slides.length}</p>
+                {current?.hack && (
+                  <span style={{ fontFamily: ff, fontSize: 11, color: A, background: 'rgba(200,255,0,0.08)', border: '1px solid rgba(200,255,0,0.25)', borderRadius: 20, padding: '3px 10px', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    ⚡ {current.hack}
+                  </span>
+                )}
+              </div>
+
+              {/* Template selector */}
+              <div style={{ width: '100%' }}>
+                <p style={{ fontSize: 11, color: M, fontFamily: ff, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', margin: '0 0 10px' }}>
+                  Estrutura do Carrossel
+                </p>
+                <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollSnapType: 'x mandatory', paddingBottom: 6, scrollbarWidth: 'none' }}>
+                  {TEMPLATES.map(({ key, icon, name, desc }) => {
+                    const sel = selectedTemplate === key
+                    return (
+                      <button key={key} onClick={() => setSelectedTemplate(key)} style={{
+                        scrollSnapAlign: 'start', flexShrink: 0, width: 'calc(50% - 4px)',
+                        display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
+                        padding: '10px 12px', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
+                        backgroundColor: sel ? 'rgba(200,255,0,0.07)' : S2,
+                        border: `1px solid ${sel ? A : B}`, transition: 'all 0.15s',
+                      }}>
+                        <div style={{
+                          width: '100%', height: 38, borderRadius: 6, marginBottom: 8,
+                          background: key === 'impacto' ? 'linear-gradient(135deg,#111,#1a1a1a)' :
+                                      key === 'editorial' ? 'linear-gradient(135deg,#0a0a14,#141428)' :
+                                      key === 'lista' ? 'linear-gradient(135deg,#0a1a0a,#0f2010)' :
+                                      key === 'citacao' ? 'linear-gradient(135deg,#1a0a1a,#200f20)' :
+                                      key === 'comparacao' ? 'linear-gradient(90deg,#1a0a0a 50%,#0a1a0a 50%)' :
+                                      'linear-gradient(135deg,#1a1000,#2a1800)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
+                        }}>
+                          <span style={{ fontSize: 18 }}>{icon}</span>
+                          {sel && <div style={{ position: 'absolute', inset: 0, border: `1.5px solid ${A}`, borderRadius: 6 }} />}
+                        </div>
+                        <span style={{ fontSize: 11, fontFamily: ff, fontWeight: 700, color: sel ? A : T, lineHeight: 1.2 }}>{name}</span>
+                        <span style={{ fontSize: 9, fontFamily: ff, color: M, lineHeight: 1.3, marginTop: 2 }}>{desc}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* AI style selector */}
+              {carouselId && (
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
+                  {[
+                    { key: 'cinematic',    label: 'Cinemático' },
+                    { key: 'illustration', label: 'Ilustração' },
+                    { key: 'abstract',     label: 'Abstrato' },
+                    { key: 'minimal',      label: 'Minimal' },
+                    { key: 'gradient',     label: 'Gradiente' },
+                  ].map(({ key, label }) => {
+                    const sel = imageStyle === key
+                    return (
+                      <button key={key} onClick={() => setImageStyle(key)} style={{
+                        padding: '5px 12px', borderRadius: 6,
+                        backgroundColor: sel ? 'rgba(0,180,216,0.15)' : S2,
+                        border: `1px solid ${sel ? '#00B4D8' : B}`,
+                        color: sel ? '#00B4D8' : M, fontSize: 11, fontFamily: ff,
+                        fontWeight: sel ? 600 : 400, cursor: 'pointer', transition: 'all 0.15s',
+                      }}>{label}</button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Grid view ── */}
+          {viewMode === 'grid' && (
+            <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, 180px)',
+                gap: 16,
+              }}>
+                {slides.map((slide, idx) => (
+                  <div
+                    key={slide.id}
+                    onClick={() => { setActiveSlide(idx); setViewMode('slide') }}
+                    style={{
+                      cursor: 'pointer', position: 'relative',
+                      borderRadius: 8, overflow: 'hidden',
+                      width: 180, height: 225,
+                      border: `1.5px solid ${activeSlide === idx ? A : B}`,
+                      transition: 'border-color 0.15s',
+                      flexShrink: 0,
+                    }}
+                    onMouseEnter={(e) => { if (activeSlide !== idx) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)' }}
+                    onMouseLeave={(e) => { if (activeSlide !== idx) e.currentTarget.style.borderColor = B }}
+                  >
+                    {/* Scale container — renders at 1080×1350, visually scaled to 180×225 */}
+                    <div style={{
+                      width: 1080, height: 1350,
+                      transform: 'scale(0.16667)',
+                      transformOrigin: 'top left',
+                      position: 'absolute', top: 0, left: 0,
+                      ...getSlideContainerStyle(slide, idx, slides.length, selectedTemplate, imageStyle, 1),
+                    }}>
+                      <SlideRenderer
+                        slide={slide}
+                        index={idx}
+                        total={slides.length}
+                        template={selectedTemplate}
+                        imageStyle={imageStyle}
+                        scale={1}
+                        hasWatermark={hasWatermark}
+                      />
+                    </div>
+
+                    {/* Slide number badge */}
+                    <div style={{
+                      position: 'absolute', top: 6, left: 6, zIndex: 10,
+                      background: activeSlide === idx ? A : 'rgba(0,0,0,0.7)',
+                      color: activeSlide === idx ? '#000' : T,
+                      fontFamily: '"Bebas Neue", sans-serif',
+                      fontSize: 11, letterSpacing: 0.5,
+                      padding: '2px 6px', borderRadius: 4,
+                    }}>
+                      {idx + 1}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+        </div>
       </div>
     </motion.div>
 

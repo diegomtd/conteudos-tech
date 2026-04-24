@@ -28,6 +28,10 @@ export interface SlideData {
   beforeText?: string   // Comparação template — coluna ANTES
   afterText?: string    // Comparação template — coluna DEPOIS
   paddingX?: number     // margem lateral px, default 24
+  bgZoom?: number       // 50–200, default 100 → backgroundSize
+  bgPositionX?: number  // 0–100, default 50 → backgroundPositionX
+  bgPositionY?: number  // 0–100, default 50 → backgroundPositionY
+  bgFilter?: string     // CSS filter applied to bg image div
 }
 
 export interface SlideRenderProps {
@@ -592,8 +596,11 @@ export function SlideRenderer(props: SlideRenderProps): React.ReactElement {
       <div style={{
         position: 'absolute', inset: 0, zIndex: Z_IMG,
         backgroundImage: `url("${slide.bgImageUrl}")`,
-        backgroundSize: 'cover', backgroundPosition: 'center',
+        backgroundSize: (slide.bgZoom ?? 100) === 100 ? 'cover' : `${slide.bgZoom ?? 100}%`,
+        backgroundPositionX: `${slide.bgPositionX ?? 50}%`,
+        backgroundPositionY: `${slide.bgPositionY ?? 50}%`,
         opacity: (slide.imageOpacity ?? 100) / 100,
+        filter: slide.bgFilter ?? 'none',
       }} />
     )}
     {/* Template content — overlays at z-index:1, text at z-index:2 */}

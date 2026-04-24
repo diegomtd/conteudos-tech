@@ -1,6 +1,7 @@
-import { type Variants, motion } from 'framer-motion'
+import { AnimatePresence, type Variants, motion } from 'framer-motion'
 import {
   Calendar,
+  Check,
   Download,
   Layout,
   Sliders,
@@ -8,7 +9,7 @@ import {
   TrendingUp,
   Zap,
 } from 'lucide-react'
-import { CSSProperties, ReactNode } from 'react'
+import { CSSProperties, ReactNode, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Accordion } from '@/components/ui/Accordion'
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter'
@@ -151,16 +152,176 @@ function Navbar() {
   )
 }
 
+// ─── Carousel Mockup ─────────────────────────────────────────────────────────
+const SLIDES = [
+  {
+    bg: 'linear-gradient(160deg, #060d14, #0d1f30)',
+    title: 'VOCÊ NÃO É PREGUIÇOSO.',
+    titleSize: '28px',
+    body: 'Você está travado por um motivo que ninguém te ensinou.',
+  },
+  {
+    bg: 'linear-gradient(160deg, #080c1a, #0f1e4a)',
+    title: 'O ALGORITMO NÃO FAVORECE QUEM POSTA MAIS.',
+    titleSize: '24px',
+    body: 'Favorece quem para o scroll.',
+  },
+  {
+    bg: 'linear-gradient(160deg, #0a0814, #1a0f2e)',
+    title: '3 TIPOS DE POST QUE GERAM SALVAMENTO.',
+    titleSize: '24px',
+    body: 'E o primeiro é o que 90% das pessoas ignoram.',
+  },
+]
+
+function PhoneMockup() {
+  const [current, setCurrent] = useState(0)
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrent((prev) => (prev + 1) % SLIDES.length)
+    }, 2500)
+    return () => clearInterval(timer)
+  }, [])
+
+  const phoneStyle: CSSProperties = {
+    width: '300px',
+    border: '8px solid #1A1A1A',
+    borderRadius: '44px',
+    overflow: 'hidden',
+    boxShadow: '0 40px 100px rgba(0,0,0,0.6)',
+    position: 'relative',
+    background: '#0a0a0a',
+    flexShrink: 0,
+  }
+
+  const slideStyle = (bg: string): CSSProperties => ({
+    width: '100%',
+    height: '460px',
+    background: bg,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'flex-end',
+    padding: '32px 24px',
+    boxSizing: 'border-box',
+    position: 'relative',
+  })
+
+  const dotRowStyle: CSSProperties = {
+    display: 'flex',
+    gap: '6px',
+    justifyContent: 'center',
+    padding: '12px 0 8px',
+    background: '#0a0a0a',
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0' }}>
+      <div style={phoneStyle}>
+        {/* notch */}
+        <div style={{
+          position: 'absolute', top: '12px', left: '50%', transform: 'translateX(-50%)',
+          width: '80px', height: '6px', borderRadius: '3px',
+          background: 'rgba(255,255,255,0.08)', zIndex: 10,
+        }} />
+
+        <div style={{ position: 'relative', height: '460px', overflow: 'hidden' }}>
+          <AnimatePresence initial={false} mode="popLayout">
+            <motion.div
+              key={current}
+              style={slideStyle(SLIDES[current].bg)}
+              initial={{ x: '100%', opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: '-100%', opacity: 0 }}
+              transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+            >
+              {/* decorative line */}
+              <div style={{
+                position: 'absolute', top: '32px', left: '24px', right: '24px',
+                height: '2px', background: `linear-gradient(90deg, ${T.accent}, transparent)`,
+                borderRadius: '1px',
+              }} />
+
+              <p style={{
+                fontFamily: '"Bebas Neue", sans-serif',
+                fontSize: SLIDES[current].titleSize,
+                lineHeight: 1.1,
+                letterSpacing: '1px',
+                color: '#F5F5F5',
+                margin: '0 0 12px',
+              }}>
+                {SLIDES[current].title}
+              </p>
+              <p style={{
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '12px',
+                color: 'rgba(255,255,255,0.55)',
+                lineHeight: 1.6,
+                margin: 0,
+              }}>
+                {SLIDES[current].body}
+              </p>
+
+              {/* branding chip */}
+              <div style={{
+                position: 'absolute', top: '16px', right: '16px',
+                fontFamily: '"Bebas Neue", sans-serif',
+                fontSize: '11px', letterSpacing: '1px',
+                color: T.accent, opacity: 0.7,
+              }}>
+                ConteúdOS
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* dot indicators inside phone */}
+        <div style={dotRowStyle}>
+          {SLIDES.map((_, i) => (
+            <motion.div
+              key={i}
+              animate={{ width: i === current ? '18px' : '6px', opacity: i === current ? 1 : 0.3 }}
+              transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+              style={{
+                height: '6px',
+                borderRadius: '3px',
+                background: T.accent,
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 function Hero() {
   const navigate = useNavigate()
 
-  const heroInner: CSSProperties = {
+  const sectionStyle: CSSProperties = {
+    width: '100%',
+    background: '#080808',
+    paddingTop: '128px',
+    paddingBottom: '96px',
+  }
+
+  const innerStyle: CSSProperties = {
+    maxWidth: '1200px',
+    margin: '0 auto',
+    paddingLeft: '24px',
+    paddingRight: '24px',
+    boxSizing: 'border-box',
+    display: 'grid',
+    gridTemplateColumns: '55fr 45fr',
+    gap: '64px',
+    alignItems: 'center',
+  }
+
+  const leftStyle: CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'flex-start',
     gap: '32px',
-    paddingTop: '64px',
   }
 
   const headlineStyle: CSSProperties = {
@@ -180,18 +341,11 @@ function Hero() {
 
   const subtitleStyle: CSSProperties = {
     fontFamily: 'DM Sans, sans-serif',
-    fontSize: '20px',
+    fontSize: '18px',
     color: T.muted,
-    lineHeight: 1.6,
-    maxWidth: '560px',
+    lineHeight: 1.7,
+    maxWidth: '480px',
     margin: 0,
-  }
-
-  const socialProofStyle: CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-    flexWrap: 'wrap',
   }
 
   const checkItemStyle: CSSProperties = {
@@ -205,60 +359,111 @@ function Hero() {
 
   const dotStyle: CSSProperties = {
     color: 'rgba(255,255,255,0.2)',
-    fontSize: '16px',
+    fontSize: '14px',
   }
 
-  return (
-    <SectionWrapper background="dark" paddingY={128}>
-      <div style={heroInner}>
-        <FadeUp i={0}>
-          <Badge variant="accent">Laboratório de viralidade com IA</Badge>
-        </FadeUp>
+  const rightStyle: CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  }
 
-        <FadeUp i={1}>
-          <h1 style={headlineStyle}>
+  const glowStyle: CSSProperties = {
+    position: 'absolute',
+    width: '400px',
+    height: '400px',
+    borderRadius: '50%',
+    background: 'radial-gradient(circle, rgba(200,255,0,0.08) 0%, transparent 70%)',
+    filter: 'blur(40px)',
+    pointerEvents: 'none',
+  }
+
+  const easeOut = [0.0, 0.0, 0.2, 1.0] as const
+
+  return (
+    <section style={sectionStyle}>
+      <div style={innerStyle}>
+        {/* left column */}
+        <div style={leftStyle}>
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: easeOut, delay: 0 }}
+          >
+            <Badge variant="accent">
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Sparkles size={12} />
+                Laboratório de viralidade com IA
+              </span>
+            </Badge>
+          </motion.div>
+
+          <motion.h1
+            style={headlineStyle}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: easeOut, delay: 0.15 }}
+          >
             <span style={{ color: T.text, display: 'block' }}>PARE DE PERDER TEMPO</span>
             <span style={gradientStyle}>NO CANVA.</span>
-          </h1>
-        </FadeUp>
+          </motion.h1>
 
-        <FadeUp i={2}>
-          <p style={subtitleStyle}>
-            Cole um tema ou link viral. A IA decodifica os hacks psicológicos e recria na sua voz em 30 segundos.
-          </p>
-        </FadeUp>
+          <motion.p
+            style={subtitleStyle}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: easeOut, delay: 0.3 }}
+          >
+            Cole um tema ou link viral. A IA decodifica os hacks psicológicos usados e recria na sua voz em menos de 30 segundos.
+          </motion.p>
 
-        <FadeUp i={3}>
-          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+          <motion.div
+            style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: easeOut, delay: 0.45 }}
+          >
             <GlowButton variant="primary" size="lg" onClick={() => navigate('/auth')}>
               Criar meu primeiro carrossel →
             </GlowButton>
             <GlowButton variant="secondary" size="lg" onClick={() => scrollTo('como-funciona')}>
-              Ver como funciona
+              Ver demo
             </GlowButton>
-          </div>
-        </FadeUp>
+          </motion.div>
 
-        <FadeUp i={4}>
-          <div style={socialProofStyle}>
-            <div style={checkItemStyle}>
-              <span style={{ color: '#4ADE80', fontSize: '14px' }}>✓</span>
-              Sem cartão de crédito
-            </div>
-            <span style={dotStyle}>·</span>
-            <div style={checkItemStyle}>
-              <span style={{ color: '#4ADE80', fontSize: '14px' }}>✓</span>
-              Primeiro carrossel grátis
-            </div>
-            <span style={dotStyle}>·</span>
-            <div style={checkItemStyle}>
-              <span style={{ color: '#4ADE80', fontSize: '14px' }}>✓</span>
-              Cancele quando quiser
-            </div>
-          </div>
-        </FadeUp>
+          <motion.div
+            style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: easeOut, delay: 0.6 }}
+          >
+            {['Sem cartão de crédito', 'Primeiro carrossel grátis', 'Cancele quando quiser'].map(
+              (label, i) => (
+                <span key={label} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={checkItemStyle}>
+                    <Check size={12} color={T.accent} strokeWidth={2.5} />
+                    {label}
+                  </span>
+                  {i < 2 && <span style={dotStyle}>·</span>}
+                </span>
+              )
+            )}
+          </motion.div>
+        </div>
+
+        {/* right column */}
+        <motion.div
+          style={rightStyle}
+          initial={{ opacity: 0, x: 40 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, ease: easeOut, delay: 0.3 }}
+        >
+          <div style={glowStyle} />
+          <PhoneMockup />
+        </motion.div>
       </div>
-    </SectionWrapper>
+    </section>
   )
 }
 
