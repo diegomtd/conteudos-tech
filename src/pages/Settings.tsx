@@ -40,22 +40,21 @@ const PLAN_UPGRADES = [
     label: 'Criador',
     price: 'R$47/mês',
     features: ['20 exportações/mês', '20 imagens IA'],
-    // Substituir pela URL real do produto na Cakto
-    url: 'https://pay.cakto.com.br/criador',
+    url: 'https://pay.cakto.com.br/vzjyawh_859532',
   },
   {
     plan: 'profissional' as Plan,
     label: 'Profissional',
     price: 'R$97/mês',
     features: ['Exportações ilimitadas', '60 imagens IA', 'Calendário', 'Telegram'],
-    url: 'https://pay.cakto.com.br/profissional',
+    url: 'https://pay.cakto.com.br/v5utxm4_859534',
   },
   {
     plan: 'agencia' as Plan,
     label: 'Agência',
     price: 'R$197/mês',
     features: ['Exportações ilimitadas', '200 imagens IA', '5 subcontas'],
-    url: 'https://pay.cakto.com.br/agencia',
+    url: 'https://pay.cakto.com.br/3fyfktb_859537',
   },
 ]
 

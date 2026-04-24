@@ -99,9 +99,12 @@ export function GlowButton({
   )
 
   if (href && !disabled) {
+    const isExternal = href.startsWith('http')
     return (
       <motion.a
         href={href}
+        target={isExternal ? '_blank' : undefined}
+        rel={isExternal ? 'noopener noreferrer' : undefined}
         style={{ ...baseStyle, display: 'inline-flex' }}
         whileHover={hoverAnimation}
         whileTap={tapAnimation}

@@ -24,7 +24,7 @@ const CARD_BG = '#0A0A0A'
 
 // ─── Plan config ──────────────────────────────────────────────────
 const PLAN_LABELS: Record<string, string> = {
-  free: 'FREE', criador: 'CRIADOR', profissional: 'PRO', agencia: 'AGÊNCIA',
+  free: 'FREE', criador: 'CRIADOR', profissional: 'PROFISSIONAL', agencia: 'AGÊNCIA',
 }
 const PLAN_COLOR: Record<string, string> = {
   free: M, criador: '#00B4D8', profissional: A, agencia: '#A855F7',

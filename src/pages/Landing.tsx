@@ -624,7 +624,7 @@ function Pricing() {
       period: '',
       description: 'Para experimentar',
       features: [
-        { label: '1 exportação/mês', included: true },
+        { label: '3 exportações/mês', included: true },
         { label: 'Marca d\'água ConteudOS', included: true },
         { label: '6 templates virais', included: true },
         { label: 'Análise viral', included: false },
@@ -633,6 +633,7 @@ function Pricing() {
       ],
       cta: 'Começar grátis',
       ctaVariant: 'secondary' as const,
+      href: undefined as string | undefined,
       onClick: () => navigate('/auth'),
       popular: false,
     },
@@ -646,12 +647,13 @@ function Pricing() {
         { label: 'Sem marca d\'água', included: true },
         { label: '6 templates virais', included: true },
         { label: 'Análise viral', included: true },
+        { label: '20 imagens IA/mês', included: true },
         { label: 'Calendário de posts', included: false },
-        { label: 'Imagem IA de fundo', included: false },
       ],
       cta: 'Assinar Criador',
       ctaVariant: 'secondary' as const,
-      onClick: () => { /* TODO Cakto */ },
+      href: 'https://pay.cakto.com.br/vzjyawh_859532',
+      onClick: undefined as (() => void) | undefined,
       popular: false,
     },
     {
@@ -660,16 +662,17 @@ function Pricing() {
       period: '/mês',
       description: 'Para quem vive de conteúdo',
       features: [
-        { label: '50 exportações/mês', included: true },
+        { label: 'Exportações ilimitadas', included: true },
         { label: 'Sem marca d\'água', included: true },
-        { label: '6 templates virais', included: true },
+        { label: '60 imagens IA/mês', included: true },
         { label: 'Análise viral', included: true },
         { label: 'Calendário de posts', included: true },
-        { label: 'Imagem IA de fundo', included: true },
+        { label: 'Notificação Telegram', included: true },
       ],
       cta: 'Assinar Profissional',
       ctaVariant: 'primary' as const,
-      onClick: () => navigate('/auth'),
+      href: 'https://pay.cakto.com.br/v5utxm4_859534',
+      onClick: undefined as (() => void) | undefined,
       popular: true,
     },
     {
@@ -678,16 +681,17 @@ function Pricing() {
       period: '/mês',
       description: 'Para times e agências',
       features: [
-        { label: '150 exportações/mês', included: true },
+        { label: 'Exportações ilimitadas', included: true },
         { label: 'Sem marca d\'água', included: true },
-        { label: '6 templates virais', included: true },
+        { label: '200 imagens IA/mês', included: true },
         { label: 'Análise viral', included: true },
-        { label: 'Calendário de posts', included: true },
+        { label: 'Calendário + Telegram', included: true },
         { label: '5 subcontas', included: true },
       ],
       cta: 'Assinar Agência',
       ctaVariant: 'secondary' as const,
-      onClick: () => { /* TODO Cakto */ },
+      href: 'https://pay.cakto.com.br/3fyfktb_859537',
+      onClick: undefined as (() => void) | undefined,
       popular: false,
     },
   ]
@@ -797,6 +801,7 @@ function Pricing() {
                 <GlowButton
                   variant={plan.ctaVariant}
                   fullWidth
+                  href={plan.href}
                   onClick={plan.onClick}
                 >
                   {plan.cta}
@@ -829,7 +834,7 @@ function FAQ() {
       id: 'plano-gratis',
       question: 'Quantos carrosseis posso criar no plano grátis?',
       answer:
-        'No plano Free você pode criar carrosseis ilimitados para visualizar e editar, mas tem direito a 1 exportação por mês. As exportações no plano Free incluem a marca d\'água ConteudOS. Para remover e exportar mais, basta assinar um plano pago.',
+        'No plano Free você pode criar carrosseis ilimitados para visualizar e editar, mas tem direito a 3 exportações por mês. As exportações no plano Free incluem a marca d\'água ConteudOS. Para remover e exportar mais, basta assinar um plano pago.',
     },
     {
       id: 'analise-viral',
