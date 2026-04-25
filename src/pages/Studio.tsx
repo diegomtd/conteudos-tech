@@ -25,13 +25,30 @@ type AppState = 'input' | 'generating' | 'preview'
 type CarouselTemplate = _CarouselTemplate
 
 const TEMPLATES: { key: CarouselTemplate; icon: string; name: string; desc: string }[] = [
-  { key: 'impacto',      icon: '⚡', name: 'Impacto',     desc: 'Autoridade e hooks visuais' },
-  { key: 'editorial',    icon: '📰', name: 'Editorial',   desc: 'Educação e análises' },
-  { key: 'lista',        icon: '📋', name: 'Lista Viral', desc: 'Dicas e passo a passo' },
-  { key: 'citacao',      icon: '💬', name: 'Citação',     desc: 'Frases e reflexões' },
-  { key: 'comparacao',   icon: '⚖️', name: 'Comparação',  desc: 'Antes vs Depois' },
-  { key: 'storytelling', icon: '📖', name: 'Narrativa',   desc: 'Jornada e bastidores' },
+  { key: 'impacto',       icon: '⚡', name: 'Impacto',      desc: 'Autoridade e hooks visuais' },
+  { key: 'editorial',     icon: '📰', name: 'Editorial',    desc: 'Educação e análises' },
+  { key: 'lista',         icon: '📋', name: 'Lista Viral',  desc: 'Dicas e passo a passo' },
+  { key: 'citacao',       icon: '💬', name: 'Citação',      desc: 'Frases e reflexões' },
+  { key: 'comparacao',    icon: '⚖️', name: 'Comparação',   desc: 'Antes vs Depois' },
+  { key: 'storytelling',  icon: '📖', name: 'Narrativa',    desc: 'Jornada e bastidores' },
+  { key: 'editorial_foto',icon: '🖼️', name: 'Edit. Foto',   desc: 'Texto sobre foto com gradiente' },
+  { key: 'texto_imagem',  icon: '📝', name: 'Texto + Img',  desc: 'Texto acima, imagem abaixo' },
+  { key: 'split_visual',  icon: '⬛', name: 'Split Visual', desc: 'Duas imagens divididas' },
+  { key: 'citacao_bold',  icon: '❝',  name: 'Citação Bold', desc: 'Frase grande centralizada' },
 ]
+
+const TEMPLATE_GRADIENTS: Record<string, string> = {
+  impacto:       'linear-gradient(135deg,#060d14,#1a2a3a)',
+  editorial:     'linear-gradient(135deg,#0a0a0a,#1a1a14)',
+  lista:         'linear-gradient(135deg,#060d14,#0f1e0f)',
+  citacao:       'linear-gradient(135deg,#0a0814,#1a0f2e)',
+  comparacao:    'linear-gradient(135deg,#140808,#0a0a14)',
+  storytelling:  'linear-gradient(135deg,#080614,#14060a)',
+  editorial_foto:'linear-gradient(135deg,#0a0a0a,#1a1400)',
+  texto_imagem:  'linear-gradient(135deg,#060d14,#081420)',
+  split_visual:  'linear-gradient(135deg,#080808,#141414)',
+  citacao_bold:  'linear-gradient(135deg,#0a0814,#14082a)',
+}
 
 // ─── Mock slides ──────────────────────────────────────────────
 interface Slide {
@@ -77,6 +94,10 @@ interface Slide {
   bodyLetterSpacing?: number
   bodyBgEnabled?: boolean
   bodyBgColor?: string
+  profileBadgeEnabled?: boolean
+  profileHandle?: string
+  profileAvatarUrl?: string
+  profileBadgePosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
 }
 
 const EXPORT_SCALE = 4  // mockup → export resolution multiplier
@@ -878,8 +899,7 @@ function StatePreview({
   const [secFormato, setSecFormato] = useState(false)
   const [secLegenda, setSecLegenda] = useState(false)
   const [secTextoTab, setSecTextoTab] = useState<'titulo' | 'corpo'>('titulo')
-  const [titFormatOpen, setTitFormatOpen] = useState(false)
-  const [bodyFormatOpen, setBodyFormatOpen] = useState(false)
+  const [secTemplate, setSecTemplate] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [generatingImages, setGeneratingImages] = useState(false)
@@ -1002,11 +1022,11 @@ function StatePreview({
   const updateTitleStyle = (id: string, updates: Partial<Slide>) =>
     setSlides(p => p.map(s => s.id === id ? { ...s, ...updates } : s))
 
-  const updateBodyStyle = (id: string, updates: Partial<Slide>) =>
-    setSlides(p => p.map(s => s.id === id ? { ...s, ...updates } : s))
-
   const resetBgPosition = (id: string) =>
     setSlides(p => p.map(s => s.id === id ? { ...s, bgZoom: 100, bgPositionX: 50, bgPositionY: 50 } : s))
+
+  const applyBadgeToAll = (updates: Partial<Pick<Slide, 'profileBadgeEnabled' | 'profileHandle' | 'profileAvatarUrl' | 'profileBadgePosition'>>) =>
+    setSlides(p => p.map(s => ({ ...s, ...updates })))
 
   const handleUploadImage = async (slideId: string, file: File) => {
     if (!carouselId) return
@@ -1379,9 +1399,9 @@ function StatePreview({
             </div>
           </div>
 
-          {/* ─ Section 2: TEXTO DA CAPA ─ */}
+          {/* ─ Section 2: CONTEÚDO ─ */}
           {current && (
-            <CollapsibleSection title="TEXTO DA CAPA" isOpen={secTexto} onToggle={() => setSecTexto(v => !v)}>
+            <CollapsibleSection title="CONTEÚDO" isOpen={secTexto} onToggle={() => setSecTexto(v => !v)}>
               {isComparacaoMiddle ? (
                 <>
                   <div>
@@ -1447,112 +1467,9 @@ function StatePreview({
                           onBlur={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.25)' }}
                         />
                       </div>
-                      {/* Formatar expand */}
-                      <button onClick={() => setTitFormatOpen(v => !v)} style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-                        height: 24, background: 'none', border: `1px solid ${B}`, borderRadius: 5,
-                        color: M, fontFamily: ff, fontSize: 10, cursor: 'pointer', width: '100%',
-                      }}>
-                        Formatar
-                        <motion.span animate={{ rotate: titFormatOpen ? 180 : 0 }} transition={{ duration: 0.2 }} style={{ display: 'flex' }}>
-                          <ChevronDown size={11} />
-                        </motion.span>
-                      </button>
-                      <AnimatePresence initial={false}>
-                        {titFormatOpen && (
-                          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} style={{ overflow: 'hidden' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 4 }}>
-                              <SliderRow label="Tamanho" value={current.titleFontSize ?? 28} min={12} max={72}
-                                onChange={(v) => updateSlideFormat(current.id, { titleFontSize: v })} suffix="px" />
-                              <div>
-                                <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 6 }}>Fonte</span>
-                                <select value={current.fontFamily ?? '"Bebas Neue", sans-serif'}
-                                  onChange={(e) => updateSlideFormat(current.id, { fontFamily: e.target.value })}
-                                  style={{ width: '100%', backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, padding: '6px 8px', outline: 'none', cursor: 'pointer' }}>
-                                  {FONT_OPTIONS.map((f) => <option key={f.value} value={f.value} style={{ backgroundColor: S2 }}>{f.label}</option>)}
-                                </select>
-                              </div>
-                              <div>
-                                <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 6 }}>Peso</span>
-                                <div style={{ display: 'flex', gap: 6 }}>
-                                  {(['normal', 'bold'] as const).map((w) => {
-                                    const sel = (current.fontWeightTitle ?? 'normal') === w
-                                    return (
-                                      <button key={w} onClick={() => updateSlideFormat(current.id, { fontWeightTitle: w })} style={{
-                                        flex: 1, height: 28, borderRadius: 5, fontSize: 11, fontFamily: ff, fontWeight: w === 'bold' ? 700 : 400,
-                                        backgroundColor: sel ? 'rgba(200,255,0,0.1)' : 'transparent',
-                                        border: `1px solid ${sel ? 'rgba(200,255,0,0.4)' : B}`,
-                                        color: sel ? A : M, cursor: 'pointer',
-                                      }}>{w === 'normal' ? 'Normal' : 'Negrito'}</button>
-                                    )
-                                  })}
-                                </div>
-                              </div>
-                              <div style={{ display: 'flex', gap: 6 }}>
-                                <button onClick={() => updateTitleStyle(current.id, { titleItalic: !current.titleItalic })} style={{
-                                  flex: 1, height: 28, borderRadius: 5, fontSize: 12, fontFamily: ff, fontStyle: 'italic', fontWeight: 700,
-                                  backgroundColor: current.titleItalic ? 'rgba(200,255,0,0.1)' : 'transparent',
-                                  border: `1px solid ${current.titleItalic ? 'rgba(200,255,0,0.4)' : B}`,
-                                  color: current.titleItalic ? A : M, cursor: 'pointer',
-                                }}>I</button>
-                                <button onClick={() => updateTitleStyle(current.id, { titleUppercase: !current.titleUppercase })} style={{
-                                  flex: 1, height: 28, borderRadius: 5, fontSize: 11, fontFamily: ff, fontWeight: 700,
-                                  backgroundColor: current.titleUppercase ? 'rgba(200,255,0,0.1)' : 'transparent',
-                                  border: `1px solid ${current.titleUppercase ? 'rgba(200,255,0,0.4)' : B}`,
-                                  color: current.titleUppercase ? A : M, cursor: 'pointer',
-                                }}>AA</button>
-                              </div>
-                              <SliderRow label="Letter spacing" value={current.titleLetterSpacing ?? 0} min={0} max={10}
-                                onChange={(v) => updateTitleStyle(current.id, { titleLetterSpacing: v })} />
-                              <SliderRow label="Line height" value={Math.round((current.titleLineHeight ?? 1.1) * 10) / 10} min={8} max={25}
-                                onChange={(v) => updateTitleStyle(current.id, { titleLineHeight: v / 10 })} />
-                              <div>
-                                <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 6 }}>Cor do título</span>
-                                <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap' }}>
-                                  {TEXT_COLORS.map((c) => (
-                                    <button key={c} onClick={() => updateSlideFormat(current.id, { textColor: c })}
-                                      style={{ width: 20, height: 20, borderRadius: '50%', backgroundColor: c, border: 'none', cursor: 'pointer', flexShrink: 0, outline: (current.textColor ?? '#F5F5F5') === c ? `2px solid ${A}` : '2px solid transparent', outlineOffset: 2 }} />
-                                  ))}
-                                  <input type="color" value={current.textColor ?? '#F5F5F5'}
-                                    onChange={(e) => updateSlideFormat(current.id, { textColor: e.target.value })}
-                                    style={{ width: 20, height: 20, borderRadius: '50%', border: `1px solid ${B}`, cursor: 'pointer', flexShrink: 0, padding: 0, backgroundColor: 'transparent' }} />
-                                </div>
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <span style={{ fontSize: 10, color: M, fontFamily: ff }}>Highlight</span>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                  {current.titleBgEnabled && (
-                                    <input type="color" value={current.titleBgColor ?? 'rgba(200,255,0,0.2)'}
-                                      onChange={(e) => updateTitleStyle(current.id, { titleBgColor: e.target.value })}
-                                      style={{ width: 20, height: 20, borderRadius: 4, border: `1px solid ${B}`, cursor: 'pointer', padding: 0, backgroundColor: 'transparent' }} />
-                                  )}
-                                  <button onClick={() => updateTitleStyle(current.id, { titleBgEnabled: !current.titleBgEnabled })}
-                                    style={{
-                                      width: 36, height: 20, borderRadius: 10, border: 'none', cursor: 'pointer',
-                                      backgroundColor: current.titleBgEnabled ? A : S2, position: 'relative', transition: 'background-color 0.2s', flexShrink: 0,
-                                    }}>
-                                    <span style={{ position: 'absolute', top: 3, left: current.titleBgEnabled ? 18 : 3, width: 14, height: 14, borderRadius: '50%', backgroundColor: current.titleBgEnabled ? '#000' : M2, transition: 'left 0.2s' }} />
-                                  </button>
-                                </div>
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <span style={{ fontSize: 10, color: M, fontFamily: ff }}>Sombra</span>
-                                <button onClick={() => updateTitleStyle(current.id, { titleShadow: !current.titleShadow })}
-                                  style={{
-                                    width: 36, height: 20, borderRadius: 10, border: 'none', cursor: 'pointer',
-                                    backgroundColor: current.titleShadow ? A : S2, position: 'relative', transition: 'background-color 0.2s', flexShrink: 0,
-                                  }}>
-                                  <span style={{ position: 'absolute', top: 3, left: current.titleShadow ? 18 : 3, width: 14, height: 14, borderRadius: '50%', backgroundColor: current.titleShadow ? '#000' : M2, transition: 'left 0.2s' }} />
-                                </button>
-                              </div>
-                              {current.titleShadow && (
-                                <SliderRow label="Intensidade da sombra" value={current.titleShadowIntensity ?? 8} min={0} max={20}
-                                  onChange={(v) => updateTitleStyle(current.id, { titleShadowIntensity: v })} />
-                              )}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
+                      <p style={{ fontSize: 10, color: M, fontFamily: ff, margin: 0, lineHeight: 1.5 }}>
+                        Use <span style={{ color: A }}>*palavra*</span> para colorir o acento no template Editorial Foto
+                      </p>
                     </div>
                   )}
 
@@ -1572,92 +1489,65 @@ function StatePreview({
                           onBlur={(e) => { e.target.style.borderColor = B }}
                         />
                       </div>
-                      {/* Formatar expand */}
-                      <button onClick={() => setBodyFormatOpen(v => !v)} style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-                        height: 24, background: 'none', border: `1px solid ${B}`, borderRadius: 5,
-                        color: M, fontFamily: ff, fontSize: 10, cursor: 'pointer', width: '100%',
-                      }}>
-                        Formatar
-                        <motion.span animate={{ rotate: bodyFormatOpen ? 180 : 0 }} transition={{ duration: 0.2 }} style={{ display: 'flex' }}>
-                          <ChevronDown size={11} />
-                        </motion.span>
-                      </button>
-                      <AnimatePresence initial={false}>
-                        {bodyFormatOpen && (
-                          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} style={{ overflow: 'hidden' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 4 }}>
-                              <SliderRow label="Tamanho" value={current.bodyFontSize ?? 12} min={10} max={32}
-                                onChange={(v) => updateSlideFormat(current.id, { bodyFontSize: v })} suffix="px" />
-                              <div>
-                                <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 6 }}>Fonte</span>
-                                <select value={current.bodyFontFamily ?? ff}
-                                  onChange={(e) => updateBodyStyle(current.id, { bodyFontFamily: e.target.value })}
-                                  style={{ width: '100%', backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, padding: '6px 8px', outline: 'none', cursor: 'pointer' }}>
-                                  {FONT_OPTIONS.map((f) => <option key={f.value} value={f.value} style={{ backgroundColor: S2 }}>{f.label}</option>)}
-                                </select>
-                              </div>
-                              <div>
-                                <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 6 }}>Peso</span>
-                                <div style={{ display: 'flex', gap: 6 }}>
-                                  {(['normal', 'bold'] as const).map((w) => {
-                                    const sel = (current.bodyFontWeight ?? 'normal') === w
-                                    return (
-                                      <button key={w} onClick={() => updateBodyStyle(current.id, { bodyFontWeight: w })} style={{
-                                        flex: 1, height: 28, borderRadius: 5, fontSize: 11, fontFamily: ff, fontWeight: w === 'bold' ? 700 : 400,
-                                        backgroundColor: sel ? 'rgba(200,255,0,0.1)' : 'transparent',
-                                        border: `1px solid ${sel ? 'rgba(200,255,0,0.4)' : B}`,
-                                        color: sel ? A : M, cursor: 'pointer',
-                                      }}>{w === 'normal' ? 'Normal' : 'Negrito'}</button>
-                                    )
-                                  })}
-                                </div>
-                              </div>
-                              <button onClick={() => updateBodyStyle(current.id, { bodyItalic: !current.bodyItalic })} style={{
-                                height: 28, borderRadius: 5, fontSize: 12, fontFamily: ff, fontStyle: 'italic', fontWeight: 700,
-                                backgroundColor: current.bodyItalic ? 'rgba(200,255,0,0.1)' : 'transparent',
-                                border: `1px solid ${current.bodyItalic ? 'rgba(200,255,0,0.4)' : B}`,
-                                color: current.bodyItalic ? A : M, cursor: 'pointer',
-                              }}>I — Itálico</button>
-                              <SliderRow label="Line height" value={Math.round((current.bodyLineHeight ?? 1.6) * 10) / 10} min={12} max={30}
-                                onChange={(v) => updateBodyStyle(current.id, { bodyLineHeight: v / 10 })} />
-                              <SliderRow label="Letter spacing" value={current.bodyLetterSpacing ?? 0} min={0} max={8}
-                                onChange={(v) => updateBodyStyle(current.id, { bodyLetterSpacing: v })} />
-                              <div>
-                                <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 6 }}>Cor do corpo</span>
-                                <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap' }}>
-                                  {TEXT_COLORS.map((c) => (
-                                    <button key={c} onClick={() => updateBodyStyle(current.id, { bodyColor: c })}
-                                      style={{ width: 20, height: 20, borderRadius: '50%', backgroundColor: c, border: 'none', cursor: 'pointer', flexShrink: 0, outline: (current.bodyColor ?? '') === c ? `2px solid A` : '2px solid transparent', outlineOffset: 2 }} />
-                                  ))}
-                                  <input type="color" value={current.bodyColor ?? '#F5F5F5'}
-                                    onChange={(e) => updateBodyStyle(current.id, { bodyColor: e.target.value })}
-                                    style={{ width: 20, height: 20, borderRadius: '50%', border: `1px solid ${B}`, cursor: 'pointer', flexShrink: 0, padding: 0, backgroundColor: 'transparent' }} />
-                                </div>
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <span style={{ fontSize: 10, color: M, fontFamily: ff }}>Highlight</span>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                  {current.bodyBgEnabled && (
-                                    <input type="color" value={current.bodyBgColor ?? 'rgba(255,255,255,0.1)'}
-                                      onChange={(e) => updateBodyStyle(current.id, { bodyBgColor: e.target.value })}
-                                      style={{ width: 20, height: 20, borderRadius: 4, border: `1px solid ${B}`, cursor: 'pointer', padding: 0, backgroundColor: 'transparent' }} />
-                                  )}
-                                  <button onClick={() => updateBodyStyle(current.id, { bodyBgEnabled: !current.bodyBgEnabled })}
-                                    style={{
-                                      width: 36, height: 20, borderRadius: 10, border: 'none', cursor: 'pointer',
-                                      backgroundColor: current.bodyBgEnabled ? A : S2, position: 'relative', transition: 'background-color 0.2s', flexShrink: 0,
-                                    }}>
-                                    <span style={{ position: 'absolute', top: 3, left: current.bodyBgEnabled ? 18 : 3, width: 14, height: 14, borderRadius: '50%', backgroundColor: current.bodyBgEnabled ? '#000' : M2, transition: 'left 0.2s' }} />
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
                     </div>
                   )}
+
+                  {/* Badge panel */}
+                  <div style={{ borderTop: `1px solid ${B}`, paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: 10, color: M, fontFamily: ff }}>Badge de perfil</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <button onClick={() => applyBadgeToAll({ profileBadgeEnabled: !current.profileBadgeEnabled })}
+                          style={{ fontSize: 9, color: M, fontFamily: ff, background: 'none', border: `1px solid ${B}`, borderRadius: 4, padding: '2px 7px', cursor: 'pointer' }}>
+                          Aplicar a todos
+                        </button>
+                        <button
+                          onClick={() => updateTitleStyle(current.id, { profileBadgeEnabled: !current.profileBadgeEnabled })}
+                          style={{ width: 36, height: 20, borderRadius: 10, border: 'none', cursor: 'pointer', backgroundColor: current.profileBadgeEnabled ? A : S2, position: 'relative', transition: 'background-color 0.2s', flexShrink: 0 }}>
+                          <span style={{ position: 'absolute', top: 3, left: current.profileBadgeEnabled ? 18 : 3, width: 14, height: 14, borderRadius: '50%', backgroundColor: current.profileBadgeEnabled ? '#000' : M2, transition: 'left 0.2s' }} />
+                        </button>
+                      </div>
+                    </div>
+                    {current.profileBadgeEnabled && (
+                      <>
+                        <div>
+                          <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 4 }}>@handle</span>
+                          <input type="text" value={current.profileHandle ?? ''}
+                            onChange={(e) => updateTitleStyle(current.id, { profileHandle: e.target.value })}
+                            placeholder="@seu.perfil"
+                            style={{ width: '100%', backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, padding: '6px 8px', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                            onFocus={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.4)' }}
+                            onBlur={(e) => { e.target.style.borderColor = B }}
+                          />
+                        </div>
+                        <div>
+                          <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 4 }}>URL do avatar (opcional)</span>
+                          <input type="text" value={current.profileAvatarUrl ?? ''}
+                            onChange={(e) => updateTitleStyle(current.id, { profileAvatarUrl: e.target.value })}
+                            placeholder="https://..."
+                            style={{ width: '100%', backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, padding: '6px 8px', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                            onFocus={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.4)' }}
+                            onBlur={(e) => { e.target.style.borderColor = B }}
+                          />
+                        </div>
+                        <div>
+                          <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 4 }}>Posição</span>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+                            {(['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const).map((pos) => {
+                              const labels: Record<string, string> = { 'top-left': '↖ Sup esq', 'top-right': '↗ Sup dir', 'bottom-left': '↙ Inf esq', 'bottom-right': '↘ Inf dir' }
+                              const sel = (current.profileBadgePosition ?? 'bottom-left') === pos
+                              return (
+                                <button key={pos} onClick={() => updateTitleStyle(current.id, { profileBadgePosition: pos })}
+                                  style={{ height: 26, borderRadius: 5, fontSize: 9, fontFamily: ff, backgroundColor: sel ? 'rgba(200,255,0,0.1)' : 'transparent', border: `1px solid ${sel ? 'rgba(200,255,0,0.4)' : B}`, color: sel ? A : M, cursor: 'pointer' }}>
+                                  {labels[pos]}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </>
               )}
             </CollapsibleSection>
@@ -1811,19 +1701,25 @@ function StatePreview({
             </CollapsibleSection>
           )}
 
-          {/* ─ Section 4: FORMATAÇÃO ─ */}
-          {current && selectedEl && (
+          {/* ─ Section 4: ESTILO DO TEXTO ─ */}
+          {current && (
             <CollapsibleSection
-              title={`FORMATAÇÃO — ${selectedEl === 'titulo' ? 'TÍTULO' : 'CORPO'}`}
+              title={selectedEl ? `ESTILO DO TEXTO — ${selectedEl === 'titulo' ? '✎ TÍTULO' : '✎ CORPO'}` : 'ESTILO DO TEXTO'}
               isOpen={secFormato}
               onToggle={() => setSecFormato(v => !v)}
-              rightSlot={
+              rightSlot={selectedEl ? (
                 <button onClick={(e) => { e.stopPropagation(); setSelectedEl(null) }}
                   style={{ background: 'none', border: 'none', color: M, cursor: 'pointer', display: 'flex', padding: 2 }}>
                   <X size={12} />
                 </button>
-              }
+              ) : undefined}
             >
+              {!selectedEl ? (
+                <p style={{ fontSize: 11, color: M, fontFamily: ff, lineHeight: 1.6, margin: 0, textAlign: 'center', padding: '6px 0' }}>
+                  Clique no título ou corpo para editar estilo
+                </p>
+              ) : (
+              <>
               <SliderRow
                 label={`Tamanho da fonte`}
                 value={selectedEl === 'titulo' ? (current.titleFontSize ?? 28) : (current.bodyFontSize ?? 12)}
@@ -1917,10 +1813,35 @@ function StatePreview({
                   </div>
                 </div>
               )}
+              </>
+              )}
             </CollapsibleSection>
           )}
 
-          {/* ─ Section 5: LEGENDA ─ */}
+          {/* ─ Section 5: TEMPLATE ─ */}
+          <CollapsibleSection title="TEMPLATE" isOpen={secTemplate} onToggle={() => setSecTemplate(v => !v)}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              {TEMPLATES.map(({ key, icon, name }) => {
+                const sel = selectedTemplate === key
+                return (
+                  <button key={key} onClick={() => setSelectedTemplate(key)} style={{
+                    height: 56, borderRadius: 8, cursor: 'pointer',
+                    background: TEMPLATE_GRADIENTS[key] ?? TEMPLATE_GRADIENTS.impacto,
+                    border: `1.5px solid ${sel ? A : B}`,
+                    display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center', gap: 3,
+                    transition: 'border-color 0.15s',
+                    boxShadow: sel ? `0 0 12px rgba(200,255,0,0.15)` : 'none',
+                  }}>
+                    <span style={{ fontSize: 16, lineHeight: 1 }}>{icon}</span>
+                    <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 10, color: sel ? A : 'rgba(255,255,255,0.6)', letterSpacing: 1 }}>{name}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </CollapsibleSection>
+
+          {/* ─ Section 6: LEGENDA ─ */}
           <CollapsibleSection
             title="LEGENDA"
             isOpen={secLegenda}
@@ -2074,40 +1995,6 @@ function StatePreview({
                     ⚡ {current.hack}
                   </span>
                 )}
-              </div>
-
-              {/* Template selector — grid 2x3 */}
-              <div style={{ width: '100%' }}>
-                <p style={{ fontSize: 11, color: M, fontFamily: ff, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', margin: '0 0 10px' }}>
-                  Estrutura do Carrossel
-                </p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  {TEMPLATES.map(({ key, icon, name }) => {
-                    const sel = selectedTemplate === key
-                    const gradients: Record<string, string> = {
-                      impacto:      'linear-gradient(135deg,#060d14,#1a2a3a)',
-                      editorial:    'linear-gradient(135deg,#0a0a0a,#1a1a14)',
-                      lista:        'linear-gradient(135deg,#060d14,#0f1e0f)',
-                      citacao:      'linear-gradient(135deg,#0a0814,#1a0f2e)',
-                      comparacao:   'linear-gradient(135deg,#140808,#0a0a14)',
-                      storytelling: 'linear-gradient(135deg,#080614,#14060a)',
-                    }
-                    return (
-                      <button key={key} onClick={() => setSelectedTemplate(key)} style={{
-                        height: 60, borderRadius: 8, cursor: 'pointer',
-                        background: gradients[key] ?? gradients.impacto,
-                        border: `1.5px solid ${sel ? A : B}`,
-                        display: 'flex', flexDirection: 'column',
-                        alignItems: 'center', justifyContent: 'center', gap: 4,
-                        transition: 'border-color 0.15s',
-                        boxShadow: sel ? `0 0 12px rgba(200,255,0,0.15)` : 'none',
-                      }}>
-                        <span style={{ fontSize: 18, lineHeight: 1 }}>{icon}</span>
-                        <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 11, color: sel ? A : 'rgba(255,255,255,0.6)', letterSpacing: 1 }}>{name}</span>
-                      </button>
-                    )
-                  })}
-                </div>
               </div>
 
               {/* AI style selector */}
