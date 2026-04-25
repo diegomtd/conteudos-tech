@@ -25,13 +25,32 @@ export interface SlideData {
   fontFamily?: string
   blockSpacing?: number
   imageOpacity?: number
-  beforeText?: string   // Comparação template — coluna ANTES
-  afterText?: string    // Comparação template — coluna DEPOIS
-  paddingX?: number     // margem lateral px, default 24
-  bgZoom?: number       // 50–200, default 100 → backgroundSize
-  bgPositionX?: number  // 0–100, default 50 → backgroundPositionX
-  bgPositionY?: number  // 0–100, default 50 → backgroundPositionY
-  bgFilter?: string     // CSS filter applied to bg image div
+  beforeText?: string
+  afterText?: string
+  paddingX?: number
+  bgZoom?: number
+  bgPositionX?: number
+  bgPositionY?: number
+  bgFilter?: string
+  bgVisible?: boolean
+  borderVignette?: boolean
+  vignetteIntensity?: number
+  titleItalic?: boolean
+  titleUppercase?: boolean
+  titleLetterSpacing?: number
+  titleLineHeight?: number
+  titleBgEnabled?: boolean
+  titleBgColor?: string
+  titleShadow?: boolean
+  titleShadowIntensity?: number
+  bodyFontFamily?: string
+  bodyFontWeight?: 'normal' | 'bold'
+  bodyColor?: string
+  bodyItalic?: boolean
+  bodyLineHeight?: number
+  bodyLetterSpacing?: number
+  bodyBgEnabled?: boolean
+  bodyBgColor?: string
 }
 
 export interface SlideRenderProps {
@@ -95,6 +114,32 @@ function blockGap(slide: SlideData, s: number): string {
   return `${(slide.blockSpacing ?? 16) * s}px`
 }
 
+function titleX(slide: SlideData, s: number): React.CSSProperties {
+  return {
+    fontStyle: slide.titleItalic ? 'italic' : 'normal',
+    textTransform: slide.titleUppercase ? 'uppercase' : 'none',
+    letterSpacing: `${(slide.titleLetterSpacing ?? 0) * s}px`,
+    lineHeight: slide.titleLineHeight ?? 1.1,
+    backgroundColor: slide.titleBgEnabled ? (slide.titleBgColor ?? 'rgba(200,255,0,0.2)') : 'transparent',
+    padding: slide.titleBgEnabled ? `${2 * s}px ${8 * s}px` : '0',
+    borderRadius: slide.titleBgEnabled ? `${4 * s}px` : '0',
+    textShadow: slide.titleShadow ? `0 ${2 * s}px ${(slide.titleShadowIntensity ?? 8) * s}px rgba(0,0,0,0.9)` : 'none',
+  }
+}
+
+function bodyX(slide: SlideData, s: number): React.CSSProperties {
+  return {
+    color: slide.bodyColor ?? slide.textColor ?? 'rgba(255,255,255,0.7)',
+    fontFamily: slide.bodyFontFamily ?? slide.fontFamily ?? ff,
+    fontWeight: slide.bodyFontWeight === 'bold' ? 700 : 400,
+    fontStyle: slide.bodyItalic ? 'italic' : 'normal',
+    lineHeight: slide.bodyLineHeight ?? 1.6,
+    letterSpacing: `${(slide.bodyLetterSpacing ?? 0) * s}px`,
+    backgroundColor: slide.bodyBgEnabled ? (slide.bodyBgColor ?? 'rgba(255,255,255,0.1)') : 'transparent',
+    padding: slide.bodyBgEnabled ? `${2 * s}px ${6 * s}px` : '0',
+  }
+}
+
 // ─── Container style ──────────────────────────────────────────
 // backgroundImage intentionally omitted — rendered as z-indexed child in SlideRenderer
 
@@ -155,6 +200,7 @@ function Impacto({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown
         : isLast
           ? `rgba(0,0,0,${(slide.overlayOpacity ?? 65) / 100})`
           : overlayGrad(slide.overlayOpacity ?? 55, 'to top'),
+      boxShadow: slide.borderVignette ? `inset 0 0 ${(slide.vignetteIntensity ?? 60) * 1.5}px rgba(0,0,0,0.8)` : 'none',
     }} />
 
     {/* Slide number — mid slides */}
@@ -173,11 +219,10 @@ function Impacto({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown
           onMouseDown={onTitleMouseDown}
           style={{
             fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 48) * s}px`, fontWeight: fw,
-            color, textAlign: align, margin: 0, lineHeight: 1.05, letterSpacing: `${0.5 * s}px`,
-            textTransform: 'uppercase', zIndex: Z_CONTENT,
+            color, textAlign: align, margin: 0, zIndex: Z_CONTENT,
             transform: slide.titlePos ? `translate(${slide.titlePos.x * s}px,${slide.titlePos.y * s}px)` : undefined,
             cursor: onSelectEl ? (selectedEl === 'titulo' ? 'grab' : 'pointer') : 'default',
-            userSelect: 'none', ...selBorder(selectedEl === 'titulo'),
+            userSelect: 'none', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
           }}
         >{slide.titulo}</p>
         <p style={{
@@ -190,13 +235,12 @@ function Impacto({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: `${6 * s}px`, zIndex: Z_CONTENT, width: '100%' }}>
         <p onClick={() => onSelectEl?.('titulo')} style={{
           fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 28) * s}px`, fontWeight: fw,
-          color, textAlign: 'center', margin: 0, lineHeight: 1.1,
-          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'),
+          color, textAlign: 'center', margin: 0,
+          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
         }}>{slide.titulo}</p>
         <p onClick={() => onSelectEl?.('corpo')} style={{
-          fontSize: `${(slide.bodyFontSize ?? 12) * s}px`, color: 'rgba(255,255,255,0.7)',
-          fontFamily: ff, textAlign: 'center', margin: 0, lineHeight: 1.5,
-          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'),
+          fontSize: `${(slide.bodyFontSize ?? 12) * s}px`, textAlign: 'center', margin: 0,
+          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s),
         }}>{slide.corpo}</p>
         <p style={{ fontSize: `${10 * s}px`, color: slide.textColor ?? A, fontFamily: ff, fontWeight: 600, margin: 0 }}>
           Salve para não perder
@@ -206,13 +250,12 @@ function Impacto({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown
       <>
         <p onClick={() => onSelectEl?.('titulo')} style={{
           fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 26) * s}px`, fontWeight: fw,
-          color, textAlign: align, margin: `0 0 ${blockGap(slide, s)}`, lineHeight: 1.1, zIndex: Z_CONTENT,
-          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'),
+          color, textAlign: align, margin: `0 0 ${blockGap(slide, s)}`, zIndex: Z_CONTENT,
+          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
         }}>{slide.titulo}</p>
         <p onClick={() => onSelectEl?.('corpo')} style={{
-          fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, color: slide.textColor ?? 'rgba(255,255,255,0.7)',
-          fontFamily: ff, margin: 0, lineHeight: 1.6, textAlign: align, zIndex: Z_CONTENT,
-          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'),
+          fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, textAlign: align, margin: 0, zIndex: Z_CONTENT,
+          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s),
         }}>{slide.corpo}</p>
       </>
     )}
@@ -231,13 +274,12 @@ function Editorial({ slide, index, total, selectedEl, onSelectEl, scale: s = 1 }
     <div style={{ height: `${2 * s}px`, backgroundColor: A, marginBottom: `${18 * s}px`, zIndex: Z_CONTENT }} />
     <p onClick={() => onSelectEl?.('titulo')} style={{
       fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 38) * s}px`, fontWeight: fw,
-      color, margin: 0, lineHeight: 1.0, letterSpacing: `${0.3 * s}px`, zIndex: Z_CONTENT,
-      cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'),
+      color, margin: 0, zIndex: Z_CONTENT,
+      cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
     }}>{slide.titulo}</p>
     <p onClick={() => onSelectEl?.('corpo')} style={{
-      fontSize: `${(slide.bodyFontSize ?? 13) * s}px`, color: '#888', fontFamily: ff,
-      margin: `${blockGap(slide, s)} 0 0`, lineHeight: 1.5, zIndex: Z_CONTENT,
-      cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'),
+      fontSize: `${(slide.bodyFontSize ?? 13) * s}px`, margin: `${blockGap(slide, s)} 0 0`, zIndex: Z_CONTENT,
+      cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s),
     }}>{slide.corpo}</p>
     <p style={{
       position: 'absolute', bottom: `${14 * s}px`, right: `${16 * s}px`,
@@ -249,13 +291,12 @@ function Editorial({ slide, index, total, selectedEl, onSelectEl, scale: s = 1 }
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: `${8 * s}px`, zIndex: Z_CONTENT }}>
       <p onClick={() => onSelectEl?.('titulo')} style={{
         fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 26) * s}px`, fontWeight: fw,
-        color, textAlign: 'center', margin: 0, lineHeight: 1.1,
-        cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'),
+        color, textAlign: 'center', margin: 0,
+        cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
       }}>{slide.titulo || 'E aí, faz sentido?'}</p>
       <p onClick={() => onSelectEl?.('corpo')} style={{
-        fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, color: 'rgba(255,255,255,0.7)',
-        fontFamily: ff, textAlign: 'center', margin: 0, lineHeight: 1.5,
-        cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'),
+        fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, textAlign: 'center', margin: 0,
+        cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s),
       }}>{slide.corpo}</p>
       <div style={{ width: `${36 * s}px`, height: `${2 * s}px`, backgroundColor: A, marginTop: `${4 * s}px` }} />
     </div>
@@ -269,13 +310,12 @@ function Editorial({ slide, index, total, selectedEl, onSelectEl, scale: s = 1 }
     }}>{index}</span>
     <p onClick={() => onSelectEl?.('titulo')} style={{
       fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 20) * s}px`, fontWeight: fw,
-      color, margin: `0 0 ${blockGap(slide, s)}`, lineHeight: 1.1, zIndex: Z_CONTENT,
-      cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'),
+      color, margin: `0 0 ${blockGap(slide, s)}`, zIndex: Z_CONTENT,
+      cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
     }}>{slide.titulo}</p>
     <p onClick={() => onSelectEl?.('corpo')} style={{
-      fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, color: '#ccc', fontFamily: ff,
-      margin: 0, lineHeight: 1.8, zIndex: Z_CONTENT,
-      cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'),
+      fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, margin: 0, zIndex: Z_CONTENT,
+      cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s),
     }}>{slide.corpo}</p>
     <div style={{
       position: 'absolute', bottom: `${12 * s}px`, left: `${18 * s}px`, right: `${18 * s}px`,
@@ -315,13 +355,12 @@ function Lista({ slide, index, total, selectedEl, onSelectEl, scale: s = 1 }: Sl
     }}>{midCount}</span>
     <p onClick={() => onSelectEl?.('titulo')} style={{
       fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 30) * s}px`, fontWeight: fw,
-      color, margin: 0, lineHeight: 1.05, zIndex: Z_CONTENT,
-      cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'),
+      color, margin: 0, zIndex: Z_CONTENT,
+      cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
     }}>{slide.titulo}</p>
     <p onClick={() => onSelectEl?.('corpo')} style={{
-      fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, color: 'rgba(255,255,255,0.6)',
-      fontFamily: ff, margin: `${blockGap(slide, s)} 0 0`, lineHeight: 1.5, zIndex: Z_CONTENT,
-      cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'),
+      fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, margin: `${blockGap(slide, s)} 0 0`, zIndex: Z_CONTENT,
+      cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s),
     }}>{slide.corpo}</p>
   </>
 
@@ -329,13 +368,12 @@ function Lista({ slide, index, total, selectedEl, onSelectEl, scale: s = 1 }: Sl
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: `${8 * s}px`, zIndex: Z_CONTENT }}>
       <p onClick={() => onSelectEl?.('titulo')} style={{
         fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 22) * s}px`, fontWeight: fw,
-        color, textAlign: 'center', margin: 0, lineHeight: 1.1,
-        cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'),
+        color, textAlign: 'center', margin: 0,
+        cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
       }}>{slide.titulo}</p>
       <p onClick={() => onSelectEl?.('corpo')} style={{
-        fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, color: 'rgba(255,255,255,0.7)',
-        fontFamily: ff, textAlign: 'center', margin: 0, lineHeight: 1.5,
-        cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'),
+        fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, textAlign: 'center', margin: 0,
+        cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s),
       }}>{slide.corpo}</p>
     </div>
   )
@@ -349,13 +387,12 @@ function Lista({ slide, index, total, selectedEl, onSelectEl, scale: s = 1 }: Sl
     </span>
     <p onClick={() => onSelectEl?.('titulo')} style={{
       fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 20) * s}px`, fontWeight: fw,
-      color, margin: `0 0 ${blockGap(slide, s)}`, lineHeight: 1.1, zIndex: Z_CONTENT,
-      cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'),
+      color, margin: `0 0 ${blockGap(slide, s)}`, zIndex: Z_CONTENT,
+      cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
     }}>{slide.titulo}</p>
     <p onClick={() => onSelectEl?.('corpo')} style={{
-      fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, color: '#aaa', fontFamily: ff,
-      margin: 0, lineHeight: 1.6, zIndex: Z_CONTENT,
-      cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'),
+      fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, margin: 0, zIndex: Z_CONTENT,
+      cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s),
     }}>{slide.corpo}</p>
     <ProgressDots />
   </>
@@ -374,6 +411,7 @@ function Citacao({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown
     <div style={{
       position: 'absolute', inset: 0, zIndex: Z_OVERLAY,
       background: `rgba(0,0,0,${(slide.overlayOpacity ?? (isCapa ? 65 : 50)) / 100})`,
+      boxShadow: slide.borderVignette ? `inset 0 0 ${(slide.vignetteIntensity ?? 60) * 1.5}px rgba(0,0,0,0.8)` : 'none',
     }} />
 
     {isCapa ? <>
@@ -388,30 +426,27 @@ function Citacao({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown
           onMouseDown={onTitleMouseDown}
           style={{
             fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 22) * s}px`,
-            fontStyle: 'italic', fontWeight: fw, color, textAlign: 'center',
-            margin: 0, lineHeight: 1.3,
+            fontWeight: fw, color, textAlign: 'center', margin: 0,
             transform: slide.titlePos ? `translate(${slide.titlePos.x * s}px,${slide.titlePos.y * s}px)` : undefined,
             cursor: onSelectEl ? (selectedEl === 'titulo' ? 'grab' : 'pointer') : 'default',
-            userSelect: 'none', ...selBorder(selectedEl === 'titulo'),
+            userSelect: 'none', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
           }}
         >{slide.titulo}</p>
         <p onClick={() => onSelectEl?.('corpo')} style={{
-          fontSize: `${(slide.bodyFontSize ?? 10) * s}px`, color: '#aaa', fontFamily: ff,
-          margin: `${blockGap(slide, s)} 0 0`, textAlign: 'center',
-          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'),
+          fontSize: `${(slide.bodyFontSize ?? 10) * s}px`, margin: `${blockGap(slide, s)} 0 0`, textAlign: 'center',
+          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s),
         }}>{slide.corpo}</p>
       </div>
     </> : isLast ? (
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: `${8 * s}px`, zIndex: Z_CONTENT }}>
         <p onClick={() => onSelectEl?.('titulo')} style={{
           fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 22) * s}px`, fontWeight: fw,
-          color, textAlign: 'center', margin: 0, lineHeight: 1.1,
-          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'),
+          color, textAlign: 'center', margin: 0,
+          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
         }}>{slide.titulo}</p>
         <p onClick={() => onSelectEl?.('corpo')} style={{
-          fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, color: 'rgba(255,255,255,0.7)',
-          fontFamily: ff, textAlign: 'center', margin: 0, lineHeight: 1.5,
-          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'),
+          fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, textAlign: 'center', margin: 0,
+          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s),
         }}>{slide.corpo}</p>
         <p style={{ fontSize: `${10 * s}px`, color: slide.textColor ?? A, fontFamily: ff, fontWeight: 600, margin: 0 }}>
           Salve esse carrossel
@@ -422,13 +457,12 @@ function Citacao({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown
         <div style={{ width: `${28 * s}px`, height: `${2 * s}px`, backgroundColor: A, marginBottom: `${10 * s}px` }} />
         <p onClick={() => onSelectEl?.('titulo')} style={{
           fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 20) * s}px`,
-          fontStyle: 'italic', fontWeight: fw, color, textAlign: 'center', margin: 0, lineHeight: 1.3,
-          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'),
+          fontWeight: fw, color, textAlign: 'center', margin: 0,
+          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
         }}>{slide.titulo}</p>
         <p onClick={() => onSelectEl?.('corpo')} style={{
-          fontSize: `${(slide.bodyFontSize ?? 10) * s}px`, color: 'rgba(255,255,255,0.6)',
-          fontFamily: ff, margin: `${blockGap(slide, s)} 0 0`, textAlign: 'center', lineHeight: 1.5,
-          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'),
+          fontSize: `${(slide.bodyFontSize ?? 10) * s}px`, margin: `${blockGap(slide, s)} 0 0`, textAlign: 'center',
+          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s),
         }}>{slide.corpo}</p>
       </div>
     )}
@@ -451,8 +485,8 @@ function Comparacao({ slide, index, total, selectedEl, onSelectEl, scale: s = 1 
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: `${10 * s}px`, zIndex: Z_CONTENT }}>
       <p onClick={() => onSelectEl?.('titulo')} style={{
         fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 30) * s}px`, fontWeight: fw,
-        color, textAlign: 'center', margin: 0, lineHeight: 1.1,
-        cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'),
+        color, textAlign: 'center', margin: 0,
+        cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
       }}>{slide.titulo}</p>
       <div style={{ display: 'flex', alignItems: 'center', gap: `${8 * s}px` }}>
         <span style={{ color: '#ff4444', fontFamily: bn, fontSize: `${12 * s}px`, letterSpacing: 1 }}>ANTES</span>
@@ -460,9 +494,8 @@ function Comparacao({ slide, index, total, selectedEl, onSelectEl, scale: s = 1 
         <span style={{ color: A, fontFamily: bn, fontSize: `${12 * s}px`, letterSpacing: 1 }}>DEPOIS</span>
       </div>
       <p onClick={() => onSelectEl?.('corpo')} style={{
-        fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, color: 'rgba(255,255,255,0.5)',
-        fontFamily: ff, textAlign: 'center', margin: 0, lineHeight: 1.5,
-        cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'),
+        fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, textAlign: 'center', margin: 0,
+        cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s),
       }}>{slide.corpo}</p>
     </div>
   )
@@ -471,13 +504,12 @@ function Comparacao({ slide, index, total, selectedEl, onSelectEl, scale: s = 1 
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: `${8 * s}px`, zIndex: Z_CONTENT }}>
       <p onClick={() => onSelectEl?.('titulo')} style={{
         fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 22) * s}px`, fontWeight: fw,
-        color, textAlign: 'center', margin: 0, lineHeight: 1.1,
-        cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'),
+        color, textAlign: 'center', margin: 0,
+        cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
       }}>{slide.titulo}</p>
       <p onClick={() => onSelectEl?.('corpo')} style={{
-        fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, color: 'rgba(255,255,255,0.7)',
-        fontFamily: ff, textAlign: 'center', margin: 0, lineHeight: 1.5,
-        cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'),
+        fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, textAlign: 'center', margin: 0,
+        cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s),
       }}>{slide.corpo}</p>
     </div>
   )
@@ -486,14 +518,14 @@ function Comparacao({ slide, index, total, selectedEl, onSelectEl, scale: s = 1 
     <div style={{ display: 'flex', flex: 1, marginTop: `${-20 * s}px`, marginLeft: `${-20 * s}px`, marginRight: `${-20 * s}px`, zIndex: Z_CONTENT }}>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: `${16 * s}px ${14 * s}px`, gap: `${6 * s}px` }}>
         <span style={{ fontFamily: bn, fontSize: `${10 * s}px`, color: '#ff4444', letterSpacing: 1 }}>ANTES</span>
-        <p style={{ fontFamily: ff, fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, color, margin: 0, lineHeight: 1.5 }}>
+        <p style={{ fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, margin: 0, ...bodyX(slide, s) }}>
           {antesText}
         </p>
       </div>
       <div style={{ width: 1, backgroundColor: 'rgba(255,255,255,0.15)', alignSelf: 'stretch' }} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: `${16 * s}px ${14 * s}px`, gap: `${6 * s}px` }}>
         <span style={{ fontFamily: bn, fontSize: `${10 * s}px`, color: A, letterSpacing: 1 }}>DEPOIS</span>
-        <p style={{ fontFamily: ff, fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, color, margin: 0, lineHeight: 1.5 }}>
+        <p style={{ fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, margin: 0, ...bodyX(slide, s) }}>
           {depoisText}
         </p>
       </div>
@@ -514,6 +546,7 @@ function Storytelling({ slide, index, total, selectedEl, onSelectEl, onTitleMous
     <div style={{
       position: 'absolute', inset: 0, zIndex: Z_OVERLAY,
       background: `rgba(0,0,0,${(slide.overlayOpacity ?? 62) / 100})`,
+      boxShadow: slide.borderVignette ? `inset 0 0 ${(slide.vignetteIntensity ?? 60) * 1.5}px rgba(0,0,0,0.8)` : 'none',
     }} />
 
     {isCapa ? <>
@@ -522,28 +555,26 @@ function Storytelling({ slide, index, total, selectedEl, onSelectEl, onTitleMous
         onMouseDown={onTitleMouseDown}
         style={{
           fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 22) * s}px`,
-          fontStyle: 'italic', fontWeight: fw, color, margin: 0, lineHeight: 1.3, zIndex: Z_CONTENT,
+          fontWeight: fw, color, margin: 0, zIndex: Z_CONTENT,
           transform: slide.titlePos ? `translate(${slide.titlePos.x * s}px,${slide.titlePos.y * s}px)` : undefined,
           cursor: onSelectEl ? (selectedEl === 'titulo' ? 'grab' : 'pointer') : 'default',
-          userSelect: 'none', ...selBorder(selectedEl === 'titulo'),
+          userSelect: 'none', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
         }}
       >{slide.titulo}</p>
       <p onClick={() => onSelectEl?.('corpo')} style={{
-        fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, color: 'rgba(255,255,255,0.55)',
-        fontFamily: ff, margin: `${blockGap(slide, s)} 0 0`, lineHeight: 1.5, fontStyle: 'italic', zIndex: Z_CONTENT,
-        cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'),
+        fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, margin: `${blockGap(slide, s)} 0 0`, zIndex: Z_CONTENT,
+        cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s),
       }}>{slide.corpo}</p>
     </> : isLast ? (
       <div style={{ display: 'flex', flexDirection: 'column', zIndex: Z_CONTENT, gap: `${8 * s}px` }}>
         <p onClick={() => onSelectEl?.('titulo')} style={{
           fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 22) * s}px`, fontWeight: fw,
-          color, margin: 0, lineHeight: 1.1,
-          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'),
+          color, margin: 0,
+          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
         }}>{slide.titulo}</p>
         <p onClick={() => onSelectEl?.('corpo')} style={{
-          fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, color: 'rgba(255,255,255,0.75)',
-          fontFamily: ff, margin: 0, lineHeight: 1.7,
-          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'),
+          fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, margin: 0,
+          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s),
         }}>{slide.corpo}</p>
         <p style={{ fontSize: `${10 * s}px`, color: slide.textColor ?? A, fontFamily: ff, fontWeight: 600, margin: 0 }}>
           Se isso te tocou, compartilha
@@ -551,14 +582,13 @@ function Storytelling({ slide, index, total, selectedEl, onSelectEl, onTitleMous
       </div>
     ) : <>
       <p onClick={() => onSelectEl?.('corpo')} style={{
-        fontSize: `${(slide.bodyFontSize ?? 12) * s}px`, color: 'rgba(255,255,255,0.85)',
-        fontFamily: ff, margin: `0 0 ${blockGap(slide, s)}`, lineHeight: 1.7, zIndex: Z_CONTENT,
-        cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'),
+        fontSize: `${(slide.bodyFontSize ?? 12) * s}px`, margin: `0 0 ${blockGap(slide, s)}`, zIndex: Z_CONTENT,
+        cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s),
       }}>{slide.corpo}</p>
       <p onClick={() => onSelectEl?.('titulo')} style={{
         fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 16) * s}px`, fontWeight: fw,
-        color, margin: 0, lineHeight: 1.1, zIndex: Z_CONTENT,
-        cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'),
+        color, margin: 0, zIndex: Z_CONTENT,
+        cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
       }}>{slide.titulo}</p>
       <p style={{
         position: 'absolute', bottom: `${10 * s}px`, left: 0, right: 0,
@@ -591,10 +621,11 @@ export function SlideRenderer(props: SlideRenderProps): React.ReactElement {
   })()
 
   return <>
-    {/* z-index: 0 — background image, behind everything */}
+    {/* z-index: 0 — background image, behind everything. filter ONLY here, never on parent */}
     {slide.bgImageUrl && (
       <div style={{
         position: 'absolute', inset: 0, zIndex: Z_IMG,
+        display: slide.bgVisible === false ? 'none' : 'block',
         backgroundImage: `url("${slide.bgImageUrl}")`,
         backgroundSize: (slide.bgZoom ?? 100) === 100 ? 'cover' : `${slide.bgZoom ?? 100}%`,
         backgroundPositionX: `${slide.bgPositionX ?? 50}%`,
