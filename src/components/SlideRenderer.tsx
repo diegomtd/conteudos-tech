@@ -9,6 +9,10 @@ export type CarouselTemplate =
   | 'citacao'
   | 'comparacao'
   | 'storytelling'
+  | 'editorial_foto'
+  | 'texto_imagem'
+  | 'split_visual'
+  | 'citacao_bold'
 
 export interface SlideData {
   titulo: string
@@ -51,6 +55,10 @@ export interface SlideData {
   bodyLetterSpacing?: number
   bodyBgEnabled?: boolean
   bodyBgColor?: string
+  profileBadgeEnabled?: boolean
+  profileHandle?: string
+  profileAvatarUrl?: string
+  profileBadgePosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
 }
 
 export interface SlideRenderProps {
@@ -137,7 +145,17 @@ function bodyX(slide: SlideData, s: number): React.CSSProperties {
     letterSpacing: `${(slide.bodyLetterSpacing ?? 0) * s}px`,
     backgroundColor: slide.bodyBgEnabled ? (slide.bodyBgColor ?? 'rgba(255,255,255,0.1)') : 'transparent',
     padding: slide.bodyBgEnabled ? `${2 * s}px ${6 * s}px` : '0',
+    whiteSpace: 'pre-wrap' as React.CSSProperties['whiteSpace'],
   }
+}
+
+function parseAccentTitle(text: string, accentColor: string): React.ReactNode {
+  const parts = text.split('*')
+  return <>{parts.map((part, i) =>
+    i % 2 === 1
+      ? <span key={i} style={{ color: accentColor }}>{part}</span>
+      : <React.Fragment key={i}>{part}</React.Fragment>
+  )}</>
 }
 
 // ─── Container style ──────────────────────────────────────────
@@ -162,11 +180,25 @@ export function getSlideContainerStyle(
 
   const px = slide.paddingX !== undefined ? slide.paddingX * scale : pad
 
-  if (template === 'editorial' || template === 'lista' || template === 'comparacao') {
+  if (template === 'split_visual') {
+    return { ...base, background: '#0a0a0a', padding: 0 }
+  }
+
+  if (template === 'editorial' || template === 'lista' || template === 'comparacao' ||
+      template === 'texto_imagem' || template === 'citacao_bold') {
     return {
       ...base,
       background: '#0a0a0a',
       justifyContent: index === 0 ? 'flex-start' : template === 'comparacao' ? 'center' : justify,
+      paddingTop: pad, paddingBottom: pad, paddingLeft: px, paddingRight: px,
+    }
+  }
+
+  if (template === 'editorial_foto') {
+    const bg = hasImg ? {} : { background: IA_BG[imageStyle] ?? 'linear-gradient(160deg, #060d14, #0d1f30)' }
+    return {
+      ...base, ...bg,
+      justifyContent: 'flex-end',
       paddingTop: pad, paddingBottom: pad, paddingLeft: px, paddingRight: px,
     }
   }
@@ -603,7 +635,264 @@ function Storytelling({ slide, index, total, selectedEl, onSelectEl, onTitleMous
   </>
 }
 
+// ─── Template: EDITORIAL FOTO ─────────────────────────────────
+
+function EditorialFoto({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown, scale: s = 1 }: SlideRenderProps & { scale: number }) {
+  const isLast = index === total - 1
+  const isCapa = index === 0
+  const fw = slide.fontWeightTitle === 'bold' ? 900 : 700
+  const accentColor = slide.textColor ?? A
+
+  return <>
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: Z_OVERLAY,
+      background: `linear-gradient(to top, rgba(0,0,0,${(slide.overlayOpacity ?? 92) / 100}) 0%, rgba(0,0,0,0.3) 55%, rgba(0,0,0,0.05) 100%)`,
+      boxShadow: slide.borderVignette ? `inset 0 0 ${(slide.vignetteIntensity ?? 60) * 1.5}px rgba(0,0,0,0.8)` : 'none',
+    }} />
+
+    {!isCapa && !isLast && (
+      <span style={{
+        position: 'absolute', top: `${8 * s}px`, right: `${10 * s}px`,
+        fontFamily: bn, fontSize: `${11 * s}px`, color: 'rgba(255,255,255,0.35)',
+        zIndex: Z_CONTENT, userSelect: 'none',
+      }}>{index}/{total - 2}</span>
+    )}
+
+    {isCapa && !slide.profileBadgeEnabled && slide.profileHandle && (
+      <span style={{
+        position: 'absolute', top: `${12 * s}px`, left: `${14 * s}px`,
+        fontFamily: ff, fontSize: `${10 * s}px`, color: 'rgba(255,255,255,0.55)',
+        zIndex: Z_CONTENT, letterSpacing: `${0.3 * s}px`,
+      }}>@{(slide.profileHandle ?? '').replace('@', '')}</span>
+    )}
+
+    {isCapa ? (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: `${8 * s}px`, zIndex: Z_CONTENT }}>
+        <p onClick={() => onSelectEl?.('titulo')} onMouseDown={onTitleMouseDown}
+          style={{
+            fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 40) * s}px`, fontWeight: 900,
+            color: _T, margin: 0,
+            transform: slide.titlePos ? `translate(${slide.titlePos.x * s}px,${slide.titlePos.y * s}px)` : undefined,
+            cursor: onSelectEl ? (selectedEl === 'titulo' ? 'grab' : 'pointer') : 'default',
+            userSelect: 'none', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
+          }}>
+          {parseAccentTitle(slide.titulo, accentColor)}
+        </p>
+        <p onClick={() => onSelectEl?.('corpo')} style={{
+          fontSize: `${(slide.bodyFontSize ?? 12) * s}px`, margin: 0,
+          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s),
+        }}>{slide.corpo}</p>
+      </div>
+    ) : isLast ? (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: `${8 * s}px`, zIndex: Z_CONTENT, width: '100%' }}>
+        <p onClick={() => onSelectEl?.('titulo')} style={{
+          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 26) * s}px`, fontWeight: fw,
+          color: _T, textAlign: 'center', margin: 0,
+          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
+        }}>{slide.titulo}</p>
+        <p onClick={() => onSelectEl?.('corpo')} style={{
+          fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, textAlign: 'center', margin: 0,
+          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s),
+        }}>{slide.corpo}</p>
+      </div>
+    ) : (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: `${8 * s}px`, zIndex: Z_CONTENT }}>
+        <p onClick={() => onSelectEl?.('titulo')} style={{
+          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 28) * s}px`, fontWeight: 900,
+          color: _T, margin: 0,
+          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
+        }}>
+          {parseAccentTitle(slide.titulo, accentColor)}
+        </p>
+        <p onClick={() => onSelectEl?.('corpo')} style={{
+          fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, margin: 0,
+          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s),
+        }}>{slide.corpo}</p>
+      </div>
+    )}
+  </>
+}
+
+// ─── Template: TEXTO + IMAGEM ─────────────────────────────────
+
+function TextoImagem({ slide, index, total, selectedEl, onSelectEl, scale: s = 1 }: SlideRenderProps & { scale: number }) {
+  const isLast = index === total - 1
+  const color = slide.textColor ?? _T
+  const fw = slide.fontWeightTitle === 'bold' ? 900 : 700
+  const hasImg = !!slide.bgImageUrl
+
+  if (isLast) return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: `${8 * s}px`, zIndex: Z_CONTENT }}>
+      <p onClick={() => onSelectEl?.('titulo')} style={{
+        fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 22) * s}px`, fontWeight: fw,
+        color, textAlign: 'center', margin: 0,
+        cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
+      }}>{slide.titulo}</p>
+      <p onClick={() => onSelectEl?.('corpo')} style={{
+        fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, textAlign: 'center', margin: 0,
+        cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s),
+      }}>{slide.corpo}</p>
+    </div>
+  )
+
+  if (!hasImg) return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', zIndex: Z_CONTENT }}>
+      <div style={{ paddingBottom: `${12 * s}px` }}>
+        <p onClick={() => onSelectEl?.('titulo')} style={{
+          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 28) * s}px`, fontWeight: fw,
+          color, margin: `0 0 ${blockGap(slide, s)}`,
+          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
+        }}>{slide.titulo}</p>
+        <p onClick={() => onSelectEl?.('corpo')} style={{
+          fontSize: `${(slide.bodyFontSize ?? 12) * s}px`, margin: 0,
+          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s),
+        }}>{slide.corpo}</p>
+      </div>
+      <div style={{
+        flex: 1, borderRadius: `${12 * s}px`,
+        background: 'rgba(255,255,255,0.04)',
+        border: `1px dashed rgba(255,255,255,0.15)`,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        gap: `${6 * s}px`,
+      }}>
+        <svg width={`${22 * s}`} height={`${22 * s}`} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+        <span style={{ fontSize: `${10 * s}px`, color: 'rgba(255,255,255,0.2)', fontFamily: ff }}>Adicione uma imagem</span>
+      </div>
+    </div>
+  )
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', zIndex: Z_CONTENT }}>
+      <div style={{ paddingBottom: `${12 * s}px` }}>
+        <p onClick={() => onSelectEl?.('titulo')} style={{
+          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 24) * s}px`, fontWeight: fw,
+          color, margin: `0 0 ${blockGap(slide, s)}`,
+          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
+        }}>{slide.titulo}</p>
+        <p onClick={() => onSelectEl?.('corpo')} style={{
+          fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, margin: 0,
+          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s),
+        }}>{slide.corpo}</p>
+      </div>
+      <div style={{
+        flex: 1, borderRadius: `${12 * s}px`, overflow: 'hidden',
+        backgroundImage: `url("${slide.bgImageUrl}")`,
+        backgroundSize: (slide.bgZoom ?? 100) === 100 ? 'cover' : `${slide.bgZoom ?? 100}%`,
+        backgroundPosition: `${slide.bgPositionX ?? 50}% ${slide.bgPositionY ?? 50}%`,
+        filter: slide.bgFilter ?? 'none',
+      }} />
+    </div>
+  )
+}
+
+// ─── Template: SPLIT VISUAL ───────────────────────────────────
+
+function SplitVisual({ slide, index, total, selectedEl, onSelectEl, scale: s = 1 }: SlideRenderProps & { scale: number }) {
+  const isLast = index === total - 1
+  const isCapa = index === 0
+  const color = slide.textColor ?? _T
+  const fw = slide.fontWeightTitle === 'bold' ? 900 : 700
+
+  if (isCapa || isLast) return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: `${8 * s}px`, zIndex: Z_CONTENT, padding: `${20 * s}px` }}>
+      <p onClick={() => onSelectEl?.('titulo')} style={{
+        fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 28) * s}px`, fontWeight: fw,
+        color, textAlign: 'center', margin: 0,
+        cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
+      }}>{slide.titulo}</p>
+      <p onClick={() => onSelectEl?.('corpo')} style={{
+        fontSize: `${(slide.bodyFontSize ?? 12) * s}px`, textAlign: 'center', margin: 0,
+        cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s),
+      }}>{slide.corpo}</p>
+    </div>
+  )
+
+  const topImg = slide.bgImageUrl
+  const botImg = slide.afterText ?? ''
+  const topIsUrl = !!topImg && topImg.startsWith('http')
+  const botIsUrl = !!botImg && botImg.startsWith('http')
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
+      <div style={{
+        flex: 1, position: 'relative', overflow: 'hidden',
+        backgroundImage: topIsUrl ? `url("${topImg}")` : 'linear-gradient(160deg, #060d14, #1a2a3a)',
+        backgroundSize: 'cover', backgroundPosition: 'center',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)' }} />
+        <p onClick={() => onSelectEl?.('titulo')} style={{
+          position: 'relative', fontFamily: titleFont(slide),
+          fontSize: `${(slide.titleFontSize ?? 22) * s}px`, fontWeight: fw,
+          color, textAlign: 'center', margin: 0, padding: `0 ${16 * s}px`, zIndex: 1,
+          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
+        }}>{slide.titulo}</p>
+      </div>
+      <div style={{ height: `${2 * s}px`, backgroundColor: A, flexShrink: 0 }} />
+      <div style={{
+        flex: 1, position: 'relative', overflow: 'hidden',
+        backgroundImage: botIsUrl ? `url("${botImg}")` : 'linear-gradient(160deg, #0a0a14, #14140a)',
+        backgroundSize: 'cover', backgroundPosition: 'center',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)' }} />
+        <p onClick={() => onSelectEl?.('corpo')} style={{
+          position: 'relative', fontFamily: ff,
+          fontSize: `${(slide.bodyFontSize ?? 14) * s}px`,
+          textAlign: 'center', margin: 0, padding: `0 ${16 * s}px`, zIndex: 1,
+          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s),
+        }}>{slide.corpo}</p>
+      </div>
+    </div>
+  )
+}
+
+// ─── Template: CITAÇÃO BOLD ───────────────────────────────────
+
+function CitacaoBold({ slide, index, total, selectedEl, onSelectEl, scale: s = 1 }: SlideRenderProps & { scale: number }) {
+  const isLast = index === total - 1
+  const isCapa = index === 0
+  const color = slide.textColor ?? _T
+  const isMid = !isCapa && !isLast
+
+  return <>
+    {isMid && (
+      <span style={{
+        position: 'absolute', top: '-10%', left: `${-6 * s}px`,
+        fontFamily: bn, fontSize: `${200 * s}px`, color: A, opacity: 0.12,
+        lineHeight: 1, zIndex: Z_CONTENT, userSelect: 'none',
+        pointerEvents: 'none',
+      }}>"</span>
+    )}
+    <div style={{
+      flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+      justifyContent: 'center', gap: `${12 * s}px`, zIndex: Z_CONTENT,
+    }}>
+      <p onClick={() => onSelectEl?.('titulo')} style={{
+        fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 32) * s}px`,
+        fontWeight: 900, color, textAlign: 'center', margin: 0,
+        cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
+      }}>{slide.titulo}</p>
+      <div style={{ width: `${40 * s}px`, height: `${2 * s}px`, backgroundColor: A }} />
+      <p onClick={() => onSelectEl?.('corpo')} style={{
+        fontSize: `${(slide.bodyFontSize ?? 12) * s}px`, textAlign: 'center', margin: 0,
+        cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s),
+      }}>{slide.corpo}</p>
+      {isLast && (
+        <p style={{ fontSize: `${10 * s}px`, color: slide.textColor ?? A, fontFamily: ff, fontWeight: 600, margin: `${4 * s}px 0 0` }}>
+          Salve esse carrossel
+        </p>
+      )}
+    </div>
+  </>
+}
+
 // ─── Main export ──────────────────────────────────────────────
+
+const NO_BG_WALLPAPER: CarouselTemplate[] = ['texto_imagem', 'split_visual', 'citacao_bold']
 
 export function SlideRenderer(props: SlideRenderProps): React.ReactElement {
   const s = props.scale ?? 1
@@ -611,18 +900,59 @@ export function SlideRenderer(props: SlideRenderProps): React.ReactElement {
 
   const inner = (() => {
     switch (props.template) {
-      case 'editorial':    return <Editorial    {...props} scale={s} />
-      case 'lista':        return <Lista        {...props} scale={s} />
-      case 'citacao':      return <Citacao      {...props} scale={s} />
-      case 'comparacao':   return <Comparacao   {...props} scale={s} />
-      case 'storytelling': return <Storytelling {...props} scale={s} />
-      default:             return <Impacto      {...props} scale={s} />
+      case 'editorial':     return <Editorial     {...props} scale={s} />
+      case 'lista':         return <Lista         {...props} scale={s} />
+      case 'citacao':       return <Citacao       {...props} scale={s} />
+      case 'comparacao':    return <Comparacao    {...props} scale={s} />
+      case 'storytelling':  return <Storytelling  {...props} scale={s} />
+      case 'editorial_foto':return <EditorialFoto {...props} scale={s} />
+      case 'texto_imagem':  return <TextoImagem   {...props} scale={s} />
+      case 'split_visual':  return <SplitVisual   {...props} scale={s} />
+      case 'citacao_bold':  return <CitacaoBold   {...props} scale={s} />
+      default:              return <Impacto       {...props} scale={s} />
     }
   })()
 
+  // Profile badge
+  const badge = slide.profileBadgeEnabled && slide.profileHandle ? (() => {
+    const pos = slide.profileBadgePosition ?? 'bottom-left'
+    const posStyle: React.CSSProperties = {
+      position: 'absolute', zIndex: Z_CONTENT,
+      ...(pos.includes('top') ? { top: `${10 * s}px` } : { bottom: `${10 * s}px` }),
+      ...(pos.includes('left') ? { left: `${10 * s}px` } : { right: `${10 * s}px` }),
+    }
+    const handle = (slide.profileHandle ?? '').replace('@', '')
+    const initials = handle.slice(0, 1).toUpperCase()
+    return (
+      <div style={{
+        ...posStyle,
+        display: 'flex', alignItems: 'center', gap: `${6 * s}px`,
+        padding: `${6 * s}px ${10 * s}px`,
+        backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
+        borderRadius: `${20 * s}px`, border: '1px solid rgba(255,255,255,0.15)',
+      }}>
+        {slide.profileAvatarUrl ? (
+          <img src={slide.profileAvatarUrl} alt="" style={{
+            width: `${24 * s}px`, height: `${24 * s}px`,
+            borderRadius: '50%', objectFit: 'cover' as React.CSSProperties['objectFit'],
+          }} />
+        ) : (
+          <div style={{
+            width: `${24 * s}px`, height: `${24 * s}px`, borderRadius: '50%', backgroundColor: A,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: `${10 * s}px`, fontFamily: bn, color: '#000', fontWeight: 700,
+          }}>{initials}</div>
+        )}
+        <span style={{ fontFamily: ff, fontSize: `${10 * s}px`, color: '#FFFFFF', fontWeight: 600, letterSpacing: `${0.3 * s}px` }}>
+          @{handle}
+        </span>
+      </div>
+    )
+  })() : null
+
   return <>
     {/* z-index: 0 — background image, behind everything. filter ONLY here, never on parent */}
-    {slide.bgImageUrl && (
+    {slide.bgImageUrl && !NO_BG_WALLPAPER.includes(props.template) && (
       <div style={{
         position: 'absolute', inset: 0, zIndex: Z_IMG,
         display: slide.bgVisible === false ? 'none' : 'block',
@@ -636,6 +966,7 @@ export function SlideRenderer(props: SlideRenderProps): React.ReactElement {
     )}
     {/* Template content — overlays at z-index:1, text at z-index:2 */}
     {inner}
+    {badge}
     {/* z-index: 3 — always on top */}
     {props.hasWatermark && (
       <span style={{

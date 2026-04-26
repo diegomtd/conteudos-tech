@@ -900,6 +900,7 @@ function StatePreview({
   const [secLegenda, setSecLegenda] = useState(false)
   const [secTextoTab, setSecTextoTab] = useState<'titulo' | 'corpo'>('titulo')
   const [secTemplate, setSecTemplate] = useState(false)
+  const [flashKey, setFlashKey] = useState(0)
   const [exporting, setExporting] = useState(false)
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [generatingImages, setGeneratingImages] = useState(false)
@@ -930,6 +931,11 @@ function StatePreview({
     if (!carouselId) return
     supabase.from('carousels').update({ template_style: selectedTemplate }).eq('id', carouselId)
   }, [selectedTemplate, carouselId])
+
+  const handleTemplateChange = (t: CarouselTemplate) => {
+    setSelectedTemplate(t)
+    setFlashKey(k => k + 1)
+  }
 
   const updateSlide = (id: string, field: 'titulo' | 'corpo' | 'beforeText' | 'afterText', value: string) =>
     setSlides((prev) => prev.map((s) => s.id === id ? { ...s, [field]: value } : s))
@@ -1334,7 +1340,9 @@ function StatePreview({
                     onClick={() => setActiveSlide(idx)}
                     style={{
                       width: 56, height: 70, flexShrink: 0,
-                      background: dragOverId === slide.id ? 'rgba(200,255,0,0.08)' : '#0A0A0A',
+                      background: dragOverId === slide.id
+                        ? 'rgba(200,255,0,0.08)'
+                        : (TEMPLATE_GRADIENTS[selectedTemplate] ?? '#0a0a0a'),
                       border: `1.5px solid ${isActive ? A : dragOverId === slide.id ? 'rgba(200,255,0,0.5)' : B}`,
                       borderRadius: 6, cursor: 'grab', position: 'relative',
                       display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
@@ -1484,7 +1492,8 @@ function StatePreview({
                         <textarea value={current.corpo}
                           onChange={(e) => updateSlide(current.id, 'corpo', e.target.value)}
                           rows={3}
-                          style={{ width: '100%', backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 6, color: 'rgba(255,255,255,0.7)', fontFamily: ff, fontSize: 12, lineHeight: 1.6, padding: '8px 10px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                          placeholder="Digite o texto. Use Enter para nova linha."
+                          style={{ width: '100%', backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 6, color: 'rgba(255,255,255,0.7)', fontFamily: ff, fontSize: 12, lineHeight: 1.6, padding: '8px 10px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', transition: 'border-color 0.2s', whiteSpace: 'pre-wrap' }}
                           onFocus={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.25)' }}
                           onBlur={(e) => { e.target.style.borderColor = B }}
                         />
@@ -1493,20 +1502,19 @@ function StatePreview({
                   )}
 
                   {/* Badge panel */}
-                  <div style={{ borderTop: `1px solid ${B}`, paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{
+                    background: 'rgba(200,255,0,0.04)', border: `1px solid rgba(200,255,0,0.15)`,
+                    borderRadius: 8, padding: 12, display: 'flex', flexDirection: 'column', gap: 10,
+                  }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: 10, color: M, fontFamily: ff }}>Badge de perfil</span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <button onClick={() => applyBadgeToAll({ profileBadgeEnabled: !current.profileBadgeEnabled })}
-                          style={{ fontSize: 9, color: M, fontFamily: ff, background: 'none', border: `1px solid ${B}`, borderRadius: 4, padding: '2px 7px', cursor: 'pointer' }}>
-                          Aplicar a todos
-                        </button>
-                        <button
-                          onClick={() => updateTitleStyle(current.id, { profileBadgeEnabled: !current.profileBadgeEnabled })}
-                          style={{ width: 36, height: 20, borderRadius: 10, border: 'none', cursor: 'pointer', backgroundColor: current.profileBadgeEnabled ? A : S2, position: 'relative', transition: 'background-color 0.2s', flexShrink: 0 }}>
-                          <span style={{ position: 'absolute', top: 3, left: current.profileBadgeEnabled ? 18 : 3, width: 14, height: 14, borderRadius: '50%', backgroundColor: current.profileBadgeEnabled ? '#000' : M2, transition: 'left 0.2s' }} />
-                        </button>
-                      </div>
+                      <span style={{ fontSize: 10, color: current.profileBadgeEnabled ? A : M, fontFamily: ff, fontWeight: 700, letterSpacing: 0.5 }}>
+                        @ Badge de perfil
+                      </span>
+                      <button
+                        onClick={() => updateTitleStyle(current.id, { profileBadgeEnabled: !current.profileBadgeEnabled })}
+                        style={{ width: 36, height: 20, borderRadius: 10, border: 'none', cursor: 'pointer', backgroundColor: current.profileBadgeEnabled ? A : S2, position: 'relative', transition: 'background-color 0.2s', flexShrink: 0 }}>
+                        <span style={{ position: 'absolute', top: 3, left: current.profileBadgeEnabled ? 18 : 3, width: 14, height: 14, borderRadius: '50%', backgroundColor: current.profileBadgeEnabled ? '#000' : M2, transition: 'left 0.2s' }} />
+                      </button>
                     </div>
                     {current.profileBadgeEnabled && (
                       <>
@@ -1545,6 +1553,10 @@ function StatePreview({
                             })}
                           </div>
                         </div>
+                        <button onClick={() => applyBadgeToAll({ profileBadgeEnabled: true, profileHandle: current.profileHandle, profileAvatarUrl: current.profileAvatarUrl, profileBadgePosition: current.profileBadgePosition })}
+                          style={{ height: 28, background: 'rgba(200,255,0,0.08)', border: `1px solid rgba(200,255,0,0.25)`, borderRadius: 6, color: A, fontFamily: ff, fontSize: 10, fontWeight: 700, cursor: 'pointer', letterSpacing: 0.3 }}>
+                          Aplicar em todos os slides
+                        </button>
                       </>
                     )}
                   </div>
@@ -1824,7 +1836,7 @@ function StatePreview({
               {TEMPLATES.map(({ key, icon, name }) => {
                 const sel = selectedTemplate === key
                 return (
-                  <button key={key} onClick={() => setSelectedTemplate(key)} style={{
+                  <button key={key} onClick={() => handleTemplateChange(key)} style={{
                     height: 56, borderRadius: 8, cursor: 'pointer',
                     background: TEMPLATE_GRADIENTS[key] ?? TEMPLATE_GRADIENTS.impacto,
                     border: `1.5px solid ${sel ? A : B}`,
@@ -1934,7 +1946,7 @@ function StatePreview({
                 <AnimatePresence mode="wait">
                   {current && (
                     <motion.div
-                      key={current.id}
+                      key={`${current.id}-${flashKey}`}
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -20 }}
@@ -2298,7 +2310,7 @@ export default function Studio() {
   const previewSlides: Slide[] = loadedCarousel?.slides ?? (generateResult?.slides ?? []).map((s) => ({
     id: `slide-${generateResult!.carousel_id}-${s.position}`,
     titulo: s.titulo,
-    corpo: s.corpo,
+    corpo: s.corpo.length > 60 ? s.corpo.replace(/\. ([A-Z])/g, '.\n$1') : s.corpo,
     hack: '',
     bgImageUrl: s.bg_image_url ?? undefined,
   }))
