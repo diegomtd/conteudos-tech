@@ -55,6 +55,7 @@ export interface SlideData {
   bodyLetterSpacing?: number
   bodyBgEnabled?: boolean
   bodyBgColor?: string
+  ctaText?: string
   profileBadgeEnabled?: boolean
   profileHandle?: string
   profileAvatarUrl?: string
@@ -275,7 +276,7 @@ function Impacto({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown
           cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s),
         }}>{slide.corpo}</p>
         <p style={{ fontSize: `${10 * s}px`, color: slide.textColor ?? A, fontFamily: ff, fontWeight: 600, margin: 0 }}>
-          Salve para não perder
+          {slide.ctaText ?? 'Salve para não perder'}
         </p>
       </div>
     ) : (
@@ -481,7 +482,7 @@ function Citacao({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown
           cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s),
         }}>{slide.corpo}</p>
         <p style={{ fontSize: `${10 * s}px`, color: slide.textColor ?? A, fontFamily: ff, fontWeight: 600, margin: 0 }}>
-          Salve esse carrossel
+          {slide.ctaText ?? 'Salve esse carrossel'}
         </p>
       </div>
     ) : (
@@ -609,7 +610,7 @@ function Storytelling({ slide, index, total, selectedEl, onSelectEl, onTitleMous
           cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s),
         }}>{slide.corpo}</p>
         <p style={{ fontSize: `${10 * s}px`, color: slide.textColor ?? A, fontFamily: ff, fontWeight: 600, margin: 0 }}>
-          Se isso te tocou, compartilha
+          {slide.ctaText ?? 'Se isso te tocou, compartilha'}
         </p>
       </div>
     ) : <>
@@ -783,6 +784,7 @@ function TextoImagem({ slide, index, total, selectedEl, onSelectEl, scale: s = 1
         backgroundSize: (slide.bgZoom ?? 100) === 100 ? 'cover' : `${slide.bgZoom ?? 100}%`,
         backgroundPosition: `${slide.bgPositionX ?? 50}% ${slide.bgPositionY ?? 50}%`,
         filter: slide.bgFilter ?? 'none',
+        opacity: (slide.imageOpacity ?? 100) / 100,
       }} />
     </div>
   )
@@ -883,7 +885,7 @@ function CitacaoBold({ slide, index, total, selectedEl, onSelectEl, scale: s = 1
       }}>{slide.corpo}</p>
       {isLast && (
         <p style={{ fontSize: `${10 * s}px`, color: slide.textColor ?? A, fontFamily: ff, fontWeight: 600, margin: `${4 * s}px 0 0` }}>
-          Salve esse carrossel
+          {slide.ctaText ?? 'Salve esse carrossel'}
         </p>
       )}
     </div>
