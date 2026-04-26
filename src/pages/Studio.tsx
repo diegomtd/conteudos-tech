@@ -94,6 +94,7 @@ interface Slide {
   bodyLetterSpacing?: number
   bodyBgEnabled?: boolean
   bodyBgColor?: string
+  ctaText?: string
   profileBadgeEnabled?: boolean
   profileHandle?: string
   profileAvatarUrl?: string
@@ -911,12 +912,25 @@ function StatePreview({
   const [dragOverId, setDragOverId] = useState<string | null>(null)
   const [showSchedule, setShowSchedule] = useState(false)
   const [scheduleDate, setScheduleDate] = useState('')
+  const [avatarMode, setAvatarMode] = useState<'url' | 'upload'>('url')
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const exportRefs = useRef<(HTMLDivElement | null)[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const uploadTargetSlideId = useRef<string>('')
+  const avatarFileInputRef = useRef<HTMLInputElement>(null)
   const isDraggingTitle = useRef(false)
   const dragStart = useRef({ mx: 0, my: 0, ox: 0, oy: 0 })
   const currentSlideIdRef = useRef<string | undefined>(undefined)
+
+  // Mobile detection
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   // Load template from DB on mount
   useEffect(() => {
@@ -1033,6 +1047,21 @@ function StatePreview({
 
   const applyBadgeToAll = (updates: Partial<Pick<Slide, 'profileBadgeEnabled' | 'profileHandle' | 'profileAvatarUrl' | 'profileBadgePosition'>>) =>
     setSlides(p => p.map(s => ({ ...s, ...updates })))
+
+  const handleAvatarUpload = async (file: File) => {
+    setUploadingAvatar(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const uid = session?.user?.id ?? 'anon'
+      const ext = file.name.split('.').pop() ?? 'jpg'
+      const path = `avatars/${uid}_avatar.${ext}`
+      const { error } = await supabase.storage.from('carousel-images').upload(path, file, { upsert: true, contentType: file.type })
+      if (error) { toast.error('Erro ao enviar avatar'); return }
+      const { data: { publicUrl } } = supabase.storage.from('carousel-images').getPublicUrl(path)
+      if (current) updateTitleStyle(current.id, { profileAvatarUrl: publicUrl })
+    } catch { toast.error('Erro ao enviar avatar') }
+    finally { setUploadingAvatar(false) }
+  }
 
   const handleUploadImage = async (slideId: string, file: File) => {
     if (!carouselId) return
@@ -1287,6 +1316,17 @@ function StatePreview({
       {/* ── Main editor row ── */}
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'row', overflow: 'hidden' }}>
 
+        {/* ── Mobile backdrop ── */}
+        {isMobile && drawerOpen && (
+          <div
+            onClick={() => setDrawerOpen(false)}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 99,
+              backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(3px)',
+            }}
+          />
+        )}
+
         {/* ── LEFT SIDEBAR 300px ── */}
         <div style={{
           width: 300, flexShrink: 0, height: '100%',
@@ -1295,6 +1335,13 @@ function StatePreview({
           overflowY: 'auto',
           scrollbarWidth: 'thin',
           scrollbarColor: `rgba(200,255,0,0.3) transparent`,
+          ...(isMobile ? {
+            position: 'fixed', left: 0, top: 56, zIndex: 100,
+            height: 'calc(100vh - 56px)',
+            transform: drawerOpen ? 'translateX(0)' : 'translateX(-100%)',
+            transition: 'transform 0.25s ease-out',
+            backgroundColor: BG,
+          } : {}),
         }}>
 
           {/* ─ Section 1: SLIDES ─ */}
@@ -1501,6 +1548,21 @@ function StatePreview({
                     </div>
                   )}
 
+                  {/* CTA text — only on last slide */}
+                  {activeSlide === slides.length - 1 && (
+                    <div>
+                      <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700, letterSpacing: 0.5, display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>Texto do CTA</span>
+                      <input type="text"
+                        value={current.ctaText ?? ''}
+                        onChange={(e) => updateTitleStyle(current.id, { ctaText: e.target.value })}
+                        placeholder="Salve para não perder"
+                        style={{ width: '100%', backgroundColor: S2, border: `1px solid rgba(200,255,0,0.25)`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, padding: '6px 8px', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                        onFocus={(e) => { e.target.style.borderColor = A }}
+                        onBlur={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.25)' }}
+                      />
+                    </div>
+                  )}
+
                   {/* Badge panel */}
                   <div style={{
                     background: 'rgba(200,255,0,0.04)', border: `1px solid rgba(200,255,0,0.15)`,
@@ -1529,14 +1591,49 @@ function StatePreview({
                           />
                         </div>
                         <div>
-                          <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 4 }}>URL do avatar (opcional)</span>
-                          <input type="text" value={current.profileAvatarUrl ?? ''}
-                            onChange={(e) => updateTitleStyle(current.id, { profileAvatarUrl: e.target.value })}
-                            placeholder="https://..."
-                            style={{ width: '100%', backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, padding: '6px 8px', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
-                            onFocus={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.4)' }}
-                            onBlur={(e) => { e.target.style.borderColor = B }}
-                          />
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                            <span style={{ fontSize: 10, color: M, fontFamily: ff }}>Foto do perfil</span>
+                            <div style={{ display: 'flex', gap: 4 }}>
+                              {(['url', 'upload'] as const).map(mode => (
+                                <button key={mode} onClick={() => setAvatarMode(mode)} style={{
+                                  height: 20, padding: '0 8px', borderRadius: 4, fontSize: 9, fontFamily: ff, fontWeight: 700,
+                                  backgroundColor: avatarMode === mode ? 'rgba(200,255,0,0.1)' : 'transparent',
+                                  border: `1px solid ${avatarMode === mode ? 'rgba(200,255,0,0.4)' : B}`,
+                                  color: avatarMode === mode ? A : M, cursor: 'pointer',
+                                }}>{mode === 'url' ? 'URL' : 'Upload'}</button>
+                              ))}
+                            </div>
+                          </div>
+                          {avatarMode === 'url' ? (
+                            <input type="text" value={current.profileAvatarUrl ?? ''}
+                              onChange={(e) => updateTitleStyle(current.id, { profileAvatarUrl: e.target.value })}
+                              placeholder="https://..."
+                              style={{ width: '100%', backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, padding: '6px 8px', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                              onFocus={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.4)' }}
+                              onBlur={(e) => { e.target.style.borderColor = B }}
+                            />
+                          ) : (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <input ref={avatarFileInputRef} type="file" accept="image/*" style={{ display: 'none' }}
+                                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleAvatarUpload(f); e.target.value = '' }} />
+                              {current.profileAvatarUrl ? (
+                                <img src={current.profileAvatarUrl} alt="avatar"
+                                  style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: `1px solid ${B}` }} />
+                              ) : (
+                                <div style={{ width: 32, height: 32, borderRadius: '50%', backgroundColor: S2, border: `1px dashed ${B}`, flexShrink: 0 }} />
+                              )}
+                              <button onClick={() => avatarFileInputRef.current?.click()} disabled={uploadingAvatar}
+                                style={{ flex: 1, height: 30, backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 6, color: uploadingAvatar ? M2 : M, fontFamily: ff, fontSize: 11, cursor: uploadingAvatar ? 'not-allowed' : 'pointer' }}>
+                                {uploadingAvatar ? 'Enviando...' : 'Escolher foto'}
+                              </button>
+                              {current.profileAvatarUrl && (
+                                <button onClick={() => updateTitleStyle(current.id, { profileAvatarUrl: '' })}
+                                  style={{ width: 28, height: 28, background: 'none', border: `1px solid rgba(248,113,113,0.3)`, borderRadius: 6, color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                  <X size={11} />
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </div>
                         <div>
                           <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 4 }}>Posição</span>
@@ -1880,26 +1977,45 @@ function StatePreview({
           {/* Toggle bar */}
           <div style={{
             height: 48, flexShrink: 0, borderBottom: `1px solid ${B}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '0 16px', gap: 6,
           }}>
-            {[
-              { mode: 'slide' as const, icon: <Maximize2 size={13} />, label: 'Slide por Slide' },
-              { mode: 'grid' as const,  icon: <Grid size={13} />, label: 'Grade' },
-            ].map(({ mode, icon, label }) => {
-              const sel = viewMode === mode
-              return (
-                <button key={mode} onClick={() => setViewMode(mode)} style={{
-                  height: 30, padding: '0 12px', display: 'flex', alignItems: 'center', gap: 5,
-                  borderRadius: 6, fontSize: 11, fontFamily: ff, cursor: 'pointer',
-                  backgroundColor: sel ? 'rgba(200,255,0,0.1)' : 'transparent',
-                  border: `1px solid ${sel ? 'rgba(200,255,0,0.4)' : B}`,
-                  color: sel ? A : M, transition: 'all 0.15s',
-                }}>
-                  {icon} {label}
-                </button>
-              )
-            })}
+            {/* Hamburger — mobile only */}
+            {isMobile && (
+              <button
+                onClick={() => setDrawerOpen(v => !v)}
+                style={{
+                  width: 36, height: 36, display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', justifyContent: 'center', gap: 5,
+                  background: drawerOpen ? 'rgba(200,255,0,0.08)' : 'none',
+                  border: `1px solid ${drawerOpen ? 'rgba(200,255,0,0.3)' : B}`,
+                  borderRadius: 8, cursor: 'pointer', flexShrink: 0,
+                }}
+              >
+                <span style={{ width: 16, height: 1.5, backgroundColor: drawerOpen ? A : T, borderRadius: 2, transition: 'background 0.15s' }} />
+                <span style={{ width: 16, height: 1.5, backgroundColor: drawerOpen ? A : T, borderRadius: 2, transition: 'background 0.15s' }} />
+                <span style={{ width: 16, height: 1.5, backgroundColor: drawerOpen ? A : T, borderRadius: 2, transition: 'background 0.15s' }} />
+              </button>
+            )}
+            <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
+              {[
+                { mode: 'slide' as const, icon: <Maximize2 size={13} />, label: 'Slide por Slide' },
+                { mode: 'grid' as const,  icon: <Grid size={13} />, label: 'Grade' },
+              ].map(({ mode, icon, label }) => {
+                const sel = viewMode === mode
+                return (
+                  <button key={mode} onClick={() => setViewMode(mode)} style={{
+                    height: 30, padding: '0 12px', display: 'flex', alignItems: 'center', gap: 5,
+                    borderRadius: 6, fontSize: 11, fontFamily: ff, cursor: 'pointer',
+                    backgroundColor: sel ? 'rgba(200,255,0,0.1)' : 'transparent',
+                    border: `1px solid ${sel ? 'rgba(200,255,0,0.4)' : B}`,
+                    color: sel ? A : M, transition: 'all 0.15s',
+                  }}>
+                    {icon} {label}
+                  </button>
+                )
+              })}
+            </div>
           </div>
 
           {/* ── Slide-by-slide view ── */}
@@ -1912,7 +2028,9 @@ function StatePreview({
             }}>
               {/* Phone mockup */}
               <div style={{
-                width: 320, flexShrink: 0,
+                width: isMobile ? '100%' : 320,
+                maxWidth: isMobile ? 380 : undefined,
+                flexShrink: 0,
                 backgroundColor: '#111',
                 border: '8px solid #1A1A1A',
                 borderRadius: 44,
