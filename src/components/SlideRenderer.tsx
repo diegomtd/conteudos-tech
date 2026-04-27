@@ -31,6 +31,7 @@ export interface SlideData {
   imageOpacity?: number
   beforeText?: string
   afterText?: string
+  afterImageUrl?: string
   paddingX?: number
   bgZoom?: number
   bgPositionX?: number
@@ -813,7 +814,7 @@ function SplitVisual({ slide, index, total, selectedEl, onSelectEl, scale: s = 1
   )
 
   const topImg = slide.bgImageUrl
-  const botImg = slide.afterText ?? ''
+  const botImg = slide.afterImageUrl ?? ''
   const topIsUrl = !!topImg && topImg.startsWith('http')
   const botIsUrl = !!botImg && botImg.startsWith('http')
 

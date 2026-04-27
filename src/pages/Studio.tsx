@@ -71,6 +71,7 @@ interface Slide {
   blockSpacing?: number         // gap px between title and body, default 16
   beforeText?: string           // Comparação template — coluna ANTES
   afterText?: string            // Comparação template — coluna DEPOIS
+  afterImageUrl?: string        // Split visual template — imagem inferior
   bgZoom?: number               // 50–300, default 100
   bgPositionX?: number          // 0–100, default 50
   bgPositionY?: number          // 0–100, default 50
@@ -870,6 +871,119 @@ function SliderRow({
   )
 }
 
+// ─── Template preview SVG ─────────────────────────────────────
+function TemplatePreviewSvg({ templateKey }: { templateKey: CarouselTemplate }) {
+  const W = 40, H = 50
+  const fg  = 'rgba(255,255,255,0.7)'
+  const fg2 = 'rgba(255,255,255,0.35)'
+  const acc = '#C8FF00'
+
+  const layouts: Record<CarouselTemplate, React.ReactNode> = {
+    impacto: (
+      <>
+        <rect x={4} y={7} width={32} height={5} rx={1} fill={fg} />
+        <rect x={4} y={14} width={22} height={3} rx={1} fill={fg2} />
+        <rect x={4} y={19} width={26} height={3} rx={1} fill={fg2} />
+        <rect x={4} y={36} width={16} height={2} rx={1} fill={acc} />
+      </>
+    ),
+    editorial: (
+      <>
+        <rect x={4} y={4} width={10} height={2} rx={1} fill={acc} />
+        <rect x={4} y={9} width={32} height={4} rx={1} fill={fg} />
+        <rect x={4} y={16} width={28} height={2} rx={1} fill={fg2} />
+        <rect x={4} y={20} width={24} height={2} rx={1} fill={fg2} />
+        <rect x={4} y={24} width={30} height={2} rx={1} fill={fg2} />
+        <rect x={4} y={40} width={12} height={1.5} rx={1} fill={fg2} />
+      </>
+    ),
+    lista: (
+      <>
+        <rect x={4} y={5} width={24} height={4} rx={1} fill={fg} />
+        {[14, 21, 28, 35].map((y, i) => (
+          <React.Fragment key={i}>
+            <rect x={4} y={y} width={3} height={3} rx={0.5} fill={acc} />
+            <rect x={9} y={y + 0.5} width={22} height={2} rx={1} fill={fg2} />
+          </React.Fragment>
+        ))}
+      </>
+    ),
+    citacao: (
+      <>
+        <text x={5} y={14} fontSize={14} fill={acc} fontFamily="serif" opacity={0.8}>"</text>
+        <rect x={5} y={17} width={30} height={2.5} rx={1} fill={fg} />
+        <rect x={5} y={21} width={24} height={2.5} rx={1} fill={fg} />
+        <rect x={5} y={25} width={28} height={2.5} rx={1} fill={fg} />
+        <rect x={5} y={32} width={14} height={2} rx={1} fill={fg2} />
+      </>
+    ),
+    comparacao: (
+      <>
+        <rect x={4} y={5} width={32} height={4} rx={1} fill={fg} />
+        <rect x={4} y={14} width={14} height={24} rx={2} fill='rgba(255,68,68,0.25)' />
+        <rect x={22} y={14} width={14} height={24} rx={2} fill='rgba(200,255,0,0.2)' />
+        <rect x={6} y={16} width={10} height={1.5} rx={0.5} fill='rgba(255,68,68,0.7)' />
+        <rect x={24} y={16} width={10} height={1.5} rx={0.5} fill={acc} />
+        <rect x={6} y={20} width={10} height={1.5} rx={0.5} fill={fg2} />
+        <rect x={6} y={23} width={8} height={1.5} rx={0.5} fill={fg2} />
+        <rect x={24} y={20} width={10} height={1.5} rx={0.5} fill={fg2} />
+        <rect x={24} y={23} width={8} height={1.5} rx={0.5} fill={fg2} />
+      </>
+    ),
+    storytelling: (
+      <>
+        <rect x={4} y={5} width={32} height={16} rx={2} fill='rgba(255,255,255,0.08)' />
+        <rect x={4} y={8} width={20} height={4} rx={1} fill={fg} />
+        <rect x={4} y={14} width={26} height={2} rx={1} fill={fg2} />
+        <rect x={4} y={25} width={32} height={2} rx={1} fill={fg2} />
+        <rect x={4} y={29} width={28} height={2} rx={1} fill={fg2} />
+        <rect x={4} y={33} width={22} height={2} rx={1} fill={fg2} />
+      </>
+    ),
+    editorial_foto: (
+      <>
+        <rect x={4} y={4} width={32} height={22} rx={2} fill='rgba(255,255,255,0.08)' />
+        <rect x={0} y={24} width={40} height={18} rx={0} fill='rgba(0,0,0,0.4)' />
+        <rect x={4} y={28} width={22} height={4} rx={1} fill={fg} />
+        <rect x={4} y={35} width={18} height={2} rx={1} fill={fg2} />
+      </>
+    ),
+    texto_imagem: (
+      <>
+        <rect x={4} y={5} width={24} height={4} rx={1} fill={fg} />
+        <rect x={4} y={12} width={28} height={2} rx={1} fill={fg2} />
+        <rect x={4} y={16} width={22} height={2} rx={1} fill={fg2} />
+        <rect x={4} y={23} width={32} height={20} rx={2} fill='rgba(255,255,255,0.08)' />
+      </>
+    ),
+    split_visual: (
+      <>
+        <rect x={4} y={4} width={32} height={19} rx={2} fill='rgba(255,255,255,0.08)' />
+        <rect x={4} y={6} width={20} height={3} rx={1} fill={fg} />
+        <rect x={4} y={11} width={16} height={2} rx={1} fill={fg2} />
+        <rect x={4} y={27} width={32} height={19} rx={2} fill='rgba(200,255,0,0.1)' />
+        <rect x={4} y={29} width={20} height={3} rx={1} fill={fg} />
+        <rect x={4} y={34} width={16} height={2} rx={1} fill={fg2} />
+        <rect x={2} y={23} width={36} height={2} rx={1} fill={acc} />
+      </>
+    ),
+    citacao_bold: (
+      <>
+        <text x={4} y={18} fontSize={20} fill={acc} fontFamily="serif" opacity={0.6}>"</text>
+        <rect x={4} y={22} width={32} height={5} rx={1} fill={fg} />
+        <rect x={4} y={30} width={24} height={5} rx={1} fill={fg} />
+        <rect x={4} y={40} width={16} height={2} rx={1} fill={fg2} />
+      </>
+    ),
+  }
+
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ display: 'block', flexShrink: 0 }}>
+      {layouts[templateKey]}
+    </svg>
+  )
+}
+
 // ─── Estado 3: Preview + Editor ───────────────────────────────
 function StatePreview({
   onBack,
@@ -920,6 +1034,8 @@ function StatePreview({
   const exportRefs = useRef<(HTMLDivElement | null)[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const uploadTargetSlideId = useRef<string>('')
+  const afterImageFileInputRef = useRef<HTMLInputElement>(null)
+  const afterImageTargetId = useRef<string>('')
   const avatarFileInputRef = useRef<HTMLInputElement>(null)
   const isDraggingTitle = useRef(false)
   const dragStart = useRef({ mx: 0, my: 0, ox: 0, oy: 0 })
@@ -960,6 +1076,8 @@ function StatePreview({
   const handleTemplateChange = (t: CarouselTemplate) => {
     setSelectedTemplate(t)
     setFlashKey(k => k + 1)
+    setSecImagem(false)
+    setSecFormato(false)
   }
 
   const updateSlide = (id: string, field: 'titulo' | 'corpo' | 'beforeText' | 'afterText', value: string) =>
@@ -1116,6 +1234,22 @@ function StatePreview({
     }
   }
 
+  const handleUploadAfterImage = async (slideId: string, file: File) => {
+    if (!carouselId) return
+    setUploadingSlideId(slideId)
+    try {
+      const ext = file.name.split('.').pop() ?? 'jpg'
+      const path = `${carouselId}/${slideId}_after.${ext}`
+      const { error: uploadError } = await supabase.storage
+        .from('carousel-images')
+        .upload(path, file, { upsert: true, contentType: file.type })
+      if (uploadError) { toast.error('Erro ao fazer upload.'); return }
+      const { data: { publicUrl } } = supabase.storage.from('carousel-images').getPublicUrl(path)
+      setSlides((prev) => prev.map((s) => s.id === slideId ? { ...s, afterImageUrl: publicUrl } : s))
+      toast.success('Imagem inferior atualizada')
+    } catch { toast.error('Erro ao fazer upload.') }
+    finally { setUploadingSlideId(null) }
+  }
 
   const removeSlide = (id: string) => {
     const next = slides.filter((s) => s.id !== id)
@@ -1176,8 +1310,13 @@ function StatePreview({
   // keep currentSlideIdRef in sync for title drag closure
   useEffect(() => { currentSlideIdRef.current = current?.id }, [current])
 
-  // auto-open formatting section when element is selected
-  useEffect(() => { if (selectedEl) { setSecFormato(true) } }, [selectedEl])
+  // auto-open formatting section when element is selected; close template section
+  useEffect(() => {
+    if (selectedEl) {
+      setSecFormato(true)
+      setSecTemplate(false)
+    }
+  }, [selectedEl])
 
   // slideStyle replaced by getSlideContainerStyle in the motion.div below
 
@@ -1299,6 +1438,7 @@ function StatePreview({
   )
 
   const isComparacaoMiddle = selectedTemplate === 'comparacao' && activeSlide !== 0 && activeSlide !== slides.length - 1
+  const isSplitVisualMiddle = selectedTemplate === 'split_visual' && activeSlide !== 0 && activeSlide !== slides.length - 1
 
   return (
     <>
@@ -1314,6 +1454,17 @@ function StatePreview({
         onChange={(e) => {
           const file = e.target.files?.[0]
           if (file && uploadTargetSlideId.current) handleUploadImage(uploadTargetSlideId.current, file)
+          e.target.value = ''
+        }}
+      />
+      <input
+        ref={afterImageFileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file && afterImageTargetId.current) handleUploadAfterImage(afterImageTargetId.current, file)
           e.target.value = ''
         }}
       />
@@ -1826,6 +1977,41 @@ function StatePreview({
                   </button>
                 )}
               </div>
+
+              {/* afterImageUrl — split_visual middle slides only */}
+              {isSplitVisualMiddle && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <span style={{ fontSize: 10, color: M, fontFamily: ff, letterSpacing: 0.5 }}>Imagem inferior (DEPOIS)</span>
+                  <button
+                    onClick={() => { if (carouselId && current) { afterImageTargetId.current = current.id; afterImageFileInputRef.current?.click() } }}
+                    style={{
+                      height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      background: S2, border: `1px solid ${B}`, borderRadius: 7,
+                      color: M, fontFamily: ff, fontSize: 12, cursor: 'pointer',
+                      transition: 'border-color 0.15s, color 0.15s',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.color = T }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = B; e.currentTarget.style.color = M }}
+                  >
+                    <Image size={12} /> {current.afterImageUrl ? 'Trocar imagem inferior' : 'Upload imagem inferior'}
+                  </button>
+                  {current.afterImageUrl && (
+                    <button
+                      onClick={() => setSlides((prev) => prev.map((s) => s.id === current.id ? { ...s, afterImageUrl: undefined } : s))}
+                      style={{
+                        height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                        background: 'none', border: `1px solid rgba(248,113,113,0.35)`, borderRadius: 7,
+                        color: '#f87171', fontFamily: ff, fontSize: 12, cursor: 'pointer',
+                        transition: 'border-color 0.15s',
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.borderColor = '#f87171'}
+                      onMouseLeave={(e) => e.currentTarget.style.borderColor = 'rgba(248,113,113,0.35)'}
+                    >
+                      <Trash2 size={12} /> Remover imagem inferior
+                    </button>
+                  )}
+                </div>
+              )}
             </CollapsibleSection>
           )}
 
@@ -1844,7 +2030,7 @@ function StatePreview({
             >
               {!selectedEl ? (
                 <p style={{ fontSize: 11, color: M, fontFamily: ff, lineHeight: 1.6, margin: 0, textAlign: 'center', padding: '6px 0' }}>
-                  Clique no título ou corpo para editar estilo
+                  Clique no título ou no corpo do slide para editar o estilo do elemento
                 </p>
               ) : (
               <>
@@ -1907,12 +2093,15 @@ function StatePreview({
               <div>
                 <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 6 }}>Cor</span>
                 <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap' }}>
-                  {TEXT_COLORS.map((c) => (
-                    <button key={c} onClick={() => updateSlideFormat(current.id, { textColor: c })}
-                      style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: c, border: 'none', cursor: 'pointer', flexShrink: 0, outline: (current.textColor ?? '#F5F5F5') === c ? `2px solid ${A}` : '2px solid transparent', outlineOffset: 2 }} />
-                  ))}
-                  <input type="color" value={current.textColor ?? '#F5F5F5'}
-                    onChange={(e) => updateSlideFormat(current.id, { textColor: e.target.value })}
+                  {TEXT_COLORS.map((c) => {
+                    const activeColor = selectedEl === 'corpo' ? (current.bodyColor ?? 'rgba(255,255,255,0.7)') : (current.textColor ?? '#F5F5F5')
+                    return (
+                      <button key={c} onClick={() => selectedEl === 'corpo' ? updateTitleStyle(current.id, { bodyColor: c }) : updateSlideFormat(current.id, { textColor: c })}
+                        style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: c, border: 'none', cursor: 'pointer', flexShrink: 0, outline: activeColor === c ? `2px solid ${A}` : '2px solid transparent', outlineOffset: 2 }} />
+                    )
+                  })}
+                  <input type="color" value={selectedEl === 'corpo' ? (current.bodyColor ?? '#F5F5F5') : (current.textColor ?? '#F5F5F5')}
+                    onChange={(e) => selectedEl === 'corpo' ? updateTitleStyle(current.id, { bodyColor: e.target.value }) : updateSlideFormat(current.id, { textColor: e.target.value })}
                     style={{ width: 22, height: 22, borderRadius: '50%', border: `1px solid ${B}`, cursor: 'pointer', flexShrink: 0, padding: 0, backgroundColor: 'transparent' }} />
                 </div>
               </div>
@@ -1949,20 +2138,20 @@ function StatePreview({
           {/* ─ Section 5: TEMPLATE ─ */}
           <CollapsibleSection title="TEMPLATE" isOpen={secTemplate} onToggle={() => setSecTemplate(v => !v)}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              {TEMPLATES.map(({ key, icon, name }) => {
+              {TEMPLATES.map(({ key, name }) => {
                 const sel = selectedTemplate === key
                 return (
                   <button key={key} onClick={() => handleTemplateChange(key)} style={{
-                    height: 56, borderRadius: 8, cursor: 'pointer',
+                    borderRadius: 8, cursor: 'pointer', padding: '6px 6px 4px',
                     background: TEMPLATE_GRADIENTS[key] ?? TEMPLATE_GRADIENTS.impacto,
                     border: `1.5px solid ${sel ? A : B}`,
                     display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', justifyContent: 'center', gap: 3,
+                    alignItems: 'center', gap: 4,
                     transition: 'border-color 0.15s',
                     boxShadow: sel ? `0 0 12px rgba(200,255,0,0.15)` : 'none',
                   }}>
-                    <span style={{ fontSize: 16, lineHeight: 1 }}>{icon}</span>
-                    <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 10, color: sel ? A : 'rgba(255,255,255,0.6)', letterSpacing: 1 }}>{name}</span>
+                    <TemplatePreviewSvg templateKey={key} />
+                    <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 9, color: sel ? A : 'rgba(255,255,255,0.6)', letterSpacing: 1, lineHeight: 1 }}>{name}</span>
                   </button>
                 )
               })}
