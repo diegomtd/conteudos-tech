@@ -887,6 +887,7 @@ function StatePreview({
   previewToken?: string
 }) {
   const { canExport, plan, exportsRemaining } = usePlan()
+  const [profileAvatarDefault, setProfileAvatarDefault] = useState<string | null>(null)
   const [slides, setSlides] = useState<Slide[]>(initialSlides)
   const [activeSlide, setActiveSlide] = useState(0)
   const [_editingField, _setEditingField] = useState<{ id: string; field: 'titulo' | 'corpo' } | null>(null)
@@ -930,6 +931,16 @@ function StatePreview({
     check()
     window.addEventListener('resize', check)
     return () => window.removeEventListener('resize', check)
+  }, [])
+
+  // Load profile avatar for badge default
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return
+      supabase.from('profiles').select('avatar_url, instagram_handle').eq('user_id', user.id).single().then(({ data }) => {
+        if (data?.avatar_url) setProfileAvatarDefault(data.avatar_url as string)
+      })
+    })
   }, [])
 
   // Load template from DB on mount
@@ -1573,7 +1584,15 @@ function StatePreview({
                         @ Badge de perfil
                       </span>
                       <button
-                        onClick={() => updateTitleStyle(current.id, { profileBadgeEnabled: !current.profileBadgeEnabled })}
+                        onClick={() => {
+                          const enabling = !current.profileBadgeEnabled
+                          const updates: Partial<Slide> = { profileBadgeEnabled: enabling }
+                          // Pre-populate avatar from profile on first enable
+                          if (enabling && !current.profileAvatarUrl && profileAvatarDefault) {
+                            updates.profileAvatarUrl = profileAvatarDefault
+                          }
+                          updateTitleStyle(current.id, updates)
+                        }}
                         style={{ width: 36, height: 20, borderRadius: 10, border: 'none', cursor: 'pointer', backgroundColor: current.profileBadgeEnabled ? A : S2, position: 'relative', transition: 'background-color 0.2s', flexShrink: 0 }}>
                         <span style={{ position: 'absolute', top: 3, left: current.profileBadgeEnabled ? 18 : 3, width: 14, height: 14, borderRadius: '50%', backgroundColor: current.profileBadgeEnabled ? '#000' : M2, transition: 'left 0.2s' }} />
                       </button>

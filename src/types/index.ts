@@ -24,6 +24,7 @@ export interface Profile {
   ai_images_used_this_month: number
   onboarding_completed: boolean
   telegram_chat_id: string | null
+  avatar_url?: string | null
   created_at: string
 }
 
