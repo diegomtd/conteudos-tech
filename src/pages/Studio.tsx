@@ -2651,6 +2651,7 @@ export default function Studio() {
     if (!carouselIdFromURL) return
 
     async function loadCarousel() {
+      console.log('[loadCarousel] carregando:', carouselIdFromURL)
       setLoadingCarousel(true)
       const [{ data: carousel }, { data: slidesData }] = await Promise.all([
         supabase
@@ -2676,8 +2677,21 @@ export default function Studio() {
           .order('position', { ascending: true }),
       ])
 
-      if (!carousel || !slidesData) {
+      console.log('[loadCarousel] slides carregados:', slidesData?.length ?? 0)
+
+      if (!carousel) {
+        console.error('[loadCarousel] carousel não encontrado:', carouselIdFromURL)
+        toast.error('Carrossel não encontrado. Redirecionando...')
         setLoadingCarousel(false)
+        setAppState('input')
+        return
+      }
+
+      if (!slidesData || slidesData.length === 0) {
+        console.error('[loadCarousel] sem slides para carousel:', carouselIdFromURL)
+        toast.error('Carrossel sem slides.')
+        setLoadingCarousel(false)
+        setAppState('input')
         return
       }
 
