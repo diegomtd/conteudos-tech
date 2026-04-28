@@ -2677,7 +2677,18 @@ export default function Studio() {
           .single(),
         supabase
           .from('carousel_slides')
-          .select('position, titulo, corpo, hack_aplicado, bg_image_url, font_size_title, font_size_body, font_weight_title, text_color, text_align, title_position_x, title_position_y')
+          .select(`position, titulo, corpo, hack_aplicado, bg_image_url,
+            font_size_title, font_size_body, font_weight_title, font_family, text_color, text_align,
+            title_position_x, title_position_y,
+            body_color, body_font_family, body_font_weight, body_italic,
+            body_line_height, body_letter_spacing, body_bg_enabled, body_bg_color,
+            title_italic, title_uppercase, title_letter_spacing, title_line_height,
+            title_bg_enabled, title_bg_color, title_shadow, title_shadow_intensity,
+            overlay_opacity, image_opacity, bg_zoom, bg_pos_x, bg_pos_y,
+            bg_filter, bg_visible, border_vignette, vignette_intensity,
+            padding_x, block_spacing, text_position,
+            after_image_url, cta_text,
+            profile_badge_enabled, profile_handle, profile_avatar_url, profile_badge_position`)
           .eq('carousel_id', carouselIdFromURL)
           .order('position', { ascending: true }),
       ])
@@ -2696,11 +2707,51 @@ export default function Studio() {
         titleFontSize: (s.font_size_title as number) ?? undefined,
         bodyFontSize: (s.font_size_body as number) ?? undefined,
         fontWeightTitle: (s.font_weight_title as 'normal' | 'bold') ?? undefined,
+        fontFamily: (s.font_family as string) ?? undefined,
         textColor: (s.text_color as string) ?? undefined,
         textAlign: (s.text_align as 'left' | 'center' | 'right') ?? undefined,
         titlePos: (s.title_position_x != null && s.title_position_y != null)
           ? { x: s.title_position_x as number, y: s.title_position_y as number }
           : undefined,
+        // Campos de corpo
+        bodyColor:           (s.body_color as string)                         ?? undefined,
+        bodyFontFamily:      (s.body_font_family as string)                   ?? undefined,
+        bodyFontWeight:      (s.body_font_weight as 'normal' | 'bold')        ?? undefined,
+        bodyItalic:          (s.body_italic as boolean)                       ?? undefined,
+        bodyLineHeight:      (s.body_line_height as number)                   ?? undefined,
+        bodyLetterSpacing:   (s.body_letter_spacing as number)                ?? undefined,
+        bodyBgEnabled:       (s.body_bg_enabled as boolean)                   ?? undefined,
+        bodyBgColor:         (s.body_bg_color as string)                      ?? undefined,
+        // Campos de título
+        titleItalic:         (s.title_italic as boolean)                      ?? undefined,
+        titleUppercase:      (s.title_uppercase as boolean)                   ?? undefined,
+        titleLetterSpacing:  (s.title_letter_spacing as number)               ?? undefined,
+        titleLineHeight:     (s.title_line_height as number)                  ?? undefined,
+        titleBgEnabled:      (s.title_bg_enabled as boolean)                  ?? undefined,
+        titleBgColor:        (s.title_bg_color as string)                     ?? undefined,
+        titleShadow:         (s.title_shadow as boolean)                      ?? undefined,
+        titleShadowIntensity:(s.title_shadow_intensity as number)             ?? undefined,
+        // Campos de imagem
+        overlayOpacity:      (s.overlay_opacity as number)                    ?? undefined,
+        imageOpacity:        (s.image_opacity as number)                      ?? undefined,
+        bgZoom:              (s.bg_zoom as number)                            ?? undefined,
+        bgPositionX:         (s.bg_pos_x as number)                          ?? undefined,
+        bgPositionY:         (s.bg_pos_y as number)                          ?? undefined,
+        bgFilter:            (s.bg_filter as string)                          ?? undefined,
+        bgVisible:           (s.bg_visible as boolean)                        ?? undefined,
+        borderVignette:      (s.border_vignette as boolean)                   ?? undefined,
+        vignetteIntensity:   (s.vignette_intensity as number)                 ?? undefined,
+        // Campos de layout
+        paddingX:            (s.padding_x as number)                         ?? undefined,
+        blockSpacing:        (s.block_spacing as number)                      ?? undefined,
+        textPosition:        (s.text_position as 'top' | 'center' | 'bottom') ?? undefined,
+        // Campos extras
+        afterImageUrl:       (s.after_image_url as string)                   ?? undefined,
+        ctaText:             (s.cta_text as string)                          ?? undefined,
+        profileBadgeEnabled: (s.profile_badge_enabled as boolean)            ?? undefined,
+        profileHandle:       (s.profile_handle as string)                    ?? undefined,
+        profileAvatarUrl:    (s.profile_avatar_url as string)                ?? undefined,
+        profileBadgePosition:(s.profile_badge_position as 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right') ?? undefined,
       }))
 
       setLoadedCarousel({
