@@ -2661,18 +2661,7 @@ export default function Studio() {
           .single(),
         supabase
           .from('carousel_slides')
-          .select(`position, titulo, corpo, hack_aplicado, bg_image_url,
-            font_size_title, font_size_body, font_weight_title, font_family, text_color, text_align,
-            title_position_x, title_position_y,
-            body_color, body_font_family, body_font_weight, body_italic,
-            body_line_height, body_letter_spacing, body_bg_enabled, body_bg_color,
-            title_italic, title_uppercase, title_letter_spacing, title_line_height,
-            title_bg_enabled, title_bg_color, title_shadow, title_shadow_intensity,
-            overlay_opacity, image_opacity, bg_zoom, bg_pos_x, bg_pos_y,
-            bg_filter, bg_visible, border_vignette, vignette_intensity,
-            padding_x, block_spacing, text_position,
-            after_image_url, cta_text,
-            profile_badge_enabled, profile_handle, profile_avatar_url, profile_badge_position`)
+          .select('*')
           .eq('carousel_id', carouselIdFromURL)
           .order('position', { ascending: true }),
       ])
