@@ -1121,20 +1121,66 @@ function StatePreview({
     }, 800)
   }
 
-  const updateSlideFormat = (id: string, updates: Partial<Pick<Slide,
-    'titleFontSize' | 'bodyFontSize' | 'fontWeightTitle' | 'textColor' | 'textAlign' | 'titlePos' | 'fontFamily' | 'blockSpacing'
-  >>) => {
-    setSlides((prev) => prev.map((s) => s.id === id ? { ...s, ...updates } : s))
+  // ── Mapeamento completo campo React → coluna DB ──────────────
+  const SLIDE_TO_COL: Partial<Record<keyof Slide, string>> = {
+    titleFontSize:        'font_size_title',
+    bodyFontSize:         'font_size_body',
+    fontWeightTitle:      'font_weight_title',
+    fontFamily:           'font_family',
+    textColor:            'text_color',
+    textAlign:            'text_align',
+    blockSpacing:         'block_spacing',
+    paddingX:             'padding_x',
+    textPosition:         'text_position',
+    imageOpacity:         'image_opacity',
+    overlayOpacity:       'overlay_opacity',
+    bgZoom:               'bg_zoom',
+    bgPositionX:          'bg_pos_x',
+    bgPositionY:          'bg_pos_y',
+    bgFilter:             'bg_filter',
+    bgVisible:            'bg_visible',
+    borderVignette:       'border_vignette',
+    vignetteIntensity:    'vignette_intensity',
+    titleItalic:          'title_italic',
+    titleUppercase:       'title_uppercase',
+    titleLetterSpacing:   'title_letter_spacing',
+    titleLineHeight:      'title_line_height',
+    titleBgEnabled:       'title_bg_enabled',
+    titleBgColor:         'title_bg_color',
+    titleShadow:          'title_shadow',
+    titleShadowIntensity: 'title_shadow_intensity',
+    bodyColor:            'body_color',
+    bodyFontFamily:       'body_font_family',
+    bodyFontWeight:       'body_font_weight',
+    bodyItalic:           'body_italic',
+    bodyLineHeight:       'body_line_height',
+    bodyLetterSpacing:    'body_letter_spacing',
+    bodyBgEnabled:        'body_bg_enabled',
+    bodyBgColor:          'body_bg_color',
+    ctaText:              'cta_text',
+    profileBadgeEnabled:  'profile_badge_enabled',
+    profileHandle:        'profile_handle',
+    profileAvatarUrl:     'profile_avatar_url',
+    profileBadgePosition: 'profile_badge_position',
+    afterImageUrl:        'after_image_url',
+  }
+
+  const buildDbPayload = (updates: Partial<Slide>): Record<string, unknown> => {
     const db: Record<string, unknown> = {}
-    if (updates.titleFontSize !== undefined) db.font_size_title = updates.titleFontSize
-    if (updates.bodyFontSize !== undefined) db.font_size_body = updates.bodyFontSize
-    if (updates.fontWeightTitle !== undefined) db.font_weight_title = updates.fontWeightTitle
-    if (updates.textColor !== undefined) db.text_color = updates.textColor
-    if (updates.textAlign !== undefined) db.text_align = updates.textAlign
     if (updates.titlePos !== undefined) {
       db.title_position_x = updates.titlePos.x
       db.title_position_y = updates.titlePos.y
     }
+    for (const [key, col] of Object.entries(SLIDE_TO_COL) as [keyof Slide, string][]) {
+      const val = (updates as Record<string, unknown>)[key]
+      if (val !== undefined) db[col] = val
+    }
+    return db
+  }
+
+  const updateSlideFormat = (id: string, updates: Partial<Slide>) => {
+    setSlides((prev) => prev.map((s) => s.id === id ? { ...s, ...updates } : s))
+    const db = buildDbPayload(updates)
     if (Object.keys(db).length > 0) saveFormatToDb(id, db)
   }
 
@@ -1168,8 +1214,11 @@ function StatePreview({
   const updateVignetteIntensity = (id: string, val: number) =>
     setSlides(p => p.map(s => s.id === id ? { ...s, vignetteIntensity: val } : s))
 
-  const updateTitleStyle = (id: string, updates: Partial<Slide>) =>
+  const updateTitleStyle = (id: string, updates: Partial<Slide>) => {
     setSlides(p => p.map(s => s.id === id ? { ...s, ...updates } : s))
+    const db = buildDbPayload(updates)
+    if (Object.keys(db).length > 0) saveFormatToDb(id, db)
+  }
 
   const resetBgPosition = (id: string) =>
     setSlides(p => p.map(s => s.id === id ? { ...s, bgZoom: 100, bgPositionX: 50, bgPositionY: 50 } : s))
