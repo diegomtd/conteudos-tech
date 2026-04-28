@@ -1018,6 +1018,9 @@ function StatePreview({
   const [secTemplate, setSecTemplate] = useState(false)
   const [flashKey, setFlashKey] = useState(0)
   const [exporting, setExporting] = useState(false)
+  const [exportName, setExportName] = useState('')
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [generatingImages, setGeneratingImages] = useState(false)
   const [imageGenProgress, setImageGenProgress] = useState<string | null>(null)
@@ -1367,6 +1370,24 @@ function StatePreview({
     }
   }, [selectedEl])
 
+  // auto-save slides_json com debounce 2s
+  const triggerAutoSave = useCallback(() => {
+    if (!carouselId) return
+    setSaveStatus('saving')
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
+    autoSaveTimer.current = setTimeout(async () => {
+      await supabase.from('carousels')
+        .update({ slides_json: slides })
+        .eq('id', carouselId)
+      setSaveStatus('saved')
+      setTimeout(() => setSaveStatus('idle'), 2000)
+    }, 2000)
+  }, [carouselId, slides])
+
+  useEffect(() => {
+    triggerAutoSave()
+  }, [slides])
+
   // slideStyle replaced by getSlideContainerStyle in the motion.div below
 
   const handleGenerateImages = async () => {
@@ -1439,9 +1460,11 @@ function StatePreview({
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = 'carrossel.zip'
+      const finalName = exportName.trim() || `carousel_${new Date().toISOString().slice(0, 10)}`
+      a.download = `${finalName}.zip`
       a.click()
       URL.revokeObjectURL(url)
+      setExportName('')
 
       // Atualiza status no banco se tiver carousel_id
       if (carouselId) {
@@ -1563,18 +1586,22 @@ function StatePreview({
               <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 11, color: A, letterSpacing: 1 }}>
                 SLIDES — {slides.length}
               </span>
-              <button
-                onClick={() => toast.success('Rascunho salvo')}
-                style={{
-                  background: 'none', border: `1px solid ${B}`, borderRadius: 5,
-                  color: M, fontFamily: ff, fontSize: 10, cursor: 'pointer', padding: '3px 8px',
-                  transition: 'border-color 0.15s, color 0.15s',
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.color = T }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = B; e.currentTarget.style.color = M }}
-              >
-                Salvar
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {saveStatus === 'saving' && <span style={{ fontSize: 11, color: M, fontFamily: ff }}>Salvando...</span>}
+                {saveStatus === 'saved' && <span style={{ fontSize: 11, color: '#C8FF00', fontFamily: ff }}>✓ Salvo</span>}
+                <button
+                  onClick={() => toast.success('Rascunho salvo')}
+                  style={{
+                    background: 'none', border: `1px solid ${B}`, borderRadius: 5,
+                    color: M, fontFamily: ff, fontSize: 10, cursor: 'pointer', padding: '3px 8px',
+                    transition: 'border-color 0.15s, color 0.15s',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.color = T }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = B; e.currentTarget.style.color = M }}
+                >
+                  Salvar
+                </button>
+              </div>
             </div>
 
             {/* Horizontal thumbnails */}
@@ -2142,16 +2169,27 @@ function StatePreview({
               <div>
                 <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 6 }}>Cor</span>
                 <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap' }}>
-                  {TEXT_COLORS.map((c) => {
+                  {(() => {
+                    const handleColorChange = (c: string) => {
+                      if (selectedEl === 'corpo') {
+                        updateTitleStyle(current.id, { bodyColor: c })
+                      } else {
+                        updateSlideFormat(current.id, { textColor: c })
+                      }
+                    }
                     const activeColor = selectedEl === 'corpo' ? (current.bodyColor ?? 'rgba(255,255,255,0.7)') : (current.textColor ?? '#F5F5F5')
                     return (
-                      <button key={c} onClick={() => selectedEl === 'corpo' ? updateTitleStyle(current.id, { bodyColor: c }) : updateSlideFormat(current.id, { textColor: c })}
-                        style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: c, border: 'none', cursor: 'pointer', flexShrink: 0, outline: activeColor === c ? `2px solid ${A}` : '2px solid transparent', outlineOffset: 2 }} />
+                      <>
+                        {TEXT_COLORS.map((c) => (
+                          <button key={c} onClick={() => handleColorChange(c)}
+                            style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: c, border: 'none', cursor: 'pointer', flexShrink: 0, outline: activeColor === c ? `2px solid ${A}` : '2px solid transparent', outlineOffset: 2 }} />
+                        ))}
+                        <input type="color" value={selectedEl === 'corpo' ? (current.bodyColor ?? '#F5F5F5') : (current.textColor ?? '#F5F5F5')}
+                          onChange={(e) => handleColorChange(e.target.value)}
+                          style={{ width: 22, height: 22, borderRadius: '50%', border: `1px solid ${B}`, cursor: 'pointer', flexShrink: 0, padding: 0, backgroundColor: 'transparent' }} />
+                      </>
                     )
-                  })}
-                  <input type="color" value={selectedEl === 'corpo' ? (current.bodyColor ?? '#F5F5F5') : (current.textColor ?? '#F5F5F5')}
-                    onChange={(e) => selectedEl === 'corpo' ? updateTitleStyle(current.id, { bodyColor: e.target.value }) : updateSlideFormat(current.id, { textColor: e.target.value })}
-                    style={{ width: 22, height: 22, borderRadius: '50%', border: `1px solid ${B}`, cursor: 'pointer', flexShrink: 0, padding: 0, backgroundColor: 'transparent' }} />
+                  })()}
                 </div>
               </div>
 
@@ -2568,6 +2606,18 @@ function StatePreview({
             <Share2 size={13} /> Compartilhar
           </button>
         )}
+        <input
+          value={exportName}
+          onChange={e => setExportName(e.target.value)}
+          placeholder="nome do arquivo"
+          style={{
+            height: 38, padding: '0 12px', backgroundColor: S2,
+            border: `1px solid ${B}`, borderRadius: 8, color: T,
+            fontSize: 13, fontFamily: ff, outline: 'none', width: 160,
+          }}
+          onFocus={e => e.target.style.borderColor = 'rgba(200,255,0,0.4)'}
+          onBlur={e => e.target.style.borderColor = B}
+        />
         <button
           onClick={handleExport}
           disabled={exporting}
