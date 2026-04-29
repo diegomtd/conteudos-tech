@@ -44,6 +44,7 @@ const TONES       = [
   { slug: 'inspiracional', label: 'Inspiracional e leve',    example: 'Pequenas ações consistentes criam grandes resultados' },
 ]
 const PALETTE     = ['#C8FF00','#FF6B2B','#00B4D8','#A855F7','#F43F5E','#10B981','#F59E0B','#FFFFFF']
+const KIT_PALETTE = ['#C8FF00','#FF6B2B','#00B4D8','#A855F7','#F43F5E','#FFFFFF']
 const STYLES      = [
   { slug: 'dark_cinematic', label: 'Dark Cinematic', bg: 'linear-gradient(135deg,#0a0a0a,#1a2a3a)' },
   { slug: 'light_clean',    label: 'Light Clean',    bg: 'linear-gradient(135deg,#f8f8f8,#e0e0e0)' },
@@ -398,6 +399,59 @@ export default function Agency() {
 
   const active = clients.find((c) => c.id === activeId)
 
+  const [clientProfile, setClientProfile] = useState<{
+    instagram_handle: string | null
+    niche: string | null
+    voice_profile: Record<string, unknown>
+    visual_kit: Record<string, unknown>
+  } | null>(null)
+  const [kitOpen,    setKitOpen]    = useState(true)
+  const [instHandle, setInstHandle] = useState('')
+  const [kitNiche,   setKitNiche]   = useState('')
+  const [kitTom,     setKitTom]     = useState('')
+  const [kitCor,     setKitCor]     = useState('#C8FF00')
+  const [savingKit,  setSavingKit]  = useState(false)
+
+  useEffect(() => {
+    if (!activeId) return
+    supabase.from('profiles')
+      .select('instagram_handle, niche, voice_profile, visual_kit')
+      .eq('organization_id', activeId)
+      .single()
+      .then(({ data }) => setClientProfile(data))
+  }, [activeId])
+
+  useEffect(() => {
+    if (!clientProfile) return
+    setInstHandle(clientProfile.instagram_handle ?? '')
+    setKitNiche(clientProfile.niche ?? '')
+    setKitTom((clientProfile.voice_profile?.tom as string) ?? '')
+    setKitCor((clientProfile.visual_kit?.cor as string) ?? '#C8FF00')
+  }, [clientProfile])
+
+  const saveKit = async () => {
+    if (!activeId) return
+    setSavingKit(true)
+    const { error } = await supabase.from('profiles')
+      .update({
+        instagram_handle: instHandle || null,
+        niche: kitNiche || null,
+        voice_profile: { ...(clientProfile?.voice_profile ?? {}), tom: kitTom },
+        visual_kit: { ...(clientProfile?.visual_kit ?? {}), cor: kitCor },
+      })
+      .eq('organization_id', activeId)
+    setSavingKit(false)
+    if (error) { toast.error('Erro ao salvar kit'); return }
+    toast.success('Kit salvo')
+    setClientProfile((p) => p ? {
+      ...p,
+      instagram_handle: instHandle || null,
+      niche: kitNiche || null,
+      voice_profile: { ...(p.voice_profile ?? {}), tom: kitTom },
+      visual_kit: { ...(p.visual_kit ?? {}), cor: kitCor },
+    } : p)
+  }
+
   const formatDate = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
 
   const MAIN_TABS: { key: AgencyTab; label: string; icon: React.ReactNode }[] = [
@@ -509,19 +563,87 @@ export default function Agency() {
                 </button>
               </div>
             ) : (
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ backgroundColor: S, border: `1px solid rgba(200,255,0,0.15)`, borderRadius: 16, padding: '32px 40px', maxWidth: 440 }}>
-                  <h3 style={{ fontFamily: ffd, fontSize: 32, color: A, margin: '0 0 8px', letterSpacing: 1.5 }}>
-                    {active.name.toUpperCase()}
-                  </h3>
-                  <p style={{ color: M, fontSize: 14, fontFamily: ff, margin: '0 0 24px' }}>
-                    Cliente ativo — veja relatórios ou crie conteúdo
-                  </p>
-                  <button onClick={() => navigate(`/studio?cliente=${activeId}`)}
-                    style={{ backgroundColor: A, color: '#000', border: 'none', borderRadius: 8, padding: '12px 28px', fontSize: 15, fontWeight: 700, fontFamily: ff, cursor: 'pointer' }}>
-                    Criar carrossel para {active.name} →
+              <div style={{ width: '100%', maxWidth: 520 }}>
+
+                {/* ── Seção 1: KIT DO CLIENTE ── */}
+                <div style={{ backgroundColor: S, border: `1px solid ${B}`, borderRadius: 12, marginBottom: 16, overflow: 'hidden' }}>
+                  <button onClick={() => setKitOpen((p) => !p)}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', background: 'none', border: 'none', cursor: 'pointer' }}>
+                    <span style={{ fontFamily: ffd, fontSize: 15, color: A, letterSpacing: 1 }}>KIT DO CLIENTE</span>
+                    <span style={{ color: M, fontSize: 12 }}>{kitOpen ? '▲' : '▼'}</span>
                   </button>
+
+                  {kitOpen && (
+                    <div style={{ padding: '0 20px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+                      {/* @instagram */}
+                      <div>
+                        <label style={labelSt}>Instagram</label>
+                        <div style={{ display: 'flex', alignItems: 'center', backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 8, overflow: 'hidden' }}>
+                          <span style={{ padding: '0 8px 0 14px', color: M, fontFamily: ff, fontSize: 14, userSelect: 'none' }}>@</span>
+                          <input value={instHandle} onChange={(e) => setInstHandle(e.target.value)}
+                            style={{ flex: 1, background: 'transparent', border: 'none', padding: '11px 14px 11px 0', color: '#F5F5F5', fontSize: 14, fontFamily: ff, outline: 'none' }}
+                            placeholder="handle" />
+                        </div>
+                      </div>
+
+                      {/* Nicho */}
+                      <div>
+                        <label style={labelSt}>Nicho</label>
+                        <select value={kitNiche} onChange={(e) => setKitNiche(e.target.value)}
+                          style={{ ...inputSt, appearance: 'none', cursor: 'pointer', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23ffffff66' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center' }}>
+                          <option value="">Selecione...</option>
+                          {NICHES.map((n) => <option key={n} value={n} style={{ backgroundColor: S2 }}>{n.charAt(0).toUpperCase() + n.slice(1)}</option>)}
+                        </select>
+                      </div>
+
+                      {/* Tom */}
+                      <div>
+                        <label style={labelSt}>Tom</label>
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          {TONES.map((t) => {
+                            const sel = kitTom === t.slug
+                            return (
+                              <button key={t.slug} type="button" onClick={() => setKitTom(t.slug)}
+                                style={{ padding: '7px 14px', background: sel ? 'rgba(200,255,0,0.1)' : S2, border: `1px solid ${sel ? A : B}`, borderRadius: 6, color: sel ? A : '#F5F5F5', fontFamily: ff, fontSize: 12, fontWeight: sel ? 700 : 400, cursor: 'pointer', transition: 'all 0.15s' }}>
+                                {t.slug.charAt(0).toUpperCase() + t.slug.slice(1)}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Cor */}
+                      <div>
+                        <label style={labelSt}>Cor</label>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          {KIT_PALETTE.map((c) => (
+                            <button key={c} type="button" onClick={() => setKitCor(c)}
+                              style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: c, padding: 0, border: kitCor === c ? '2px solid white' : '2px solid transparent', outline: kitCor === c ? `2px solid ${c}` : 'none', outlineOffset: 2, cursor: 'pointer' }} />
+                          ))}
+                        </div>
+                      </div>
+
+                      <button onClick={saveKit} disabled={savingKit}
+                        style={{ alignSelf: 'flex-start', height: 38, padding: '0 20px', backgroundColor: A, border: 'none', borderRadius: 8, color: '#000', fontFamily: ff, fontSize: 13, fontWeight: 700, cursor: savingKit ? 'not-allowed' : 'pointer', opacity: savingKit ? 0.7 : 1 }}>
+                        {savingKit ? 'Salvando...' : 'Salvar kit'}
+                      </button>
+                    </div>
+                  )}
                 </div>
+
+                {/* ── Seção 2: AÇÕES ── */}
+                <div style={{ backgroundColor: S, border: `1px solid ${B}`, borderRadius: 12, padding: '20px' }}>
+                  <h4 style={{ fontFamily: ffd, fontSize: 13, color: M, margin: '0 0 14px', letterSpacing: 1 }}>AÇÕES</h4>
+                  <button onClick={() => navigate(`/studio?org=${activeId}`)}
+                    style={{ width: '100%', backgroundColor: A, color: '#000', border: 'none', borderRadius: 8, padding: '12px 20px', fontSize: 14, fontWeight: 700, fontFamily: ff, cursor: 'pointer', textAlign: 'left' }}>
+                    Criar carrossel para este cliente →
+                  </button>
+                  <p style={{ fontFamily: ff, fontSize: 11, color: M, margin: '10px 0 0' }}>
+                    A IA usará o perfil deste cliente ao gerar o carrossel
+                  </p>
+                </div>
+
               </div>
             )}
           </div>
