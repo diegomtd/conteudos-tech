@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { toPng } from 'html-to-image'
 import JSZip from 'jszip'
 import { usePlan } from '@/hooks/usePlan'
+import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import { SlideRenderer, getSlideContainerStyle, CarouselTemplate as _CarouselTemplate } from '@/components/SlideRenderer'
 
@@ -280,6 +281,28 @@ function StateInput({
   const [viralMode, setViralMode] = useState<'link' | 'texto'>('link')
   const [viralLink, setViralLink] = useState('')
   const [viralText, setViralText] = useState('')
+
+  const { user } = useAuth()
+
+  useEffect(() => {
+    if (!user) return
+    supabase
+      .from('profiles')
+      .select('voice_profile, visual_kit')
+      .eq('user_id', user.id)
+      .single()
+      .then(({ data }) => {
+        if (!data) return
+        const vp = data.voice_profile as Record<string, string> ?? {}
+        if (vp.tom) {
+          const tomMap: Record<string, string> = {
+            provocador: 'Provocador', educativo: 'Educativo',
+            bastidor: 'Bastidor', inspiracional: 'Humor'
+          }
+          setTom(tomMap[vp.tom] ?? 'Provocador')
+        }
+      })
+  }, [user])
 
   const canCreate = tema.trim().length >= 4
 
