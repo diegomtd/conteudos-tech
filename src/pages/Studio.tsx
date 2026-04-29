@@ -2653,7 +2653,10 @@ export default function Studio() {
     async function loadCarousel() {
       console.log('[loadCarousel] carregando:', carouselIdFromURL)
       setLoadingCarousel(true)
-      const [{ data: carousel }, { data: slidesData }] = await Promise.all([
+      const [
+        { data: carousel, error: carouselError },
+        { data: slidesData, error: slidesError }
+      ] = await Promise.all([
         supabase
           .from('carousels')
           .select('id, legenda, has_watermark, preview_token')
@@ -2665,6 +2668,20 @@ export default function Studio() {
           .eq('carousel_id', carouselIdFromURL)
           .order('position', { ascending: true }),
       ])
+
+      if (carouselError) {
+        console.error('[loadCarousel] carousel error:', carouselError)
+        toast.error('Erro ao carregar carrossel: ' + carouselError.message)
+        setLoadingCarousel(false)
+        return
+      }
+
+      if (slidesError) {
+        console.error('[loadCarousel] slides error:', slidesError)
+        toast.error('Erro ao carregar slides: ' + slidesError.message)
+        setLoadingCarousel(false)
+        return
+      }
 
       console.log('[loadCarousel] slides carregados:', slidesData?.length ?? 0)
 
