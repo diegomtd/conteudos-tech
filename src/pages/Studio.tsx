@@ -103,7 +103,6 @@ interface Slide {
   profileBadgePosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
 }
 
-const EXPORT_SCALE = 4  // mockup → export resolution multiplier
 const TEXT_COLORS = ['#F5F5F5', '#000000', '#C8FF00', '#FFD700', '#FF4444', '#4488FF', '#FF8C00', '#FF69B4']
 
 const FONT_OPTIONS: { label: string; value: string }[] = [
@@ -1383,22 +1382,27 @@ function StatePreview({
   }, [selectedEl])
 
   // auto-save slides_json com debounce 2s
-  const triggerAutoSave = useCallback(() => {
+  const triggerAutoSave = useCallback((updatedSlides?: typeof slides) => {
     if (!carouselId) return
+    const toSave = updatedSlides ?? slides
     setSaveStatus('saving')
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
     autoSaveTimer.current = setTimeout(async () => {
-      await supabase.from('carousels')
-        .update({ slides_json: slides })
-        .eq('id', carouselId)
-      setSaveStatus('saved')
+      try {
+        await supabase.from('carousels')
+          .update({ slides_json: toSave })
+          .eq('id', carouselId)
+        setSaveStatus('saved')
+      } catch {
+        setSaveStatus('idle')
+      }
       setTimeout(() => setSaveStatus('idle'), 2000)
     }, 2000)
   }, [carouselId, slides])
 
   useEffect(() => {
-    triggerAutoSave()
-  }, [slides])
+    if (carouselId) triggerAutoSave()
+  }, [slides, carouselId])
 
   // slideStyle replaced by getSlideContainerStyle in the motion.div below
 
@@ -1456,6 +1460,8 @@ function StatePreview({
         if (!el) continue
 
         const dataUrl = await toPng(el, {
+          width: 1080,
+          height: 1350,
           pixelRatio: 1,
           cacheBust: true,
           style: { display: 'flex' },
@@ -1504,7 +1510,7 @@ function StatePreview({
           ref={(el) => { exportRefs.current[i] = el }}
           style={{
             width: 1080, height: 1350, flexShrink: 0,
-            ...getSlideContainerStyle(slide, i, slides.length, selectedTemplate, imageStyle, EXPORT_SCALE),
+            ...getSlideContainerStyle(slide, i, slides.length, selectedTemplate, imageStyle, 1),
           }}
         >
           <SlideRenderer
@@ -1513,7 +1519,7 @@ function StatePreview({
             total={slides.length}
             template={selectedTemplate}
             imageStyle={imageStyle}
-            scale={EXPORT_SCALE}
+            scale={1}
             hasWatermark={hasWatermark}
           />
         </div>
