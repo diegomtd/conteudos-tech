@@ -278,9 +278,12 @@ function StateInput({
   const [tom, setTom]           = useState('Provocador')
   const [cta, setCta]           = useState('Engajamento')
   const [viralOpen, setViralOpen] = useState(false)
-  const [viralMode, setViralMode] = useState<'link' | 'texto'>('link')
-  const [viralLink, setViralLink] = useState('')
-  const [viralText, setViralText] = useState('')
+  const [viralInput, setViralInput] = useState('')
+  const [analyzingViral, setAnalyzingViral] = useState(false)
+  const [viralResult, setViralResult] = useState<{
+    tema?: string; hacks?: string[]; sugestao?: string
+    resumo?: string; manual?: boolean
+  } | null>(null)
 
   const { user } = useAuth()
 
@@ -320,13 +323,38 @@ function StateInput({
     Humor:      'Usa leveza e ironia para comunicar — viraliza rápido',
   }
 
-  function applyViral() {
-    const content = viralMode === 'link' ? viralLink.trim() : viralText.trim()
-    if (!content) return
-    setTema(content.length > 120 ? content.slice(0, 120) : content)
-    setViralOpen(false)
-    setViralLink('')
-    setViralText('')
+  const applyViral = async () => {
+    if (!viralInput.trim()) return
+    setAnalyzingViral(true)
+    setViralResult(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const isUrl = viralInput.startsWith('http')
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-content`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`
+          },
+          body: JSON.stringify(isUrl ? { url: viralInput } : { texto: viralInput })
+        }
+      )
+      const data = await res.json()
+      if (data.sugestao) {
+        setViralResult(data)
+        setTema(data.sugestao)
+      } else if (data.manual) {
+        setViralResult(data)
+      } else {
+        toast.error('Nao foi possivel analisar. Cole o texto diretamente.')
+      }
+    } catch {
+      toast.error('Erro ao analisar conteudo.')
+    } finally {
+      setAnalyzingViral(false)
+    }
   }
 
   return (
@@ -404,77 +432,71 @@ function StateInput({
                 padding: '20px 18px',
                 display: 'flex', flexDirection: 'column', gap: 14,
               }}>
-                <p style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 16, color: T, margin: 0, letterSpacing: 1 }}>
-                  COLE O LINK OU O TEXTO DO CONTEÚDO VIRAL
-                </p>
-
-                {/* Toggle Link / Texto */}
-                <div style={{ display: 'flex', gap: 8 }}>
-                  {(['link', 'texto'] as const).map(mode => (
-                    <button
-                      key={mode}
-                      onClick={() => setViralMode(mode)}
-                      style={{
-                        padding: '6px 16px', borderRadius: 8,
-                        background: viralMode === mode ? '#00B4D8' : 'transparent',
-                        border: `1px solid ${viralMode === mode ? '#00B4D8' : 'rgba(0,180,216,0.3)'}`,
-                        color: viralMode === mode ? '#000' : '#00B4D8',
-                        fontFamily: ff, fontSize: 13, cursor: 'pointer',
-                        textTransform: 'capitalize', transition: 'all 0.15s',
-                      }}
-                    >
-                      {mode === 'link' ? 'Link' : 'Texto'}
-                    </button>
-                  ))}
-                </div>
-
-                {viralMode === 'link' ? (
-                  <input
-                    type="url"
-                    value={viralLink}
-                    onChange={e => setViralLink(e.target.value)}
-                    placeholder="youtube.com/watch?v=... ou link do post do Instagram"
-                    style={{
-                      ...inputSt, width: '100%', height: 44, padding: '0 14px',
-                      fontSize: 14, boxSizing: 'border-box',
-                      border: '1px solid rgba(0,180,216,0.4)',
-                    }}
-                    onFocus={e => { e.target.style.borderColor = '#00B4D8' }}
-                    onBlur={e => { e.target.style.borderColor = 'rgba(0,180,216,0.4)' }}
-                  />
-                ) : (
-                  <textarea
-                    value={viralText}
-                    onChange={e => setViralText(e.target.value)}
-                    placeholder="Cole aqui a transcrição, legenda ou texto do conteúdo viral..."
-                    rows={5}
-                    style={{
-                      ...inputSt, width: '100%', padding: '12px 14px',
-                      fontSize: 14, boxSizing: 'border-box', resize: 'vertical',
-                      border: '1px solid rgba(0,180,216,0.4)',
-                    }}
-                    onFocus={e => { e.target.style.borderColor = '#00B4D8' }}
-                    onBlur={e => { e.target.style.borderColor = 'rgba(0,180,216,0.4)' }}
-                  />
-                )}
-
-                <p style={{ fontFamily: ff, fontSize: 12, color: 'rgba(0,180,216,0.7)', margin: 0, lineHeight: 1.5 }}>
-                  A IA vai identificar os hacks psicológicos usados e recriar na sua voz
-                </p>
+                <input
+                  type="text"
+                  value={viralInput}
+                  onChange={e => setViralInput(e.target.value)}
+                  placeholder="Cole o link do YouTube/Instagram ou o texto do post"
+                  style={{
+                    ...inputSt, width: '100%', height: 44, padding: '0 14px',
+                    fontSize: 14, boxSizing: 'border-box',
+                    border: '1px solid rgba(0,180,216,0.4)',
+                  }}
+                  onFocus={e => { e.target.style.borderColor = '#00B4D8' }}
+                  onBlur={e => { e.target.style.borderColor = 'rgba(0,180,216,0.4)' }}
+                />
 
                 <button
                   onClick={applyViral}
-                  disabled={!(viralMode === 'link' ? viralLink.trim() : viralText.trim())}
+                  disabled={!viralInput.trim() || analyzingViral}
                   style={{
                     background: '#00B4D8', color: '#000', border: 'none',
-                    borderRadius: 8, padding: '11px 0', cursor: 'pointer',
+                    borderRadius: 8, padding: '11px 0', cursor: !viralInput.trim() || analyzingViral ? 'not-allowed' : 'pointer',
                     fontFamily: '"Bebas Neue", sans-serif', fontSize: 16, letterSpacing: 1,
-                    opacity: !(viralMode === 'link' ? viralLink.trim() : viralText.trim()) ? 0.4 : 1,
+                    opacity: !viralInput.trim() || analyzingViral ? 0.4 : 1,
                     transition: 'opacity 0.15s',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                   }}
                 >
-                  EXTRAIR E ANALISAR →
+                  {analyzingViral ? (
+                    <>
+                      <div style={{
+                        width: 14, height: 14, borderRadius: '50%',
+                        border: '2px solid rgba(0,0,0,0.2)',
+                        borderTop: '2px solid #000',
+                        animation: 'spin 0.7s linear infinite',
+                      }} />
+                      Analisando...
+                    </>
+                  ) : 'Analisar →'}
                 </button>
+
+                {viralResult && !viralResult.manual && (
+                  <div style={{ backgroundColor: 'rgba(200,255,0,0.04)', border: '1px solid rgba(200,255,0,0.2)', borderRadius: 8, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {viralResult.resumo && (
+                      <p style={{ fontSize: 12, color: M, fontFamily: ff, margin: 0, fontStyle: 'italic' }}>
+                        {viralResult.resumo}
+                      </p>
+                    )}
+                    {viralResult.hacks && viralResult.hacks.length > 0 && (
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {viralResult.hacks.map(h => (
+                          <span key={h} style={{ fontSize: 10, color: '#00B4D8', border: '1px solid rgba(0,180,216,0.3)', borderRadius: 99, padding: '2px 8px', fontFamily: ff }}>
+                            {h}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <p style={{ fontSize: 11, color: '#C8FF00', fontFamily: ff, margin: 0 }}>
+                      Tema sugerido aplicado automaticamente
+                    </p>
+                  </div>
+                )}
+                {viralResult?.manual && (
+                  <p style={{ fontSize: 12, color: M, fontFamily: ff, margin: 0 }}>
+                    Nao conseguimos extrair o link. Cole o texto do post acima.
+                  </p>
+                )}
               </div>
             </motion.div>
           )}
