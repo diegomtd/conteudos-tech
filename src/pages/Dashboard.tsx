@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   LayoutDashboard, Zap, Calendar, Settings,
-  ChevronLeft, TrendingUp, Sparkles,
+  ChevronLeft, TrendingUp, Sparkles, Users, Shield,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -176,13 +176,6 @@ function GlowBar({ pct, color }: { pct: number; color: string }) {
 }
 
 // ─── Sidebar (unchanged logic) ────────────────────────────────────
-const NAV = [
-  { label: 'Dashboard',     icon: LayoutDashboard, path: '/dashboard' },
-  { label: 'Studio',        icon: Zap,             path: '/studio'    },
-  { label: 'Calendário',    icon: Calendar,        path: '/calendar'  },
-  { label: 'Configurações', icon: Settings,        path: '/settings'  },
-]
-
 function Sidebar({
   open, onToggle, profile,
 }: {
@@ -197,6 +190,15 @@ function Sidebar({
   const pct      = profile ? Math.min(100, (profile.exports_used_this_month / Math.max(1, profile.exports_limit)) * 100) : 0
   const barColor = pct >= 90 ? '#EF4444' : pct >= 70 ? '#F59E0B' : A
   const plan     = profile?.plan ?? 'free'
+
+  const NAV = [
+    { label: 'Dashboard',     icon: LayoutDashboard, path: '/dashboard' },
+    { label: 'Studio',        icon: Zap,             path: '/studio'    },
+    { label: 'Calendário',    icon: Calendar,        path: '/calendar'  },
+    { label: 'Configurações', icon: Settings,        path: '/settings'  },
+    ...(plan === 'agencia' ? [{ label: 'Agência', icon: Users, path: '/agency' }] : []),
+    ...(profile?.role === 'admin' ? [{ label: 'Admin', icon: Shield, path: '/admin' }] : []),
+  ]
 
   const aiLimit    = profile?.ai_images_limit ?? 0
   const aiUsed     = profile?.ai_images_used_this_month ?? 0
