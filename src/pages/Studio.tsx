@@ -280,6 +280,8 @@ function StateInput({
   const [viralOpen, setViralOpen] = useState(false)
   const [viralInput, setViralInput] = useState('')
   const [analyzingViral, setAnalyzingViral] = useState(false)
+  const [loadingTopics, setLoadingTopics] = useState(false)
+  const [suggestedTopics, setSuggestedTopics] = useState<Array<{titulo: string; hook: string; tipo: string}>>([])
   const [viralResult, setViralResult] = useState<{
     tema?: string; hacks?: string[]; sugestao?: string
     resumo?: string; manual?: boolean
@@ -354,6 +356,27 @@ function StateInput({
       toast.error('Erro ao analisar conteudo.')
     } finally {
       setAnalyzingViral(false)
+    }
+  }
+
+  const handleSuggestTopics = async () => {
+    setLoadingTopics(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/suggest-topics`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
+          body: JSON.stringify({})
+        }
+      )
+      const data = await res.json()
+      if (data.temas) setSuggestedTopics(data.temas)
+    } catch {
+      toast.error('Erro ao buscar ideias.')
+    } finally {
+      setLoadingTopics(false)
     }
   }
 
@@ -531,6 +554,60 @@ function StateInput({
               tooltip={TOM_TOOLTIPS[t]}
             />
           ))}
+        </div>
+
+        {/* Buscar ideias */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <button
+            onClick={handleSuggestTopics}
+            disabled={loadingTopics}
+            style={{
+              background: 'none', border: `1px solid rgba(0,180,216,0.3)`,
+              borderRadius: 8, color: '#00B4D8', fontSize: 13,
+              fontFamily: ff, padding: '8px 16px',
+              cursor: loadingTopics ? 'not-allowed' : 'pointer',
+              opacity: loadingTopics ? 0.6 : 1,
+              display: 'flex', alignItems: 'center', gap: 8,
+              transition: 'border-color 0.15s',
+              alignSelf: 'flex-start',
+            }}
+            onMouseEnter={e => { if (!loadingTopics) e.currentTarget.style.borderColor = 'rgba(0,180,216,0.7)' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(0,180,216,0.3)' }}
+          >
+            {loadingTopics ? (
+              <>
+                <div style={{
+                  width: 12, height: 12, borderRadius: '50%',
+                  border: '2px solid rgba(0,180,216,0.2)',
+                  borderTop: '2px solid #00B4D8',
+                  animation: 'spin 0.7s linear infinite',
+                }} />
+                Buscando ideias...
+              </>
+            ) : 'Buscar ideias para o meu nicho ✦'}
+          </button>
+
+          {suggestedTopics.length > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              {suggestedTopics.slice(0, 8).map((t, i) => (
+                <div
+                  key={i}
+                  style={{
+                    backgroundColor: S2, border: `1px solid ${B}`,
+                    borderRadius: 8, padding: '10px 14px',
+                    cursor: 'pointer', transition: 'border-color 0.15s',
+                    display: 'flex', flexDirection: 'column', gap: 4,
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(200,255,0,0.3)' }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = B }}
+                  onClick={() => { setTema(t.titulo); setSuggestedTopics([]) }}
+                >
+                  <span style={{ fontSize: 13, color: T, fontFamily: ff, lineHeight: 1.3 }}>{t.titulo}</span>
+                  <span style={{ fontSize: 11, color: M, fontFamily: ff, lineHeight: 1.4 }}>{t.hook}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* CTA */}
