@@ -678,6 +678,7 @@ function StateGenerating({
   onDone: (result: GenerateResult) => void
   onError: () => void
 }) {
+  const navigate = useNavigate()
   const [progress, setProgress] = useState(0)
   const [currentStep, setCurrentStep] = useState(0)
   const [msgIdx, setMsgIdx] = useState(0)
@@ -722,10 +723,11 @@ function StateGenerating({
         if (fnError) throw fnError
         if (!data) throw new Error('no_data')
 
-        if (data.error === 'export_limit_reached') {
-          toast.error('Você atingiu o limite de carrosseis do seu plano. Faça upgrade para continuar.')
+        if (data.error === 'export_limit_reached' || data.error === 'carousel_limit_reached') {
+          toast.error(`Limite do plano free atingido (${data.limit ?? data.exports_limit ?? 3} carrosseis/mês). Faça upgrade para continuar.`)
           cancelAnimationFrame(rafId)
           onError()
+          navigate('/settings?tab=plano')
           return
         }
 

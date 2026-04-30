@@ -3,6 +3,13 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from './useAuth'
 import type { Plan, Profile } from '@/types'
 
+const CAROUSEL_LIMITS: Record<Plan, number> = {
+  free:         3,
+  criador:      20,
+  profissional: 50,
+  agencia:      150,
+}
+
 const EXPORT_LIMITS: Record<Plan, number> = {
   free:         3,
   criador:      20,
@@ -51,6 +58,13 @@ export function usePlan() {
   const aiImagesUsed      = profile?.ai_images_used_this_month ?? 0
   const aiImagesRemaining = Math.max(0, aiImageLimit - aiImagesUsed)
 
+  // Carrosseis
+  const carouselsLimit     = (profile as any)?.carousels_limit ?? CAROUSEL_LIMITS[plan]
+  const carouselsUsed      = (profile as any)?.carousels_used_this_month ?? 0
+  const carouselsRemaining = plan === 'profissional' || plan === 'agencia'
+    ? 999999
+    : Math.max(0, carouselsLimit - carouselsUsed)
+
   return {
     profile,
     loading,
@@ -61,5 +75,8 @@ export function usePlan() {
     aiImageLimit,
     aiImagesUsed,
     aiImagesRemaining,
+    carouselsLimit,
+    carouselsUsed,
+    carouselsRemaining,
   }
 }
