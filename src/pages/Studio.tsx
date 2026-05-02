@@ -1382,27 +1382,29 @@ function StatePreview({
   }, [selectedEl])
 
   // auto-save slides_json com debounce 2s
-  const triggerAutoSave = useCallback((updatedSlides?: typeof slides) => {
+  const slidesRef = useRef(slides)
+  useEffect(() => { slidesRef.current = slides }, [slides])
+
+  const triggerAutoSave = useCallback(() => {
     if (!carouselId) return
-    const toSave = updatedSlides ?? slides
     setSaveStatus('saving')
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
     autoSaveTimer.current = setTimeout(async () => {
       try {
         await supabase.from('carousels')
-          .update({ slides_json: toSave })
+          .update({ slides_json: slidesRef.current })
           .eq('id', carouselId)
         setSaveStatus('saved')
+        setTimeout(() => setSaveStatus('idle'), 2000)
       } catch {
         setSaveStatus('idle')
       }
-      setTimeout(() => setSaveStatus('idle'), 2000)
     }, 2000)
-  }, [carouselId, slides])
+  }, [carouselId]) // SEM slides nas deps — usa slidesRef
 
   useEffect(() => {
     if (carouselId) triggerAutoSave()
-  }, [slides, carouselId])
+  }, [slides]) // slides aqui apenas para disparar, não para recriar a função
 
   // slideStyle replaced by getSlideContainerStyle in the motion.div below
 
