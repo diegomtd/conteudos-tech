@@ -63,6 +63,8 @@ export interface SlideData {
   profileBadgePosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
   highlightedWords?: string[]
   accentColor?: string
+  bgPattern?: string
+  bgPatternOpacity?: number
 }
 
 export interface SlideRenderProps {
@@ -217,6 +219,31 @@ export function getSlideContainerStyle(
     paddingTop: pad, paddingBottom: pad,
     paddingLeft: px, paddingRight: px,
   }
+}
+
+// ─── Background patterns ──────────────────────────────────────
+
+const BG_PATTERNS: Record<string, string> = {
+  grid: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M0 0h40v40H0z' fill='none'/%3E%3Cpath d='M40 0v40M0 0h40' stroke='white' stroke-width='0.5' opacity='1'/%3E%3C/svg%3E")`,
+  dots: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Ccircle cx='2' cy='2' r='1.2' fill='white'/%3E%3C/svg%3E")`,
+  lines: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Cpath d='M0 10h20' stroke='white' stroke-width='0.5'/%3E%3C/svg%3E")`,
+  diagonal: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Cpath d='M0 20L20 0' stroke='white' stroke-width='0.5'/%3E%3C/svg%3E")`,
+  diagonal_cross: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Cpath d='M0 20L20 0M0 0l20 20' stroke='white' stroke-width='0.5'/%3E%3C/svg%3E")`,
+}
+
+function BgPattern({ slide, s }: { slide: SlideData; s: number }): React.ReactElement | null {
+  const pattern = slide.bgPattern
+  if (!pattern || pattern === 'none' || !BG_PATTERNS[pattern]) return null
+  const opacity = (slide.bgPatternOpacity ?? 20) / 100
+  const size = pattern === 'grid' ? `${40 * s}px ${40 * s}px` : `${20 * s}px ${20 * s}px`
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: Z_CONTENT, pointerEvents: 'none',
+      backgroundImage: BG_PATTERNS[pattern],
+      backgroundSize: size,
+      opacity,
+    }} />
+  )
 }
 
 // ─── Word highlight renderer ──────────────────────────────────
@@ -1023,6 +1050,8 @@ export function SlideRenderer(props: SlideRenderProps): React.ReactElement {
         filter: slide.bgFilter ?? 'none',
       }} />
     )}
+    {/* z-index: 2 — background pattern (above overlay, text at same z rendered after = on top) */}
+    <BgPattern slide={slide} s={s} />
     {/* Template content — overlays at z-index:1, text at z-index:2 */}
     {inner}
     {badge}

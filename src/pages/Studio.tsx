@@ -103,6 +103,8 @@ interface Slide {
   profileBadgePosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
   highlightedWords?: string[]
   accentColor?: string
+  bgPattern?: string
+  bgPatternOpacity?: number
 }
 
 const TEXT_COLORS = ['#F5F5F5', '#000000', '#C8FF00', '#FFD700', '#FF4444', '#4488FF', '#FF8C00', '#FF69B4']
@@ -1181,6 +1183,8 @@ function StatePreview({
     afterImageUrl:        'after_image_url',
     highlightedWords:     'highlighted_words',
     accentColor:          'accent_color',
+    bgPattern:            'bg_pattern',
+    bgPatternOpacity:     'bg_pattern_opacity',
   }
 
   const buildDbPayload = (updates: Partial<Slide>): Record<string, unknown> => {
@@ -1819,6 +1823,23 @@ function StatePreview({
                             Limpar destaques
                           </button>
                         )}
+                        <div style={{ marginTop: 8 }}>
+                          <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Cor do destaque</span>
+                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                            {TEXT_COLORS.map((c) => (
+                              <div
+                                key={c}
+                                onClick={() => updateTitleStyle(current.id, { accentColor: c })}
+                                style={{
+                                  width: 20, height: 20, borderRadius: '50%', backgroundColor: c,
+                                  cursor: 'pointer', flexShrink: 0,
+                                  border: (current.accentColor ?? '#C8FF00') === c ? '2px solid #fff' : '2px solid transparent',
+                                  transition: 'border-color 0.15s',
+                                }}
+                              />
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -2021,6 +2042,44 @@ function StatePreview({
                 {current.borderVignette && (
                   <SliderRow label="Intensidade" value={current.vignetteIntensity ?? 60} min={10} max={100}
                     onChange={(v) => updateVignetteIntensity(current.id, v)} />
+                )}
+              </div>
+
+              {/* Padrão de fundo */}
+              <div>
+                <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Padrão de fundo</span>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                  {([
+                    { key: 'none',           label: 'Nenhum'   },
+                    { key: 'grid',           label: 'Grade'    },
+                    { key: 'dots',           label: 'Bolinhas' },
+                    { key: 'lines',          label: 'Linhas'   },
+                    { key: 'diagonal',       label: 'Diagonal' },
+                    { key: 'diagonal_cross', label: 'Xadrez'   },
+                  ] as const).map(({ key, label }) => {
+                    const active = (current.bgPattern ?? 'none') === key
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => updateTitleStyle(current.id, { bgPattern: key })}
+                        style={{
+                          backgroundColor: active ? 'rgba(0,180,216,0.15)' : S2,
+                          border: `1px solid ${active ? '#00B4D8' : B}`,
+                          borderRadius: 6, color: active ? '#00B4D8' : M,
+                          fontFamily: ff, fontSize: 11, padding: '6px 0',
+                          cursor: 'pointer', transition: 'all 0.15s',
+                        }}
+                      >
+                        {label}
+                      </button>
+                    )
+                  })}
+                </div>
+                {(current.bgPattern ?? 'none') !== 'none' && (
+                  <div style={{ marginTop: 8 }}>
+                    <SliderRow label="Opacidade" value={current.bgPatternOpacity ?? 20} min={5} max={60}
+                      onChange={(v) => updateTitleStyle(current.id, { bgPatternOpacity: v })} />
+                  </div>
                 )}
               </div>
 
