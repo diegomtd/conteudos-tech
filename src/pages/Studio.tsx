@@ -1539,7 +1539,8 @@ function StatePreview({
         const dataUrl = await toPng(el, {
           width: 1080,
           height: 1350,
-          pixelRatio: 1,
+          pixelRatio: 2,
+          quality: 0.95,
           cacheBust: true,
           style: { display: 'flex' },
         })
@@ -1575,6 +1576,31 @@ function StatePreview({
       toast.error('Erro ao exportar. Tente novamente.', { id: toastId })
     } finally {
       setExporting(false)
+    }
+  }
+
+  const handleExportSingle = async (index: number) => {
+    if (!canExport) { setShowUpgrade(true); return }
+    const el = exportRefs.current[index]
+    if (!el) return
+    const toastId = toast.loading(`Exportando slide ${index + 1}...`)
+    try {
+      const dataUrl = await toPng(el, {
+        width: 1080,
+        height: 1350,
+        pixelRatio: 2,
+        quality: 0.95,
+        cacheBust: true,
+        style: { display: 'flex' },
+      })
+      const a = document.createElement('a')
+      a.href = dataUrl
+      a.download = `slide-${String(index + 1).padStart(2, '0')}.png`
+      a.click()
+      toast.success(`Slide ${index + 1} baixado`, { id: toastId })
+    } catch (err) {
+      console.error('Export single error:', err)
+      toast.error('Erro ao exportar slide', { id: toastId })
     }
   }
 
@@ -2739,56 +2765,84 @@ function StatePreview({
             <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, 180px)',
-                gap: 16,
+                gridTemplateColumns: 'repeat(auto-fill, 400px)',
+                gap: 24,
+                justifyContent: 'center',
               }}>
-                {slides.map((slide, idx) => (
-                  <div
-                    key={slide.id}
-                    onClick={() => { setActiveSlide(idx); setViewMode('slide') }}
-                    style={{
-                      cursor: 'pointer', position: 'relative',
-                      borderRadius: 8, overflow: 'hidden',
-                      width: 180, height: 225,
-                      border: `1.5px solid ${activeSlide === idx ? A : B}`,
-                      transition: 'border-color 0.15s',
-                      flexShrink: 0,
-                    }}
-                    onMouseEnter={(e) => { if (activeSlide !== idx) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)' }}
-                    onMouseLeave={(e) => { if (activeSlide !== idx) e.currentTarget.style.borderColor = B }}
-                  >
-                    {/* Scale container — renders at 1080×1350, visually scaled to 180×225 */}
-                    <div style={{
-                      width: 1080, height: 1350,
-                      transform: 'scale(0.16667)',
-                      transformOrigin: 'top left',
-                      position: 'absolute', top: 0, left: 0,
-                      ...getSlideContainerStyle(slide, idx, slides.length, selectedTemplate, imageStyle, 1),
-                    }}>
-                      <SlideRenderer
-                        slide={slide}
-                        index={idx}
-                        total={slides.length}
-                        template={selectedTemplate}
-                        imageStyle={imageStyle}
-                        scale={1}
-                        hasWatermark={hasWatermark}
-                      />
+                {slides.map((slide, idx) => {
+                  const gs = 400 / 1080
+                  const isActive = activeSlide === idx
+                  return (
+                    <div key={slide.id} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <div
+                        onClick={() => setActiveSlide(idx)}
+                        style={{
+                          cursor: 'pointer', position: 'relative',
+                          width: 400, height: 500,
+                          borderRadius: 10, overflow: 'hidden',
+                          border: `2px solid ${isActive ? A : B}`,
+                          transition: 'border-color 0.15s',
+                          flexShrink: 0,
+                          ...getSlideContainerStyle(slide, idx, slides.length, selectedTemplate, imageStyle, gs),
+                        }}
+                      >
+                        <SlideRenderer
+                          slide={slide}
+                          index={idx}
+                          total={slides.length}
+                          template={selectedTemplate}
+                          imageStyle={imageStyle}
+                          scale={gs}
+                          hasWatermark={hasWatermark}
+                          selectedEl={isActive ? selectedEl : undefined}
+                          onSelectEl={isActive ? setSelectedEl : undefined}
+                          onBodyWordClick={isActive ? (word) => {
+                            const highlighted = slide.highlightedWords ?? []
+                            const newHighlighted = highlighted.includes(word)
+                              ? highlighted.filter(w => w !== word)
+                              : [...highlighted, word]
+                            updateTitleStyle(slide.id, { highlightedWords: newHighlighted })
+                          } : undefined}
+                          onTitleWordClick={isActive ? (word) => {
+                            const highlighted = slide.highlightedWords ?? []
+                            const newHighlighted = highlighted.includes(word)
+                              ? highlighted.filter(w => w !== word)
+                              : [...highlighted, word]
+                            updateTitleStyle(slide.id, { highlightedWords: newHighlighted })
+                          } : undefined}
+                        />
+                        {/* Slide number badge */}
+                        <div style={{
+                          position: 'absolute', top: 8, left: 8, zIndex: 10,
+                          background: isActive ? A : 'rgba(0,0,0,0.7)',
+                          color: isActive ? '#000' : T,
+                          fontFamily: '"Bebas Neue", sans-serif',
+                          fontSize: 12, letterSpacing: 0.5,
+                          padding: '2px 8px', borderRadius: 4,
+                        }}>
+                          {idx + 1}
+                        </div>
+                      </div>
+                      {/* Download individual */}
+                      <button
+                        onClick={() => handleExportSingle(idx)}
+                        style={{
+                          width: '100%', height: 32, borderRadius: 6,
+                          backgroundColor: 'transparent',
+                          border: `1px solid ${B}`,
+                          color: M, fontSize: 11, fontFamily: ff,
+                          cursor: 'pointer', display: 'flex', alignItems: 'center',
+                          justifyContent: 'center', gap: 5,
+                          transition: 'all 0.15s',
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = A; e.currentTarget.style.color = A }}
+                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = B; e.currentTarget.style.color = M }}
+                      >
+                        ⬇ Baixar slide
+                      </button>
                     </div>
-
-                    {/* Slide number badge */}
-                    <div style={{
-                      position: 'absolute', top: 6, left: 6, zIndex: 10,
-                      background: activeSlide === idx ? A : 'rgba(0,0,0,0.7)',
-                      color: activeSlide === idx ? '#000' : T,
-                      fontFamily: '"Bebas Neue", sans-serif',
-                      fontSize: 11, letterSpacing: 0.5,
-                      padding: '2px 6px', borderRadius: 4,
-                    }}>
-                      {idx + 1}
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )}
