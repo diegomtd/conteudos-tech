@@ -1182,14 +1182,27 @@ function StatePreview({
   const saveFormatTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const saveFormatToDb = (slideId: string, dbUpdates: Record<string, unknown>) => {
-    if (!carouselId || !slideId.startsWith('slide-')) return
+    if (!carouselId || Object.keys(dbUpdates).length === 0) return
     if (saveFormatTimeout.current) clearTimeout(saveFormatTimeout.current)
     saveFormatTimeout.current = setTimeout(async () => {
-      const parts = slideId.split('-')
-      const position = Number(parts[parts.length - 1])
-      if (isNaN(position)) return
-      await supabase.from('carousel_slides').update(dbUpdates)
-        .eq('carousel_id', carouselId).eq('position', position)
+      if (slideId.startsWith('slide-')) {
+        // Slide novo — identifica por position
+        const position = Number(slideId.split('-').pop())
+        if (isNaN(position)) return
+        const { error } = await supabase
+          .from('carousel_slides')
+          .update(dbUpdates)
+          .eq('carousel_id', carouselId)
+          .eq('position', position)
+        if (error) console.error('[saveFormatToDb] position error:', error.message)
+      } else {
+        // Slide carregado do banco — tem UUID como id
+        const { error } = await supabase
+          .from('carousel_slides')
+          .update(dbUpdates)
+          .eq('id', slideId)
+        if (error) console.error('[saveFormatToDb] uuid error:', error.message)
+      }
     }, 800)
   }
 
