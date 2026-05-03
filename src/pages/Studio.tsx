@@ -62,8 +62,8 @@ interface Slide {
   imageOpacity?: number         // 10–100, default 100
   overlayOpacity?: number       // 0–90, darkening overlay
   paddingX?: number             // margem lateral px, default 24
-  titleFontSize?: number        // mockup px, default 28
-  bodyFontSize?: number         // mockup px, default 12
+  titleFontSize?: number        // mockup px, default 80
+  bodyFontSize?: number         // mockup px, default 28
   fontWeightTitle?: 'normal' | 'bold'
   fontFamily?: string           // CSS font-family string
   textColor?: string            // default #F5F5F5
@@ -1399,6 +1399,7 @@ function StatePreview({
   const addSlide = () => {
     const newSlide: Slide = {
       id: String(Date.now()), titulo: 'NOVO SLIDE', corpo: 'Edite este texto.', hack: '',
+      titleFontSize: 80, bodyFontSize: 28,
     }
     setSlides((prev) => [...prev, newSlide])
     setActiveSlide(slides.length)
@@ -2321,8 +2322,8 @@ function StatePreview({
               <>
               <SliderRow
                 label={`Tamanho da fonte`}
-                value={selectedEl === 'titulo' ? (current.titleFontSize ?? 28) : (current.bodyFontSize ?? 12)}
-                min={12} max={72}
+                value={selectedEl === 'titulo' ? (current.titleFontSize ?? 80) : (current.bodyFontSize ?? 28)}
+                min={12} max={160}
                 onChange={(v) => updateSlideFormat(current.id, selectedEl === 'titulo' ? { titleFontSize: v } : { bodyFontSize: v })}
                 suffix="px"
               />
@@ -3067,8 +3068,8 @@ export default function Studio() {
         corpo: (s.corpo as string) ?? '',
         hack: (s.hack_aplicado as string) ?? '',
         bgImageUrl: (s.bg_image_url as string) ?? undefined,
-        titleFontSize: (s.font_size_title as number) ?? undefined,
-        bodyFontSize: (s.font_size_body as number) ?? undefined,
+        titleFontSize: (s.font_size_title as number) ?? 80,
+        bodyFontSize: (s.font_size_body as number) ?? 28,
         fontWeightTitle: (s.font_weight_title as 'normal' | 'bold') ?? undefined,
         fontFamily: (s.font_family as string) ?? undefined,
         textColor: (s.text_color as string) ?? undefined,
