@@ -1812,13 +1812,19 @@ function StatePreview({
                   <div style={{ display: 'flex', gap: 4, marginBottom: 2 }}>
                     {(['titulo', 'corpo'] as const).map((tab) => {
                       const sel = secTextoTab === tab
+                      const isTitulo = tab === 'titulo'
+                      const activeColor = isTitulo ? '#C8FF00' : '#00B4D8'
                       return (
                         <button key={tab} onClick={() => setSecTextoTab(tab)} style={{
-                          flex: 1, height: 26, borderRadius: 5, fontSize: 9, fontWeight: 700,
+                          flex: 1, height: 36, borderRadius: 5, fontSize: 13, fontWeight: 700,
                           fontFamily: '"Bebas Neue", sans-serif', letterSpacing: 1,
-                          backgroundColor: sel ? 'rgba(200,255,0,0.1)' : 'transparent',
-                          border: `1px solid ${sel ? 'rgba(200,255,0,0.4)' : B}`,
-                          color: sel ? A : M, cursor: 'pointer', textTransform: 'uppercase',
+                          backgroundColor: sel ? (isTitulo ? 'rgba(200,255,0,0.15)' : 'rgba(0,180,216,0.15)') : 'transparent',
+                          border: 'none',
+                          borderBottom: sel ? `2px solid ${activeColor}` : `2px solid transparent`,
+                          color: sel ? activeColor : M,
+                          cursor: 'pointer', textTransform: 'uppercase',
+                          opacity: selectedEl === null ? 0.5 : 1,
+                          transition: 'all 0.15s',
                         }}>
                           {tab === 'titulo' ? 'TÍTULO' : 'CORPO'}
                         </button>
@@ -2245,11 +2251,17 @@ function StatePreview({
           {current && (
             <CollapsibleSection
               title={
-                <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 11, letterSpacing: 1, color: selectedEl ? A : M }}>
+                <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 11, letterSpacing: 1, color: selectedEl ? (selectedEl === 'titulo' ? '#C8FF00' : '#00B4D8') : M, display: 'flex', alignItems: 'center', gap: 5 }}>
+                  {selectedEl && (
+                    <span style={{
+                      width: 8, height: 8, borderRadius: '50%', flexShrink: 0, display: 'inline-block',
+                      backgroundColor: selectedEl === 'titulo' ? '#C8FF00' : '#00B4D8',
+                    }} />
+                  )}
                   {selectedEl === 'titulo'
-                    ? '✎ TÍTULO — toque no corpo para editar o corpo'
+                    ? 'TÍTULO — toque no corpo para editar o corpo'
                     : selectedEl === 'corpo'
-                    ? '✎ CORPO — toque no título para editar o título'
+                    ? 'CORPO — toque no título para editar o título'
                     : 'Toque no título ou corpo do slide'}
                 </span>
               }
@@ -2623,7 +2635,15 @@ function StatePreview({
                           dragStart.current = { mx: e.clientX, my: e.clientY, ox: pos.x, oy: pos.y }
                         }}
                         hasWatermark={hasWatermark}
-                        onWordClick={(word) => {
+                        onBodyWordClick={(word) => {
+                          if (!current) return
+                          const highlighted = current.highlightedWords ?? []
+                          const newHighlighted = highlighted.includes(word)
+                            ? highlighted.filter(w => w !== word)
+                            : [...highlighted, word]
+                          updateTitleStyle(current.id, { highlightedWords: newHighlighted })
+                        }}
+                        onTitleWordClick={(word) => {
                           if (!current) return
                           const highlighted = current.highlightedWords ?? []
                           const newHighlighted = highlighted.includes(word)
