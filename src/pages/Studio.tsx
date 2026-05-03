@@ -1077,7 +1077,7 @@ function StatePreview({
   const [selectedTemplate, setSelectedTemplate] = useState<CarouselTemplate>('impacto')
   const [legenda, setLegenda] = useState(initialLegenda ?? '')
   // view & section state
-  const [viewMode, setViewMode] = useState<'slide' | 'grid'>('slide')
+  const [viewMode, setViewMode] = useState<'slide' | 'grid'>('grid')
   const [secTexto,   setSecTexto]   = useState(true)
   const [secImagem,  setSecImagem]  = useState(false)
   const [secFormato, setSecFormato] = useState(false)
@@ -2585,7 +2585,7 @@ function StatePreview({
             )}
             <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
               {[
-                { mode: 'slide' as const, icon: <Maximize2 size={13} />, label: 'Slide por Slide' },
+                { mode: 'slide' as const, icon: <Maximize2 size={13} />, label: 'Mockup' },
                 { mode: 'grid' as const,  icon: <Grid size={13} />, label: 'Grade' },
               ].map(({ mode, icon, label }) => {
                 const sel = viewMode === mode
@@ -2762,15 +2762,15 @@ function StatePreview({
 
           {/* ── Grid view ── */}
           {viewMode === 'grid' && (
-            <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
+            <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', padding: 24 }}>
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, 400px)',
-                gap: 24,
+                gridTemplateColumns: 'repeat(auto-fill, 360px)',
+                gap: 16,
                 justifyContent: 'center',
               }}>
                 {slides.map((slide, idx) => {
-                  const gs = 400 / 1080
+                  const gs = 360 / 1080
                   const isActive = activeSlide === idx
                   return (
                     <div key={slide.id} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -2778,7 +2778,7 @@ function StatePreview({
                         onClick={() => setActiveSlide(idx)}
                         style={{
                           cursor: 'pointer', position: 'relative',
-                          width: 400, height: 500,
+                          width: 360, height: 450,
                           borderRadius: 10, overflow: 'hidden',
                           border: `2px solid ${isActive ? A : B}`,
                           transition: 'border-color 0.15s',
@@ -2840,6 +2840,9 @@ function StatePreview({
                       >
                         ⬇ Baixar slide
                       </button>
+                      <p style={{ fontSize: 10, color: M2, fontFamily: ff, margin: 0, textAlign: 'center' }}>
+                        1080 × 1350px
+                      </p>
                     </div>
                   )
                 })}
