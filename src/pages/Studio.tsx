@@ -274,7 +274,7 @@ function StateInput({
   temaInit, onGenerate,
 }: {
   temaInit: string
-  onGenerate: (config: { tema: string; slides: number; tom: string; cta: string }) => void
+  onGenerate: (config: { tema: string; slides: number; tom: string; cta: string; instructions?: string }) => void
 }) {
   const [tema, setTema]         = useState(temaInit)
   const [slides, setSlides]     = useState(7)
@@ -285,6 +285,8 @@ function StateInput({
   const [analyzingViral, setAnalyzingViral] = useState(false)
   const [loadingTopics, setLoadingTopics] = useState(false)
   const [suggestedTopics, setSuggestedTopics] = useState<Array<{titulo: string; hook: string; tipo: string}>>([])
+  const [iaInstructions, setIaInstructions] = useState('')
+  const [showIaInstructions, setShowIaInstructions] = useState(false)
   const [viralResult, setViralResult] = useState<{
     tema?: string; hacks?: string[]; sugestao?: string
     resumo?: string; manual?: boolean
@@ -409,7 +411,7 @@ function StateInput({
         onChange={(e) => setTema(e.target.value)}
         onClick={(e) => e.stopPropagation()}
         placeholder="Ex: por que 97% das pessoas nunca atingem a meta que definem"
-        onKeyDown={(e) => { if (e.key === 'Enter' && canCreate) onGenerate({ tema, slides, tom, cta }) }}
+        onKeyDown={(e) => { if (e.key === 'Enter' && canCreate) onGenerate({ tema, slides, tom, cta, instructions: iaInstructions.trim() || undefined }) }}
         style={{
           ...inputSt, width: '100%', height: 72, padding: '0 20px',
           fontSize: 18, boxSizing: 'border-box',
@@ -529,6 +531,57 @@ function StateInput({
         </AnimatePresence>
       </div>
 
+      {/* Instruções para a IA */}
+      <div>
+        <button
+          onClick={() => setShowIaInstructions(v => !v)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+            background: 'none',
+            border: `1px solid ${showIaInstructions ? 'rgba(200,255,0,0.3)' : B}`,
+            borderRadius: showIaInstructions ? '8px 8px 0 0' : 8,
+            color: showIaInstructions ? '#C8FF00' : M,
+            fontFamily: ff, fontSize: 13,
+            padding: '9px 14px', cursor: 'pointer',
+            transition: 'border-color 0.15s, color 0.15s',
+          }}
+        >
+          ✦ Instruções para a IA (opcional)
+          <span style={{ marginLeft: 'auto', opacity: 0.6, fontSize: 11 }}>
+            {showIaInstructions ? '▲' : '▼'}
+          </span>
+        </button>
+        <AnimatePresence>
+          {showIaInstructions && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2, ease: 'easeInOut' }}
+              style={{ overflow: 'hidden' }}
+            >
+              <textarea
+                value={iaInstructions}
+                onChange={e => setIaInstructions(e.target.value)}
+                rows={3}
+                placeholder='Ex: "use dados estatísticos", "fale para iniciantes", "tom mais agressivo"'
+                style={{
+                  width: '100%', boxSizing: 'border-box',
+                  backgroundColor: 'rgba(200,255,0,0.03)',
+                  border: '1px solid rgba(200,255,0,0.3)', borderTop: 'none',
+                  borderRadius: '0 0 8px 8px',
+                  color: 'rgba(255,255,255,0.75)', fontFamily: ff, fontSize: 13,
+                  lineHeight: 1.6, padding: '10px 14px',
+                  outline: 'none', resize: 'vertical',
+                }}
+                onFocus={e => { e.target.style.borderColor = 'rgba(200,255,0,0.5)' }}
+                onBlur={e => { e.target.style.borderColor = 'rgba(200,255,0,0.3)' }}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
       {/* Opções */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {/* Slides */}
@@ -635,7 +688,7 @@ function StateInput({
       {/* Botão principal */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
         <button
-          onClick={() => onGenerate({ tema, slides, tom, cta })}
+          onClick={() => onGenerate({ tema, slides, tom, cta, instructions: iaInstructions.trim() || undefined })}
           disabled={!canCreate}
           style={{
             width: '100%', height: 56,
@@ -663,7 +716,7 @@ function StateInput({
 }
 
 // ─── Estado 2: Gerando ────────────────────────────────────────
-interface GenerateConfig { tema: string; slides: number; tom: string; cta: string }
+interface GenerateConfig { tema: string; slides: number; tom: string; cta: string; instructions?: string }
 interface GenerateResult {
   carousel_id: string
   preview_token: string
@@ -720,6 +773,7 @@ function StateGenerating({
             tom: config.tom,
             num_slides: config.slides,
             cta_tipo: config.cta,
+            ...(config.instructions ? { instructions: config.instructions } : {}),
           },
         })
 
