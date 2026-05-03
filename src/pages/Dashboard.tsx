@@ -7,7 +7,16 @@ import {
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import type { Profile, Carousel, ScheduledPost, WeeklyTrend } from '@/types'
+import type { Profile, ScheduledPost, WeeklyTrend } from '@/types'
+
+type CarouselWithCover = {
+  id: string
+  tema: string
+  status: string
+  created_at: string
+  exported_at?: string | null
+  carousel_slides?: { bg_image_url: string | null; position: number }[] | null
+}
 
 // ─── Design tokens ────────────────────────────────────────────────
 const A   = '#C8FF00'
@@ -368,10 +377,11 @@ export default function Dashboard() {
 
   const [profile, setProfile]               = useState<Profile | null>(null)
   const [carouselsCount, setCarouselsCount] = useState<number>(0)
-  const [recentCarousels, setRecentCarousels] = useState<Carousel[]>([])
+  const [recentCarousels, setRecentCarousels] = useState<CarouselWithCover[]>([])
   const [nextPost, setNextPost]             = useState<ScheduledPost | null>(null)
   const [trends, setTrends]                 = useState<WeeklyTrend | null>(null)
   const [loading, setLoading]               = useState(true)
+  const [viewMode, setViewMode]             = useState<'list' | 'grid'>('list')
 
   const toggleSidebar = () => {
     setSidebarOpen(prev => {
@@ -393,7 +403,7 @@ export default function Dashboard() {
         supabase.from('profiles').select('*').eq('user_id', user!.id).single(),
         supabase.from('carousels').select('*', { count: 'exact', head: true }).eq('user_id', user!.id),
         supabase.from('carousels')
-          .select('id, tema, status, created_at')
+          .select('id, tema, status, created_at, exported_at, carousel_slides(bg_image_url, position)')
           .eq('user_id', user!.id)
           .order('created_at', { ascending: false })
           .limit(5),
@@ -408,7 +418,7 @@ export default function Dashboard() {
       const profileData = prof as Profile | null
       setProfile(profileData)
       setCarouselsCount(count ?? 0)
-      setRecentCarousels((recent as Carousel[]) ?? [])
+      setRecentCarousels((recent as CarouselWithCover[]) ?? [])
       setNextPost(next?.[0] as ScheduledPost ?? null)
 
       if (profileData?.niche) {
@@ -642,15 +652,50 @@ export default function Dashboard() {
 
         {/* ── Recentes ───────────────────────────────────────── */}
         <section style={{ marginBottom: 40 }}>
-          <h2 style={{ fontFamily: ffd, fontSize: 22, color: T, margin: '0 0 16px', letterSpacing: 1.5 }}>
-            RECENTES
-          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <h2 style={{ fontFamily: ffd, fontSize: 22, color: T, margin: 0, letterSpacing: 1.5 }}>
+              RECENTES
+            </h2>
+            {recentCarousels.length > 0 && (
+              <div style={{ display: 'flex', gap: 4 }}>
+                {(['list', 'grid'] as const).map(mode => (
+                  <button
+                    key={mode}
+                    onClick={() => setViewMode(mode)}
+                    style={{
+                      width: 32, height: 32, borderRadius: 6, border: `1px solid ${viewMode === mode ? 'rgba(200,255,0,0.4)' : B}`,
+                      background: viewMode === mode ? 'rgba(200,255,0,0.08)' : 'none',
+                      cursor: 'pointer', color: viewMode === mode ? A : M,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      transition: 'all 0.15s',
+                    }}
+                    title={mode === 'list' ? 'Lista' : 'Grade'}
+                  >
+                    {mode === 'list' ? (
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                        <rect x="0" y="1" width="14" height="2.5" rx="1"/>
+                        <rect x="0" y="5.75" width="14" height="2.5" rx="1"/>
+                        <rect x="0" y="10.5" width="14" height="2.5" rx="1"/>
+                      </svg>
+                    ) : (
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                        <rect x="0" y="0" width="6" height="6" rx="1.5"/>
+                        <rect x="8" y="0" width="6" height="6" rx="1.5"/>
+                        <rect x="0" y="8" width="6" height="6" rx="1.5"/>
+                        <rect x="8" y="8" width="6" height="6" rx="1.5"/>
+                      </svg>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           {loading ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {[1, 2, 3].map(i => (
                 <div key={i} style={{ background: S, borderRadius: 12, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <Skeleton w={10} h={10} r={50} />
+                  <Skeleton w={44} h={44} r={6} />
                   <Skeleton w="55%" h={16} r={4} />
                   <div style={{ marginLeft: 'auto' }}><Skeleton w={70} h={14} r={4} /></div>
                 </div>
@@ -658,11 +703,12 @@ export default function Dashboard() {
             </div>
           ) : recentCarousels.length === 0 ? (
             <EmptyState onNew={() => navigate('/studio')} />
-          ) : (
+          ) : viewMode === 'list' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {recentCarousels.map((c, i) => {
                 const tema        = c.tema.length > 60 ? c.tema.slice(0, 60) + '…' : c.tema
                 const statusColor = STATUS_COLOR[c.status] ?? '#555'
+                const coverUrl    = c.carousel_slides?.find(s => s.position === 1)?.bg_image_url
                 return (
                   <motion.div
                     key={c.id}
@@ -672,13 +718,9 @@ export default function Dashboard() {
                     whileHover={{ y: -2 }}
                     onClick={() => navigate(`/studio?carousel_id=${c.id}`)}
                     style={{
-                      background: S,
-                      border: `1px solid ${B}`,
-                      borderRadius: 12,
-                      padding: '16px 20px',
-                      display: 'flex', alignItems: 'center', gap: 14,
-                      cursor: 'pointer',
-                      transition: 'box-shadow 0.2s, border-color 0.2s',
+                      background: S, border: `1px solid ${B}`, borderRadius: 12,
+                      padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 14,
+                      cursor: 'pointer', transition: 'box-shadow 0.2s, border-color 0.2s',
                     }}
                     onMouseEnter={e => {
                       e.currentTarget.style.boxShadow = `0 8px 32px rgba(0,0,0,0.5)`
@@ -689,13 +731,19 @@ export default function Dashboard() {
                       e.currentTarget.style.borderColor = B
                     }}
                   >
-                    {/* Status icon */}
+                    {/* Thumbnail */}
                     <div style={{
-                      width: 10, height: 10, borderRadius: '50%',
-                      background: statusColor,
-                      boxShadow: `0 0 8px ${statusColor}80`,
-                      flexShrink: 0,
-                    }} />
+                      width: 44, height: 44, borderRadius: 6, flexShrink: 0,
+                      backgroundImage: coverUrl ? `url(${coverUrl})` : undefined,
+                      backgroundSize: 'cover', backgroundPosition: 'center',
+                      backgroundColor: coverUrl ? undefined : 'rgba(200,255,0,0.06)',
+                      border: `1px solid ${B}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      {!coverUrl && (
+                        <span style={{ fontFamily: ffd, fontSize: 16, color: 'rgba(200,255,0,0.3)' }}>{i + 1}</span>
+                      )}
+                    </div>
 
                     {/* Tema */}
                     <span style={{
@@ -719,6 +767,82 @@ export default function Dashboard() {
                     }}>
                       {STATUS_LABEL[c.status]}
                     </span>
+                  </motion.div>
+                )
+              })}
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              {recentCarousels.map((c, i) => {
+                const tema        = c.tema.length > 40 ? c.tema.slice(0, 40) + '…' : c.tema
+                const statusColor = STATUS_COLOR[c.status] ?? '#555'
+                const coverUrl    = c.carousel_slides?.find(s => s.position === 1)?.bg_image_url
+                return (
+                  <motion.div
+                    key={c.id}
+                    initial={{ opacity: 0, scale: 0.96 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: i * 0.05, duration: 0.3 }}
+                    whileHover={{ y: -3 }}
+                    onClick={() => navigate(`/studio?carousel_id=${c.id}`)}
+                    style={{
+                      height: 200, borderRadius: 12, overflow: 'hidden',
+                      position: 'relative', cursor: 'pointer',
+                      backgroundImage: coverUrl ? `url(${coverUrl})` : undefined,
+                      backgroundSize: 'cover', backgroundPosition: 'center',
+                      backgroundColor: coverUrl ? undefined : S2,
+                      border: `1px solid ${B}`,
+                      transition: 'box-shadow 0.2s, border-color 0.2s',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.boxShadow = `0 8px 32px rgba(0,0,0,0.6)`
+                      e.currentTarget.style.borderColor = `${statusColor}50`
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.boxShadow = 'none'
+                      e.currentTarget.style.borderColor = B
+                    }}
+                  >
+                    {/* Gradient overlay */}
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 55%)',
+                      pointerEvents: 'none',
+                    }} />
+
+                    {/* No-image background number */}
+                    {!coverUrl && (
+                      <div style={{
+                        position: 'absolute', inset: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <span style={{ fontFamily: ffd, fontSize: 64, color: 'rgba(200,255,0,0.06)' }}>{i + 1}</span>
+                      </div>
+                    )}
+
+                    {/* Status badge */}
+                    <span style={{
+                      position: 'absolute', top: 10, right: 10,
+                      fontFamily: ff, fontSize: 10, color: statusColor,
+                      border: `1px solid ${statusColor}60`,
+                      borderRadius: 20, padding: '2px 8px',
+                      backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+                    }}>
+                      {STATUS_LABEL[c.status]}
+                    </span>
+
+                    {/* Footer */}
+                    <div style={{
+                      position: 'absolute', bottom: 0, left: 0, right: 0,
+                      padding: '10px 12px',
+                    }}>
+                      <p style={{ fontFamily: ff, fontSize: 11, color: T, margin: 0, lineHeight: 1.4 }}>
+                        {tema}
+                      </p>
+                      <p style={{ fontFamily: ff, fontSize: 10, color: M, margin: '3px 0 0' }}>
+                        {relativeTime(c.created_at)}
+                      </p>
+                    </div>
                   </motion.div>
                 )
               })}
