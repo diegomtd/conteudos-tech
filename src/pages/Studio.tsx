@@ -101,6 +101,8 @@ interface Slide {
   profileHandle?: string
   profileAvatarUrl?: string
   profileBadgePosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+  highlightedWords?: string[]
+  accentColor?: string
 }
 
 const TEXT_COLORS = ['#F5F5F5', '#000000', '#C8FF00', '#FFD700', '#FF4444', '#4488FF', '#FF8C00', '#FF69B4']
@@ -1177,6 +1179,8 @@ function StatePreview({
     profileAvatarUrl:     'profile_avatar_url',
     profileBadgePosition: 'profile_badge_position',
     afterImageUrl:        'after_image_url',
+    highlightedWords:     'highlighted_words',
+    accentColor:          'accent_color',
   }
 
   const buildDbPayload = (updates: Partial<Slide>): Record<string, unknown> => {
@@ -1802,6 +1806,19 @@ function StatePreview({
                           onFocus={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.25)' }}
                           onBlur={(e) => { e.target.style.borderColor = B }}
                         />
+                        <p style={{ fontSize: 10, color: M, fontFamily: ff, margin: '4px 0 0' }}>
+                          Clique nas palavras do slide para destacar em amarelo
+                        </p>
+                        {(current.highlightedWords ?? []).length > 0 && (
+                          <button
+                            onClick={() => updateTitleStyle(current.id, { highlightedWords: [] })}
+                            style={{ marginTop: 4, background: 'none', border: `1px solid ${B}`, borderRadius: 6, color: M, fontFamily: ff, fontSize: 11, padding: '4px 10px', cursor: 'pointer', transition: 'border-color 0.15s' }}
+                            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,100,100,0.4)'; e.currentTarget.style.color = '#FF6464' }}
+                            onMouseLeave={e => { e.currentTarget.style.borderColor = B; e.currentTarget.style.color = M }}
+                          >
+                            Limpar destaques
+                          </button>
+                        )}
                       </div>
                     </div>
                   )}
@@ -2493,6 +2510,14 @@ function StatePreview({
                           dragStart.current = { mx: e.clientX, my: e.clientY, ox: pos.x, oy: pos.y }
                         }}
                         hasWatermark={hasWatermark}
+                        onWordClick={(word) => {
+                          if (!current) return
+                          const highlighted = current.highlightedWords ?? []
+                          const newHighlighted = highlighted.includes(word)
+                            ? highlighted.filter(w => w !== word)
+                            : [...highlighted, word]
+                          updateTitleStyle(current.id, { highlightedWords: newHighlighted })
+                        }}
                       />
                     </motion.div>
                   )}
