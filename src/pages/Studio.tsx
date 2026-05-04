@@ -101,6 +101,9 @@ interface Slide {
   profileHandle?: string
   profileAvatarUrl?: string
   profileBadgePosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+  profileBadgeSize?: number
+  profileBadgeBg?: string
+  profileBadgeTextColor?: string
   highlightedWords?: string[]
   accentColor?: string
   bgPattern?: string
@@ -1248,10 +1251,13 @@ function StatePreview({
     bodyBgEnabled:        'body_bg_enabled',
     bodyBgColor:          'body_bg_color',
     ctaText:              'cta_text',
-    profileBadgeEnabled:  'profile_badge_enabled',
-    profileHandle:        'profile_handle',
-    profileAvatarUrl:     'profile_avatar_url',
-    profileBadgePosition: 'profile_badge_position',
+    profileBadgeEnabled:   'profile_badge_enabled',
+    profileHandle:         'profile_handle',
+    profileAvatarUrl:      'profile_avatar_url',
+    profileBadgePosition:  'profile_badge_position',
+    profileBadgeSize:      'profile_badge_size',
+    profileBadgeBg:        'profile_badge_bg',
+    profileBadgeTextColor: 'profile_badge_text_color',
     afterImageUrl:        'after_image_url',
     highlightedWords:     'highlighted_words',
     accentColor:          'accent_color',
@@ -2375,6 +2381,54 @@ function StatePreview({
                             style={{ height: 26, borderRadius: 5, fontSize: 9, fontFamily: ff, backgroundColor: sel ? 'rgba(200,255,0,0.1)' : 'transparent', border: `1px solid ${sel ? 'rgba(200,255,0,0.4)' : B}`, color: sel ? A : M, cursor: 'pointer' }}>
                             {labels[pos]}
                           </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                  {/* Tamanho do badge */}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                      <span style={{ fontSize: 10, color: M, fontFamily: ff }}>Tamanho</span>
+                      <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700 }}>{current.profileBadgeSize ?? 32}px</span>
+                    </div>
+                    <input type="range" min={16} max={48} value={current.profileBadgeSize ?? 32}
+                      onChange={(e) => updateTitleStyle(current.id, { profileBadgeSize: Number(e.target.value) })}
+                      style={{ width: '100%', accentColor: A, cursor: 'pointer' }} />
+                  </div>
+                  {/* Cor do fundo do badge */}
+                  <div>
+                    <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 6 }}>Fundo do badge</span>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                      {['transparent', '#000000', '#ffffff', '#C8FF00', '#00B4D8', '#FF4444', '#FFD700', '#FF69B4'].map((c) => {
+                        const sel = (current.profileBadgeBg ?? 'transparent') === c
+                        return (
+                          <div key={c} onClick={() => updateTitleStyle(current.id, { profileBadgeBg: c })} style={{
+                            width: 22, height: 22, borderRadius: '50%', cursor: 'pointer', flexShrink: 0,
+                            backgroundColor: c === 'transparent' ? 'transparent' : c,
+                            border: sel ? '2px solid #fff' : `2px solid ${c === 'transparent' ? 'rgba(255,255,255,0.3)' : 'transparent'}`,
+                            backgroundImage: c === 'transparent' ? 'repeating-conic-gradient(rgba(255,255,255,0.15) 0% 25%, transparent 0% 50%)' : 'none',
+                            backgroundSize: c === 'transparent' ? '8px 8px' : 'auto',
+                            transition: 'border-color 0.15s',
+                          }} />
+                        )
+                      })}
+                    </div>
+                  </div>
+                  {/* Cor do texto do handle */}
+                  <div>
+                    <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 6 }}>Cor do texto</span>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      {(['#ffffff', '#000000', '#C8FF00', 'rgba(255,255,255,0.5)'] as const).map((c) => {
+                        const sel = (current.profileBadgeTextColor ?? '#ffffff') === c
+                        return (
+                          <div key={c} onClick={() => updateTitleStyle(current.id, { profileBadgeTextColor: c })} style={{
+                            width: 22, height: 22, borderRadius: '50%', cursor: 'pointer', flexShrink: 0,
+                            backgroundColor: c,
+                            border: sel ? '2px solid #fff' : '2px solid transparent',
+                            outline: sel ? `1px solid rgba(255,255,255,0.4)` : 'none',
+                            outlineOffset: 2,
+                            transition: 'border-color 0.15s',
+                          }} />
                         )
                       })}
                     </div>
