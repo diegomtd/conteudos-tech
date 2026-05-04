@@ -2795,7 +2795,7 @@ function StatePreview({
                           imageStyle={imageStyle}
                           scale={gs}
                           hasWatermark={hasWatermark}
-                          selectedEl={isActive ? selectedEl : undefined}
+                          selectedEl={activeSlide === idx ? selectedEl : null}
                           onSelectEl={isActive ? setSelectedEl : undefined}
                           onBodyWordClick={isActive ? (word) => {
                             const highlighted = slide.highlightedWords ?? []
@@ -3139,7 +3139,7 @@ export default function Studio() {
 
   const handleDone = useCallback((result: GenerateResult) => {
     setGenerateResult(result)
-    setAppState('preview')
+    setTimeout(() => setAppState('preview'), 50)
   }, [])
 
   const handleError = useCallback(() => {
