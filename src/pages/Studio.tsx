@@ -2314,12 +2314,12 @@ function StatePreview({
                 </button>
               ) : undefined}
             >
-              {!selectedEl ? (
+              {!selectedEl && (
                 <p style={{ fontSize: 11, color: M, fontFamily: ff, lineHeight: 1.6, margin: 0, textAlign: 'center', padding: '6px 0' }}>
                   Clique no título ou no corpo do slide para editar o estilo do elemento
                 </p>
-              ) : (
-              <>
+              )}
+              <div style={{ opacity: selectedEl ? 1 : 0.4, pointerEvents: selectedEl ? 'auto' : 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
               <SliderRow
                 label={`Tamanho da fonte`}
                 value={selectedEl === 'titulo' ? (current.titleFontSize ?? 80) : (current.bodyFontSize ?? 28)}
@@ -2427,8 +2427,7 @@ function StatePreview({
                   </div>
                 </div>
               )}
-              </>
-              )}
+              </div>
             </CollapsibleSection>
           )}
 

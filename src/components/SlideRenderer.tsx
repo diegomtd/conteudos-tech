@@ -275,7 +275,7 @@ function renderBodyWithHighlights(
         return (
           <span
             key={i}
-            onClick={(e) => { e.stopPropagation(); onWordClick(clean) }}
+            onClick={() => onWordClick(clean)}
             style={{
               color: isHighlighted ? accentClr : 'inherit',
               fontWeight: isHighlighted ? 'bold' : 'inherit',
@@ -330,7 +330,7 @@ function renderTitleWithHighlights(
         return (
           <span
             key={i}
-            onClick={(e) => { e.stopPropagation(); onTitleWordClick(clean) }}
+            onClick={() => onTitleWordClick(clean)}
             style={{
               color: isHighlighted ? accentClr : 'inherit',
               fontWeight: isHighlighted ? 'bold' : 'inherit',
@@ -392,6 +392,10 @@ function Impacto({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown
             ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
           },
         }, onTitleWordClick)}
+        {slide.corpo ? renderBodyWithHighlights(slide.corpo, slide, {
+          onClick: () => onSelectEl?.('corpo'),
+          style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, textAlign: align, margin: `${blockGap(slide, s)} 0 0`, zIndex: Z_CONTENT, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+        }, onBodyWordClick) : null}
         <p style={{
           position: 'absolute', bottom: `${12 * s}px`, right: `${14 * s}px`,
           fontSize: `${9 * s}px`, color: 'rgba(255,255,255,0.45)', fontFamily: ff,
