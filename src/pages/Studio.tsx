@@ -1069,7 +1069,9 @@ function StatePreview({
   previewToken?: string
 }) {
   const { canExport, plan, exportsRemaining } = usePlan()
+  const { user } = useAuth()
   const [profileAvatarDefault, setProfileAvatarDefault] = useState<string | null>(null)
+  const [profileColor, setProfileColor] = useState<string | null>(null)
   const [slides, setSlides] = useState<Slide[]>(initialSlides)
   const [activeSlide, setActiveSlide] = useState(0)
   const [_editingField, _setEditingField] = useState<{ id: string; field: 'titulo' | 'corpo' } | null>(null)
@@ -1078,9 +1080,7 @@ function StatePreview({
   const [legenda, setLegenda] = useState(initialLegenda ?? '')
   // view & section state
   const [viewMode, setViewMode] = useState<'slide' | 'grid'>('grid')
-  const [secTexto,   setSecTexto]   = useState(true)
   const [secImagem,  setSecImagem]  = useState(false)
-  const [secFormato, setSecFormato] = useState(false)
   const [secLegenda, setSecLegenda] = useState(false)
   const [secTextoTab, setSecTextoTab] = useState<'titulo' | 'corpo'>('titulo')
   const [secTemplate, setSecTemplate] = useState(false)
@@ -1124,8 +1124,12 @@ function StatePreview({
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return
-      supabase.from('profiles').select('avatar_url, instagram_handle').eq('user_id', user.id).single().then(({ data }) => {
+      supabase.from('profiles').select('avatar_url, instagram_handle, visual_kit').eq('user_id', user.id).single().then(({ data }) => {
         if (data?.avatar_url) setProfileAvatarDefault(data.avatar_url as string)
+        if (data?.visual_kit) {
+          const vk = data.visual_kit as Record<string, string>
+          if (vk.cor) setProfileColor(vk.cor)
+        }
       })
     })
   }, [])
@@ -1148,15 +1152,21 @@ function StatePreview({
     setSelectedTemplate(t)
     setFlashKey(k => k + 1)
     setSecImagem(false)
-    setSecFormato(false)
-    setSecTexto(false)
+  }
+
+  const applyProfileKit = async () => {
+    const { data } = await supabase.from('profiles')
+      .select('visual_kit').eq('user_id', user?.id).single()
+    if (!data?.visual_kit) return
+    const vk = data.visual_kit as Record<string, string>
+    const updates = { text_color: vk.cor ?? '#C8FF00', font_family: vk.fonte ?? '"Bebas Neue", sans-serif' }
+    await supabase.from('carousel_slides').update(updates).eq('carousel_id', carouselId)
+    setSlides(p => p.map(s => ({ ...s, textColor: vk.cor ?? '#C8FF00', fontFamily: vk.fonte ?? '"Bebas Neue", sans-serif' })))
+    toast.success('Kit visual aplicado em todos os slides')
   }
 
   const updateSlide = (id: string, field: 'titulo' | 'corpo' | 'beforeText' | 'afterText', value: string) =>
     setSlides((prev) => prev.map((s) => s.id === id ? { ...s, [field]: value } : s))
-
-  const updateTextPosition = (id: string, pos: 'top' | 'center' | 'bottom') =>
-    setSlides((prev) => prev.map((s) => s.id === id ? { ...s, textPosition: pos } : s))
 
   // Global mouse events for title drag
   useEffect(() => {
@@ -1183,25 +1193,20 @@ function StatePreview({
 
   const saveFormatToDb = (slideId: string, dbUpdates: Record<string, unknown>) => {
     if (!carouselId || Object.keys(dbUpdates).length === 0) return
+    const capturedSlideId = slideId
+    const capturedUpdates = { ...dbUpdates }
     if (saveFormatTimeout.current) clearTimeout(saveFormatTimeout.current)
     saveFormatTimeout.current = setTimeout(async () => {
-      if (slideId.startsWith('slide-')) {
-        // Slide novo — identifica por position
-        const position = Number(slideId.split('-').pop())
+      if (capturedSlideId.startsWith('slide-')) {
+        const position = Number(capturedSlideId.split('-').pop())
         if (isNaN(position)) return
-        const { error } = await supabase
-          .from('carousel_slides')
-          .update(dbUpdates)
-          .eq('carousel_id', carouselId)
-          .eq('position', position)
-        if (error) console.error('[saveFormatToDb] position error:', error.message)
+        const { error } = await supabase.from('carousel_slides')
+          .update(capturedUpdates).eq('carousel_id', carouselId).eq('position', position)
+        if (error) console.error('[save] position:', error.message)
       } else {
-        // Slide carregado do banco — tem UUID como id
-        const { error } = await supabase
-          .from('carousel_slides')
-          .update(dbUpdates)
-          .eq('id', slideId)
-        if (error) console.error('[saveFormatToDb] uuid error:', error.message)
+        const { error } = await supabase.from('carousel_slides')
+          .update(capturedUpdates).eq('id', capturedSlideId)
+        if (error) console.error('[save] uuid:', error.message)
       }
     }, 800)
   }
@@ -1275,9 +1280,6 @@ function StatePreview({
 
   const updateImageOpacity = (id: string, val: number) =>
     setSlides((prev) => prev.map((s) => s.id === id ? { ...s, imageOpacity: val } : s))
-
-  const updatePaddingX = (id: string, val: number) =>
-    setSlides((prev) => prev.map((s) => s.id === id ? { ...s, paddingX: val } : s))
 
   const updateBgZoom = (id: string, val: number) =>
     setSlides((prev) => prev.map((s) => s.id === id ? { ...s, bgZoom: val } : s))
@@ -1449,10 +1451,9 @@ function StatePreview({
   // keep currentSlideIdRef in sync for title drag closure
   useEffect(() => { currentSlideIdRef.current = current?.id }, [current])
 
-  // auto-open formatting section when element is selected; close template section
+  // close template section when element is selected
   useEffect(() => {
     if (selectedEl) {
-      setSecFormato(true)
       setSecTemplate(false)
     }
   }, [selectedEl])
@@ -1816,7 +1817,8 @@ function StatePreview({
 
           {/* ─ Section 2: CONTEÚDO ─ */}
           {current && (
-            <CollapsibleSection title="CONTEÚDO" isOpen={secTexto} onToggle={() => setSecTexto(v => !v)}>
+            <div style={{ borderBottom: `1px solid ${B}`, padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <span style={{ fontSize: 10, color: M, fontFamily: ff, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>Conteúdo</span>
               {isComparacaoMiddle ? (
                 <>
                   <div>
@@ -1855,7 +1857,7 @@ function StatePreview({
                       const isTitulo = tab === 'titulo'
                       const activeColor = isTitulo ? '#C8FF00' : '#00B4D8'
                       return (
-                        <button key={tab} onClick={() => setSecTextoTab(tab)} style={{
+                        <button key={tab} onClick={() => { setSecTextoTab(tab); setSelectedEl(tab === 'titulo' ? 'titulo' : 'corpo') }} style={{
                           flex: 1, height: 36, borderRadius: 5, fontSize: 13, fontWeight: 700,
                           fontFamily: '"Bebas Neue", sans-serif', letterSpacing: 1,
                           backgroundColor: sel ? (isTitulo ? 'rgba(200,255,0,0.15)' : 'rgba(0,180,216,0.15)') : 'transparent',
@@ -1910,36 +1912,6 @@ function StatePreview({
                           onFocus={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.25)' }}
                           onBlur={(e) => { e.target.style.borderColor = B }}
                         />
-                        <p style={{ fontSize: 10, color: M, fontFamily: ff, margin: '4px 0 0' }}>
-                          Clique nas palavras do slide para destacar em amarelo
-                        </p>
-                        {(current.highlightedWords ?? []).length > 0 && (
-                          <button
-                            onClick={() => updateTitleStyle(current.id, { highlightedWords: [] })}
-                            style={{ marginTop: 4, background: 'none', border: `1px solid ${B}`, borderRadius: 6, color: M, fontFamily: ff, fontSize: 11, padding: '4px 10px', cursor: 'pointer', transition: 'border-color 0.15s' }}
-                            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,100,100,0.4)'; e.currentTarget.style.color = '#FF6464' }}
-                            onMouseLeave={e => { e.currentTarget.style.borderColor = B; e.currentTarget.style.color = M }}
-                          >
-                            Limpar destaques
-                          </button>
-                        )}
-                        <div style={{ marginTop: 8 }}>
-                          <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Cor do destaque</span>
-                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                            {TEXT_COLORS.map((c) => (
-                              <div
-                                key={c}
-                                onClick={() => updateTitleStyle(current.id, { accentColor: c })}
-                                style={{
-                                  width: 20, height: 20, borderRadius: '50%', backgroundColor: c,
-                                  cursor: 'pointer', flexShrink: 0,
-                                  border: (current.accentColor ?? '#C8FF00') === c ? '2px solid #fff' : '2px solid transparent',
-                                  transition: 'border-color 0.15s',
-                                }}
-                              />
-                            ))}
-                          </div>
-                        </div>
                       </div>
                     </div>
                   )}
@@ -1959,111 +1931,9 @@ function StatePreview({
                     </div>
                   )}
 
-                  {/* Badge panel */}
-                  <div style={{
-                    background: 'rgba(200,255,0,0.04)', border: `1px solid rgba(200,255,0,0.15)`,
-                    borderRadius: 8, padding: 12, display: 'flex', flexDirection: 'column', gap: 10,
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: 10, color: current.profileBadgeEnabled ? A : M, fontFamily: ff, fontWeight: 700, letterSpacing: 0.5 }}>
-                        @ Badge de perfil
-                      </span>
-                      <button
-                        onClick={() => {
-                          const enabling = !current.profileBadgeEnabled
-                          const updates: Partial<Slide> = { profileBadgeEnabled: enabling }
-                          // Pre-populate avatar from profile on first enable
-                          if (enabling && !current.profileAvatarUrl && profileAvatarDefault) {
-                            updates.profileAvatarUrl = profileAvatarDefault
-                          }
-                          updateTitleStyle(current.id, updates)
-                        }}
-                        style={{ width: 36, height: 20, borderRadius: 10, border: 'none', cursor: 'pointer', backgroundColor: current.profileBadgeEnabled ? A : S2, position: 'relative', transition: 'background-color 0.2s', flexShrink: 0 }}>
-                        <span style={{ position: 'absolute', top: 3, left: current.profileBadgeEnabled ? 18 : 3, width: 14, height: 14, borderRadius: '50%', backgroundColor: current.profileBadgeEnabled ? '#000' : M2, transition: 'left 0.2s' }} />
-                      </button>
-                    </div>
-                    {current.profileBadgeEnabled && (
-                      <>
-                        <div>
-                          <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 4 }}>@handle</span>
-                          <input type="text" value={current.profileHandle ?? ''}
-                            onChange={(e) => updateTitleStyle(current.id, { profileHandle: e.target.value })}
-                            placeholder="@seu.perfil"
-                            style={{ width: '100%', backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, padding: '6px 8px', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
-                            onFocus={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.4)' }}
-                            onBlur={(e) => { e.target.style.borderColor = B }}
-                          />
-                        </div>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                            <span style={{ fontSize: 10, color: M, fontFamily: ff }}>Foto do perfil</span>
-                            <div style={{ display: 'flex', gap: 4 }}>
-                              {(['url', 'upload'] as const).map(mode => (
-                                <button key={mode} onClick={() => setAvatarMode(mode)} style={{
-                                  height: 20, padding: '0 8px', borderRadius: 4, fontSize: 9, fontFamily: ff, fontWeight: 700,
-                                  backgroundColor: avatarMode === mode ? 'rgba(200,255,0,0.1)' : 'transparent',
-                                  border: `1px solid ${avatarMode === mode ? 'rgba(200,255,0,0.4)' : B}`,
-                                  color: avatarMode === mode ? A : M, cursor: 'pointer',
-                                }}>{mode === 'url' ? 'URL' : 'Upload'}</button>
-                              ))}
-                            </div>
-                          </div>
-                          {avatarMode === 'url' ? (
-                            <input type="text" value={current.profileAvatarUrl ?? ''}
-                              onChange={(e) => updateTitleStyle(current.id, { profileAvatarUrl: e.target.value })}
-                              placeholder="https://..."
-                              style={{ width: '100%', backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, padding: '6px 8px', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
-                              onFocus={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.4)' }}
-                              onBlur={(e) => { e.target.style.borderColor = B }}
-                            />
-                          ) : (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <input ref={avatarFileInputRef} type="file" accept="image/*" style={{ display: 'none' }}
-                                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleAvatarUpload(f); e.target.value = '' }} />
-                              {current.profileAvatarUrl ? (
-                                <img src={current.profileAvatarUrl} alt="avatar"
-                                  style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: `1px solid ${B}` }} />
-                              ) : (
-                                <div style={{ width: 32, height: 32, borderRadius: '50%', backgroundColor: S2, border: `1px dashed ${B}`, flexShrink: 0 }} />
-                              )}
-                              <button onClick={() => avatarFileInputRef.current?.click()} disabled={uploadingAvatar}
-                                style={{ flex: 1, height: 30, backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 6, color: uploadingAvatar ? M2 : M, fontFamily: ff, fontSize: 11, cursor: uploadingAvatar ? 'not-allowed' : 'pointer' }}>
-                                {uploadingAvatar ? 'Enviando...' : 'Escolher foto'}
-                              </button>
-                              {current.profileAvatarUrl && (
-                                <button onClick={() => updateTitleStyle(current.id, { profileAvatarUrl: '' })}
-                                  style={{ width: 28, height: 28, background: 'none', border: `1px solid rgba(248,113,113,0.3)`, borderRadius: 6, color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                  <X size={11} />
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                        <div>
-                          <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 4 }}>Posição</span>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
-                            {(['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const).map((pos) => {
-                              const labels: Record<string, string> = { 'top-left': '↖ Sup esq', 'top-right': '↗ Sup dir', 'bottom-left': '↙ Inf esq', 'bottom-right': '↘ Inf dir' }
-                              const sel = (current.profileBadgePosition ?? 'bottom-left') === pos
-                              return (
-                                <button key={pos} onClick={() => updateTitleStyle(current.id, { profileBadgePosition: pos })}
-                                  style={{ height: 26, borderRadius: 5, fontSize: 9, fontFamily: ff, backgroundColor: sel ? 'rgba(200,255,0,0.1)' : 'transparent', border: `1px solid ${sel ? 'rgba(200,255,0,0.4)' : B}`, color: sel ? A : M, cursor: 'pointer' }}>
-                                  {labels[pos]}
-                                </button>
-                              )
-                            })}
-                          </div>
-                        </div>
-                        <button onClick={() => applyBadgeToAll({ profileBadgeEnabled: true, profileHandle: current.profileHandle, profileAvatarUrl: current.profileAvatarUrl, profileBadgePosition: current.profileBadgePosition })}
-                          style={{ height: 28, background: 'rgba(200,255,0,0.08)', border: `1px solid rgba(200,255,0,0.25)`, borderRadius: 6, color: A, fontFamily: ff, fontSize: 10, fontWeight: 700, cursor: 'pointer', letterSpacing: 0.3 }}>
-                          Aplicar em todos os slides
-                        </button>
-                      </>
-                    )}
-                  </div>
                 </>
               )}
-            </CollapsibleSection>
+            </div>
           )}
 
           {/* ─ Section 3: IMAGEM DE FUNDO ─ */}
@@ -2289,95 +2159,81 @@ function StatePreview({
 
           {/* ─ Section 4: ESTILO DO TEXTO ─ */}
           {current && (
-            <CollapsibleSection
-              title={
-                <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 11, letterSpacing: 1, color: selectedEl ? (selectedEl === 'titulo' ? '#C8FF00' : '#00B4D8') : M, display: 'flex', alignItems: 'center', gap: 5 }}>
+            <div style={{ borderBottom: `1px solid ${B}`, padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   {selectedEl && (
-                    <span style={{
-                      width: 8, height: 8, borderRadius: '50%', flexShrink: 0, display: 'inline-block',
-                      backgroundColor: selectedEl === 'titulo' ? '#C8FF00' : '#00B4D8',
-                    }} />
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: selectedEl === 'titulo' ? '#C8FF00' : '#00B4D8', display: 'inline-block', flexShrink: 0 }} />
                   )}
-                  {selectedEl === 'titulo'
-                    ? 'TÍTULO — toque no corpo para editar o corpo'
-                    : selectedEl === 'corpo'
-                    ? 'CORPO — toque no título para editar o título'
-                    : 'Toque no título ou corpo do slide'}
-                </span>
-              }
-              isOpen={secFormato}
-              onToggle={() => setSecFormato(v => !v)}
-              rightSlot={selectedEl ? (
-                <button onClick={(e) => { e.stopPropagation(); setSelectedEl(null) }}
-                  style={{ background: 'none', border: 'none', color: M, cursor: 'pointer', display: 'flex', padding: 2 }}>
-                  <X size={12} />
-                </button>
-              ) : undefined}
-            >
-              {!selectedEl && (
-                <p style={{ fontSize: 11, color: M, fontFamily: ff, lineHeight: 1.6, margin: 0, textAlign: 'center', padding: '6px 0' }}>
-                  Clique no título ou no corpo do slide para editar o estilo do elemento
-                </p>
-              )}
-              <div style={{ opacity: selectedEl ? 1 : 0.4, pointerEvents: selectedEl ? 'auto' : 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <SliderRow
-                label={`Tamanho da fonte`}
-                value={selectedEl === 'titulo' ? (current.titleFontSize ?? 80) : (current.bodyFontSize ?? 28)}
-                min={12} max={160}
-                onChange={(v) => updateSlideFormat(current.id, selectedEl === 'titulo' ? { titleFontSize: v } : { bodyFontSize: v })}
-                suffix="px"
-              />
-
-              {selectedEl === 'titulo' && (
-                <>
-                  <div>
-                    <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 6 }}>Família da fonte</span>
-                    <select value={current.fontFamily ?? '"Bebas Neue", sans-serif'}
-                      onChange={(e) => updateSlideFormat(current.id, { fontFamily: e.target.value })}
-                      style={{ width: '100%', backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, padding: '6px 8px', outline: 'none', cursor: 'pointer' }}
+                  <span style={{ fontSize: 11, color: selectedEl ? (selectedEl === 'titulo' ? '#C8FF00' : '#00B4D8') : M, fontFamily: ff, fontWeight: 700, letterSpacing: 0.3 }}>
+                    {selectedEl ? `✎ ${selectedEl === 'titulo' ? 'TÍTULO' : 'CORPO'}` : 'Selecione um elemento'}
+                  </span>
+                </div>
+                {selectedEl && (
+                  <button onClick={() => setSelectedEl(null)} style={{ background: 'none', border: 'none', color: M, cursor: 'pointer', display: 'flex', padding: 2 }}>
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+              <div style={{ opacity: selectedEl ? 1 : 0.4, pointerEvents: selectedEl ? 'auto' : 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {/* Row 1: Font + Size */}
+                <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end' }}>
+                  <div style={{ flex: 1 }}>
+                    <span style={{ fontSize: 9, color: M, fontFamily: ff, display: 'block', marginBottom: 3 }}>Fonte</span>
+                    <select
+                      value={selectedEl === 'corpo' ? (current.bodyFontFamily ?? current.fontFamily ?? '"Bebas Neue", sans-serif') : (current.fontFamily ?? '"Bebas Neue", sans-serif')}
+                      onChange={(e) => updateSlideFormat(current.id, selectedEl === 'corpo' ? { bodyFontFamily: e.target.value } : { fontFamily: e.target.value })}
+                      style={{ width: '100%', backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 11, padding: '5px 6px', outline: 'none', cursor: 'pointer' }}
                     >
                       {FONT_OPTIONS.map((f) => <option key={f.value} value={f.value} style={{ backgroundColor: S2 }}>{f.label}</option>)}
                     </select>
                   </div>
-                  <div>
-                    <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 6 }}>Peso</span>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      {(['normal', 'bold'] as const).map((w) => {
-                        const sel = (current.fontWeightTitle ?? 'normal') === w
-                        return (
-                          <button key={w} onClick={() => updateSlideFormat(current.id, { fontWeightTitle: w })} style={{
-                            flex: 1, height: 30, borderRadius: 6, fontSize: 11, fontFamily: ff, fontWeight: w === 'bold' ? 700 : 400,
-                            backgroundColor: sel ? 'rgba(200,255,0,0.1)' : 'transparent',
-                            border: `1px solid ${sel ? 'rgba(200,255,0,0.4)' : B}`,
-                            color: sel ? A : M, cursor: 'pointer',
-                          }}>{w === 'normal' ? 'Normal' : 'Negrito'}</button>
-                        )
-                      })}
-                    </div>
+                  <div style={{ width: 58 }}>
+                    <span style={{ fontSize: 9, color: M, fontFamily: ff, display: 'block', marginBottom: 3 }}>Tam.</span>
+                    <input type="number" min={10} max={160}
+                      value={selectedEl === 'titulo' ? (current.titleFontSize ?? 80) : (current.bodyFontSize ?? 28)}
+                      onChange={(e) => updateSlideFormat(current.id, selectedEl === 'titulo' ? { titleFontSize: Number(e.target.value) } : { bodyFontSize: Number(e.target.value) })}
+                      style={{ width: '100%', backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, padding: '5px 4px', outline: 'none', textAlign: 'center', boxSizing: 'border-box' }}
+                    />
                   </div>
-                </>
-              )}
-
-              <div>
-                <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 6 }}>Alinhamento</span>
-                <div style={{ display: 'flex', gap: 6 }}>
+                </div>
+                {/* Row 2: Weight + Italic + Align */}
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {(['normal', 'bold'] as const).map((w) => {
+                    const isActive = (selectedEl === 'corpo' ? (current.bodyFontWeight ?? 'normal') : (current.fontWeightTitle ?? 'normal')) === w
+                    return (
+                      <button key={w} onClick={() => updateSlideFormat(current.id, selectedEl === 'corpo' ? { bodyFontWeight: w } : { fontWeightTitle: w })} style={{
+                        flex: 1, height: 28, borderRadius: 5, fontSize: 11, fontFamily: ff, fontWeight: w === 'bold' ? 700 : 400,
+                        backgroundColor: isActive ? 'rgba(200,255,0,0.1)' : 'transparent',
+                        border: `1px solid ${isActive ? 'rgba(200,255,0,0.4)' : B}`,
+                        color: isActive ? A : M, cursor: 'pointer',
+                      }}>{w === 'normal' ? 'Normal' : 'Negrito'}</button>
+                    )
+                  })}
+                  <button
+                    onClick={() => updateSlideFormat(current.id, selectedEl === 'corpo' ? { bodyItalic: !current.bodyItalic } : { titleItalic: !current.titleItalic })}
+                    style={{
+                      width: 28, height: 28, borderRadius: 5, fontSize: 13,
+                      backgroundColor: (selectedEl === 'corpo' ? current.bodyItalic : current.titleItalic) ? 'rgba(200,255,0,0.1)' : 'transparent',
+                      border: `1px solid ${(selectedEl === 'corpo' ? current.bodyItalic : current.titleItalic) ? 'rgba(200,255,0,0.4)' : B}`,
+                      color: (selectedEl === 'corpo' ? current.bodyItalic : current.titleItalic) ? A : M,
+                      cursor: 'pointer', fontStyle: 'italic', fontFamily: 'serif',
+                    }}>I</button>
+                  <div style={{ width: 1, backgroundColor: B, margin: '4px 0', flexShrink: 0 }} />
                   {(['left', 'center', 'right'] as const).map((a) => {
                     const labels = { left: '←', center: '≡', right: '→' }
-                    const sel = (current.textAlign ?? 'left') === a
+                    const isActive = (current.textAlign ?? 'left') === a
                     return (
                       <button key={a} onClick={() => updateSlideFormat(current.id, { textAlign: a })} style={{
-                        flex: 1, height: 30, borderRadius: 6, fontSize: 14, fontFamily: ff,
-                        backgroundColor: sel ? 'rgba(200,255,0,0.1)' : 'transparent',
-                        border: `1px solid ${sel ? 'rgba(200,255,0,0.4)' : B}`,
-                        color: sel ? A : M, cursor: 'pointer',
+                        flex: 1, height: 28, borderRadius: 5, fontSize: 13, fontFamily: ff,
+                        backgroundColor: isActive ? 'rgba(200,255,0,0.1)' : 'transparent',
+                        border: `1px solid ${isActive ? 'rgba(200,255,0,0.4)' : B}`,
+                        color: isActive ? A : M, cursor: 'pointer',
                       }}>{labels[a]}</button>
                     )
                   })}
                 </div>
-              </div>
-
-              <div>
-                <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 6 }}>Cor</span>
+                {/* Row 3: Color palette */}
                 <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap' }}>
                   {(() => {
                     const handleColorChange = (c: string) => {
@@ -2402,36 +2258,155 @@ function StatePreview({
                   })()}
                 </div>
               </div>
-
-              <SliderRow label="Margem lateral" value={current.paddingX ?? 24} min={0} max={60}
-                onChange={(v) => updatePaddingX(current.id, v)} suffix="px" />
-              <SliderRow label="Espaço entre blocos" value={current.blockSpacing ?? 16} min={0} max={48}
-                onChange={(v) => updateSlideFormat(current.id, { blockSpacing: v })} suffix="px" />
-
-              {selectedEl === 'titulo' && (
-                <div>
-                  <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 6 }}>Posição do texto</span>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    {(['top', 'center', 'bottom'] as const).map((pos) => {
-                      const labels = { top: 'Topo', center: 'Centro', bottom: 'Base' }
-                      const sel = (current.textPosition ?? 'bottom') === pos
-                      return (
-                        <button key={pos} onClick={() => updateTextPosition(current.id, pos)} style={{
-                          flex: 1, height: 30, borderRadius: 6, fontSize: 10, fontFamily: ff,
-                          backgroundColor: sel ? 'rgba(200,255,0,0.1)' : 'transparent',
-                          border: `1px solid ${sel ? 'rgba(200,255,0,0.4)' : B}`,
-                          color: sel ? A : M, cursor: 'pointer',
-                        }}>{labels[pos]}</button>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-              </div>
-            </CollapsibleSection>
+            </div>
           )}
 
-          {/* ─ Section 5: TEMPLATE ─ */}
+          {/* ─ Section 5: DESTAQUE DE PALAVRAS ─ */}
+          {current && (
+            <div style={{ borderBottom: `1px solid ${B}`, padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontSize: 10, color: M, fontFamily: ff, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase' }}>Destaque de palavras</span>
+              {((current.highlightedWords ?? []).length > 0 || selectedEl !== null) ? (
+                <>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                    {TEXT_COLORS.map((c) => (
+                      <div key={c} onClick={() => updateTitleStyle(current.id, { accentColor: c })} style={{
+                        width: 20, height: 20, borderRadius: '50%', backgroundColor: c, cursor: 'pointer', flexShrink: 0,
+                        border: (current.accentColor ?? '#C8FF00') === c ? '2px solid #fff' : '2px solid transparent',
+                        transition: 'border-color 0.15s',
+                      }} />
+                    ))}
+                  </div>
+                  {(current.highlightedWords ?? []).length > 0 && (
+                    <button onClick={() => updateTitleStyle(current.id, { highlightedWords: [] })}
+                      style={{ height: 26, background: 'none', border: `1px solid rgba(248,113,113,0.3)`, borderRadius: 6, color: '#f87171', fontFamily: ff, fontSize: 11, padding: '0 10px', cursor: 'pointer', alignSelf: 'flex-start' }}>
+                      Limpar destaques
+                    </button>
+                  )}
+                </>
+              ) : (
+                <p style={{ fontSize: 10, color: M, fontFamily: ff, margin: 0 }}>↑ Clique nas palavras do slide para destacar</p>
+              )}
+            </div>
+          )}
+
+          {/* ─ Section 6: BADGE DE PERFIL ─ */}
+          {current && (
+            <div style={{ borderBottom: `1px solid ${B}`, padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 10, color: current.profileBadgeEnabled ? A : M, fontFamily: ff, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase' }}>@ Badge de perfil</span>
+                <button
+                  onClick={() => {
+                    const enabling = !current.profileBadgeEnabled
+                    const updates: Partial<Slide> = { profileBadgeEnabled: enabling }
+                    if (enabling && !current.profileAvatarUrl && profileAvatarDefault) {
+                      updates.profileAvatarUrl = profileAvatarDefault
+                    }
+                    updateTitleStyle(current.id, updates)
+                  }}
+                  style={{ width: 36, height: 20, borderRadius: 10, border: 'none', cursor: 'pointer', backgroundColor: current.profileBadgeEnabled ? A : S2, position: 'relative', transition: 'background-color 0.2s', flexShrink: 0 }}>
+                  <span style={{ position: 'absolute', top: 3, left: current.profileBadgeEnabled ? 18 : 3, width: 14, height: 14, borderRadius: '50%', backgroundColor: current.profileBadgeEnabled ? '#000' : M2, transition: 'left 0.2s' }} />
+                </button>
+              </div>
+              {current.profileBadgeEnabled && (
+                <>
+                  <div>
+                    <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 4 }}>@handle</span>
+                    <input type="text" value={current.profileHandle ?? ''}
+                      onChange={(e) => updateTitleStyle(current.id, { profileHandle: e.target.value })}
+                      placeholder="@seu.perfil"
+                      style={{ width: '100%', backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, padding: '6px 8px', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                      onFocus={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.4)' }}
+                      onBlur={(e) => { e.target.style.borderColor = B }}
+                    />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <span style={{ fontSize: 10, color: M, fontFamily: ff }}>Foto do perfil</span>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        {(['url', 'upload'] as const).map(mode => (
+                          <button key={mode} onClick={() => setAvatarMode(mode)} style={{
+                            height: 20, padding: '0 8px', borderRadius: 4, fontSize: 9, fontFamily: ff, fontWeight: 700,
+                            backgroundColor: avatarMode === mode ? 'rgba(200,255,0,0.1)' : 'transparent',
+                            border: `1px solid ${avatarMode === mode ? 'rgba(200,255,0,0.4)' : B}`,
+                            color: avatarMode === mode ? A : M, cursor: 'pointer',
+                          }}>{mode === 'url' ? 'URL' : 'Upload'}</button>
+                        ))}
+                      </div>
+                    </div>
+                    {avatarMode === 'url' ? (
+                      <input type="text" value={current.profileAvatarUrl ?? ''}
+                        onChange={(e) => updateTitleStyle(current.id, { profileAvatarUrl: e.target.value })}
+                        placeholder="https://..."
+                        style={{ width: '100%', backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, padding: '6px 8px', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                        onFocus={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.4)' }}
+                        onBlur={(e) => { e.target.style.borderColor = B }}
+                      />
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <input ref={avatarFileInputRef} type="file" accept="image/*" style={{ display: 'none' }}
+                          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleAvatarUpload(f); e.target.value = '' }} />
+                        {current.profileAvatarUrl ? (
+                          <img src={current.profileAvatarUrl} alt="avatar"
+                            style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: `1px solid ${B}` }} />
+                        ) : (
+                          <div style={{ width: 32, height: 32, borderRadius: '50%', backgroundColor: S2, border: `1px dashed ${B}`, flexShrink: 0 }} />
+                        )}
+                        <button onClick={() => avatarFileInputRef.current?.click()} disabled={uploadingAvatar}
+                          style={{ flex: 1, height: 30, backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 6, color: uploadingAvatar ? M2 : M, fontFamily: ff, fontSize: 11, cursor: uploadingAvatar ? 'not-allowed' : 'pointer' }}>
+                          {uploadingAvatar ? 'Enviando...' : 'Escolher foto'}
+                        </button>
+                        {current.profileAvatarUrl && (
+                          <button onClick={() => updateTitleStyle(current.id, { profileAvatarUrl: '' })}
+                            style={{ width: 28, height: 28, background: 'none', border: `1px solid rgba(248,113,113,0.3)`, borderRadius: 6, color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <X size={11} />
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 4 }}>Posição</span>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+                      {(['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const).map((pos) => {
+                        const labels: Record<string, string> = { 'top-left': '↖ Sup esq', 'top-right': '↗ Sup dir', 'bottom-left': '↙ Inf esq', 'bottom-right': '↘ Inf dir' }
+                        const sel = (current.profileBadgePosition ?? 'bottom-left') === pos
+                        return (
+                          <button key={pos} onClick={() => updateTitleStyle(current.id, { profileBadgePosition: pos })}
+                            style={{ height: 26, borderRadius: 5, fontSize: 9, fontFamily: ff, backgroundColor: sel ? 'rgba(200,255,0,0.1)' : 'transparent', border: `1px solid ${sel ? 'rgba(200,255,0,0.4)' : B}`, color: sel ? A : M, cursor: 'pointer' }}>
+                            {labels[pos]}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                  <button onClick={() => applyBadgeToAll({ profileBadgeEnabled: true, profileHandle: current.profileHandle, profileAvatarUrl: current.profileAvatarUrl, profileBadgePosition: current.profileBadgePosition })}
+                    style={{ height: 28, background: 'rgba(200,255,0,0.08)', border: `1px solid rgba(200,255,0,0.25)`, borderRadius: 6, color: A, fontFamily: ff, fontSize: 10, fontWeight: 700, cursor: 'pointer', letterSpacing: 0.3 }}>
+                    Aplicar em todos os slides
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* ─ Section 7: KIT VISUAL ─ */}
+          {current && (
+            <div style={{ borderBottom: `1px solid ${B}`, padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase' }}>Kit visual do perfil</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {profileColor && (
+                  <div style={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: profileColor, border: `1px solid rgba(255,255,255,0.2)`, flexShrink: 0 }} />
+                )}
+                <button onClick={applyProfileKit} style={{
+                  flex: 1, height: 30, background: 'rgba(200,255,0,0.08)', border: `1px solid rgba(200,255,0,0.25)`,
+                  borderRadius: 6, color: A, fontFamily: ff, fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: 0.3,
+                }}>
+                  Aplicar kit em todos os slides
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ─ Section 8: TEMPLATE ─ */}
           <CollapsibleSection title="TEMPLATE" isOpen={secTemplate} onToggle={() => setSecTemplate(v => !v)}>
             {(() => {
               const TEMPLATE_SVG: Record<string, React.ReactElement> = {
