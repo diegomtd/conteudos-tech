@@ -2992,6 +2992,7 @@ export default function Studio() {
   const [searchParams] = useSearchParams()
   const temaFromURL       = searchParams.get('tema') ?? ''
   const carouselIdFromURL = searchParams.get('carousel_id') ?? ''
+  const { user } = useAuth()
 
   const [appState, setAppState] = useState<AppState>('input')
   const [generateConfig, setGenerateConfig] = useState<GenerateConfig | null>(null)
@@ -3138,8 +3139,32 @@ export default function Studio() {
 
   const handleDone = useCallback((result: GenerateResult) => {
     setGenerateResult(result)
+    // Aplica identidade visual do perfil nos slides gerados
+    supabase.from('profiles')
+      .select('visual_kit')
+      .eq('user_id', user?.id)
+      .single()
+      .then(({ data }) => {
+        if (!data?.visual_kit) return
+        const vk = data.visual_kit as Record<string, string>
+        const cor = vk.cor ?? '#C8FF00'
+        const fonte = vk.fonte ?? '"Bebas Neue", sans-serif'
+        if (result.carousel_id) {
+          supabase.from('carousel_slides')
+            .update({
+              text_color: cor,
+              font_family: fonte,
+              font_size_title: 80,
+              font_size_body: 28,
+            })
+            .eq('carousel_id', result.carousel_id)
+            .then(() => {
+              console.log('[handleDone] identidade visual aplicada')
+            })
+        }
+      })
     setTimeout(() => setAppState('preview'), 50)
-  }, [])
+  }, [user?.id])
 
   const handleError = useCallback(() => {
     setAppState('input')
