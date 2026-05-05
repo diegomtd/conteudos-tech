@@ -1195,6 +1195,7 @@ function StatePreview({
 
   const saveFormatToDb = (slideId: string, dbUpdates: Record<string, unknown>) => {
     setSaveStatus('saving')
+    console.log('[saveFormatToDb] carouselId:', carouselId, 'updates:', Object.keys(dbUpdates))
     if (!carouselId || Object.keys(dbUpdates).length === 0) return
     const capturedSlideId = slideId
     const capturedUpdates = { ...dbUpdates }
