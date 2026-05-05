@@ -3299,7 +3299,11 @@ export default function Studio() {
             profileBadgeSize:      (s.profile_badge_size as number)                 ?? undefined,
             profileBadgeBg:        (s.profile_badge_bg as string)                   ?? undefined,
             profileBadgeTextColor: (s.profile_badge_text_color as string)           ?? undefined,
-            highlightedWords:      (s.highlighted_words as string[])                ?? undefined,
+            highlightedWords:      Array.isArray(s.highlighted_words)
+              ? (s.highlighted_words as string[])
+              : typeof s.highlighted_words === 'string'
+              ? JSON.parse(s.highlighted_words)
+              : undefined,
             accentColor:           (s.accent_color as string)                       ?? undefined,
             bgPattern:             (s.bg_pattern as string)                         ?? undefined,
             bgPatternOpacity:      (s.bg_pattern_opacity as number)                 ?? undefined,
