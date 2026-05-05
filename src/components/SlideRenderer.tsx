@@ -258,9 +258,8 @@ function renderBodyWithHighlights(
     return (
       <p {...pProps}>
         {words.map((word, i) => {
-          const clean = word.replace(/[.,!?;:]/g, '')
           return (
-            <span key={i} style={highlighted.includes(clean) ? { color: accentClr, fontWeight: 'bold' } : undefined}>
+            <span key={i} style={highlighted.includes(String(i)) ? { color: accentClr, fontWeight: 'bold' } : undefined}>
               {word}{i < words.length - 1 ? ' ' : ''}
             </span>
           )
@@ -273,12 +272,11 @@ function renderBodyWithHighlights(
   return (
     <p {...restProps} style={{ ...baseStyle, userSelect: 'none' }}>
       {words.map((word, i) => {
-        const clean = word.replace(/[.,!?;:]/g, '')
-        const isHighlighted = highlighted.includes(clean)
+        const isHighlighted = highlighted.includes(String(i))
         return (
           <span
             key={i}
-            onClick={() => onWordClick(clean)}
+            onClick={() => onWordClick(String(i))}
             style={{
               color: isHighlighted ? accentClr : 'inherit',
               fontWeight: isHighlighted ? 'bold' : 'inherit',
@@ -313,9 +311,8 @@ function renderTitleWithHighlights(
     return (
       <p {...pProps}>
         {words.map((word, i) => {
-          const clean = word.replace(/[.,!?;:]/g, '')
           return (
-            <span key={i} style={highlighted.includes(clean) ? { color: accentClr, fontWeight: 'bold' } : undefined}>
+            <span key={i} style={highlighted.includes(String(i)) ? { color: accentClr, fontWeight: 'bold' } : undefined}>
               {word}{i < words.length - 1 ? ' ' : ''}
             </span>
           )
@@ -328,12 +325,11 @@ function renderTitleWithHighlights(
   return (
     <p {...restProps} style={{ ...baseStyle, userSelect: 'none' }}>
       {words.map((word, i) => {
-        const clean = word.replace(/[.,!?;:]/g, '')
-        const isHighlighted = highlighted.includes(clean)
+        const isHighlighted = highlighted.includes(String(i))
         return (
           <span
             key={i}
-            onClick={() => onTitleWordClick(clean)}
+            onClick={() => onTitleWordClick(String(i))}
             style={{
               color: isHighlighted ? accentClr : 'inherit',
               fontWeight: isHighlighted ? 'bold' : 'inherit',
