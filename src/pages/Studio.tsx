@@ -1886,7 +1886,7 @@ function StatePreview({
                           <span style={{ fontSize: 10, color: M2, fontFamily: ff }}>{current.titulo.length}</span>
                         </div>
                         <textarea value={current.titulo}
-                          onChange={(e) => updateSlide(current.id, 'titulo', e.target.value)}
+                          onChange={(e) => { const val = e.target.value; updateSlide(current.id, 'titulo', val); saveFormatToDb(current.id, { titulo: val }) }}
                           rows={2}
                           style={{ width: '100%', backgroundColor: S2, border: `1px solid rgba(200,255,0,0.25)`, borderRadius: 6, color: T, fontFamily: '"Bebas Neue", sans-serif', fontSize: 13, letterSpacing: 0.5, lineHeight: 1.3, padding: '8px 10px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
                           onFocus={(e) => { e.target.style.borderColor = A }}
@@ -1908,7 +1908,7 @@ function StatePreview({
                           <span style={{ fontSize: 10, color: M2, fontFamily: ff }}>{current.corpo.length}</span>
                         </div>
                         <textarea value={current.corpo}
-                          onChange={(e) => updateSlide(current.id, 'corpo', e.target.value)}
+                          onChange={(e) => { const val = e.target.value; updateSlide(current.id, 'corpo', val); saveFormatToDb(current.id, { corpo: val }) }}
                           rows={3}
                           placeholder="Digite o texto. Use Enter para nova linha."
                           style={{ width: '100%', backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 6, color: 'rgba(255,255,255,0.7)', fontFamily: ff, fontSize: 12, lineHeight: 1.6, padding: '8px 10px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', transition: 'border-color 0.2s', whiteSpace: 'pre-wrap' }}
