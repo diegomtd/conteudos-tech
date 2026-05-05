@@ -61,6 +61,9 @@ export interface SlideData {
   profileHandle?: string
   profileAvatarUrl?: string
   profileBadgePosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+  profileBadgeSize?: number
+  profileBadgeBg?: string
+  profileBadgeTextColor?: string
   highlightedWords?: string[]
   accentColor?: string
   bgPattern?: string
@@ -1118,6 +1121,7 @@ export function SlideRenderer(props: SlideRenderProps): React.ReactElement {
   // Profile badge
   const badge = slide.profileBadgeEnabled && slide.profileHandle ? (() => {
     const pos = slide.profileBadgePosition ?? 'bottom-left'
+    const badgeSize = slide.profileBadgeSize ?? 28
     const posStyle: React.CSSProperties = {
       position: 'absolute', zIndex: Z_CONTENT,
       ...(pos.includes('top') ? { top: `${10 * s}px` } : { bottom: `${10 * s}px` }),
@@ -1130,22 +1134,23 @@ export function SlideRenderer(props: SlideRenderProps): React.ReactElement {
         ...posStyle,
         display: 'flex', alignItems: 'center', gap: `${6 * s}px`,
         padding: `${6 * s}px ${10 * s}px`,
-        backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
+        backgroundColor: slide.profileBadgeBg ?? 'rgba(0,0,0,0.5)',
+        backdropFilter: 'blur(8px)',
         borderRadius: `${20 * s}px`, border: '1px solid rgba(255,255,255,0.15)',
       }}>
         {slide.profileAvatarUrl ? (
           <img src={slide.profileAvatarUrl} alt="" style={{
-            width: `${24 * s}px`, height: `${24 * s}px`,
+            width: `${badgeSize * s}px`, height: `${badgeSize * s}px`,
             borderRadius: '50%', objectFit: 'cover' as React.CSSProperties['objectFit'],
           }} />
         ) : (
           <div style={{
-            width: `${24 * s}px`, height: `${24 * s}px`, borderRadius: '50%', backgroundColor: A,
+            width: `${badgeSize * s}px`, height: `${badgeSize * s}px`, borderRadius: '50%', backgroundColor: A,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: `${10 * s}px`, fontFamily: bn, color: '#000', fontWeight: 700,
+            fontSize: `${(badgeSize * 0.4) * s}px`, fontFamily: bn, color: '#000', fontWeight: 700,
           }}>{initials}</div>
         )}
-        <span style={{ fontFamily: ff, fontSize: `${10 * s}px`, color: '#FFFFFF', fontWeight: 600, letterSpacing: `${0.3 * s}px` }}>
+        <span style={{ fontFamily: ff, fontSize: `${(badgeSize * 0.38) * s}px`, color: slide.profileBadgeTextColor ?? '#ffffff', fontWeight: 600, letterSpacing: `${0.3 * s}px` }}>
           @{handle}
         </span>
       </div>

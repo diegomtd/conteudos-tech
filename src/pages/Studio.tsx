@@ -1823,8 +1823,8 @@ function StatePreview({
 
           {/* ─ Section 2: CONTEÚDO ─ */}
           {current && (
-            <div style={{ borderBottom: `1px solid ${B}`, padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <span style={{ fontSize: 10, color: M, fontFamily: ff, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>Conteúdo</span>
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '16px 12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <span style={{ fontSize: 10, color: M, fontFamily: ff, fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase' }}>Conteúdo</span>
               {isComparacaoMiddle ? (
                 <>
                   <div>
@@ -2082,9 +2082,9 @@ function StatePreview({
                 <button
                   onClick={() => { if (carouselId && current) { uploadTargetSlideId.current = current.id; fileInputRef.current?.click() } }}
                   style={{
-                    height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    background: S2, border: `1px solid ${B}`, borderRadius: 7,
-                    color: M, fontFamily: ff, fontSize: 12, cursor: 'pointer',
+                    height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    background: S2, border: `1px solid ${B}`, borderRadius: 8,
+                    color: M, fontFamily: ff, fontSize: 12, fontWeight: 600, cursor: 'pointer',
                     transition: 'border-color 0.15s, color 0.15s',
                   }}
                   onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)'; e.currentTarget.style.color = T }}
@@ -2097,9 +2097,9 @@ function StatePreview({
                     onClick={handleGenerateImages}
                     disabled={generatingImages}
                     style={{
-                      height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                      background: 'rgba(0,180,216,0.1)', border: `1px solid #00B4D8`, borderRadius: 7,
-                      color: '#00B4D8', fontFamily: ff, fontSize: 12,
+                      height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      background: 'rgba(0,180,216,0.1)', border: `1px solid #00B4D8`, borderRadius: 8,
+                      color: '#00B4D8', fontFamily: ff, fontSize: 12, fontWeight: 600,
                       cursor: generatingImages ? 'not-allowed' : 'pointer',
                       opacity: generatingImages ? 0.6 : 1, transition: 'background 0.15s',
                     }}
@@ -2165,7 +2165,7 @@ function StatePreview({
 
           {/* ─ Section 4: ESTILO DO TEXTO ─ */}
           {current && (
-            <div style={{ borderBottom: `1px solid ${B}`, padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '16px 12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   {selectedEl && (
@@ -2269,8 +2269,8 @@ function StatePreview({
 
           {/* ─ Section 5: DESTAQUE DE PALAVRAS ─ */}
           {current && (
-            <div style={{ borderBottom: `1px solid ${B}`, padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <span style={{ fontSize: 10, color: M, fontFamily: ff, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase' }}>Destaque de palavras</span>
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '16px 12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontSize: 10, color: M, fontFamily: ff, fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase' }}>Destaque de palavras</span>
               {((current.highlightedWords ?? []).length > 0 || selectedEl !== null) ? (
                 <>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -2297,9 +2297,9 @@ function StatePreview({
 
           {/* ─ Section 6: BADGE DE PERFIL ─ */}
           {current && (
-            <div style={{ borderBottom: `1px solid ${B}`, padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '16px 12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 10, color: current.profileBadgeEnabled ? A : M, fontFamily: ff, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase' }}>@ Badge de perfil</span>
+                <span style={{ fontSize: 10, color: current.profileBadgeEnabled ? A : M, fontFamily: ff, fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase' }}>@ Badge de perfil</span>
                 <button
                   onClick={() => {
                     const enabling = !current.profileBadgeEnabled
@@ -2444,15 +2444,15 @@ function StatePreview({
 
           {/* ─ Section 7: KIT VISUAL ─ */}
           {current && (
-            <div style={{ borderBottom: `1px solid ${B}`, padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase' }}>Kit visual do perfil</span>
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '16px 12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase' }}>Kit visual do perfil</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 {profileColor && (
                   <div style={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: profileColor, border: `1px solid rgba(255,255,255,0.2)`, flexShrink: 0 }} />
                 )}
                 <button onClick={applyProfileKit} style={{
-                  flex: 1, height: 30, background: 'rgba(200,255,0,0.08)', border: `1px solid rgba(200,255,0,0.25)`,
-                  borderRadius: 6, color: A, fontFamily: ff, fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: 0.3,
+                  flex: 1, height: 36, background: 'rgba(200,255,0,0.08)', border: `1px solid rgba(200,255,0,0.25)`,
+                  borderRadius: 8, color: A, fontFamily: ff, fontSize: 12, fontWeight: 600, cursor: 'pointer', letterSpacing: 0.3,
                 }}>
                   Aplicar kit em todos os slides
                 </button>
@@ -2639,118 +2639,157 @@ function StatePreview({
               flex: 1, overflowY: 'auto',
               display: 'flex', flexDirection: 'column',
               alignItems: 'center', justifyContent: 'flex-start',
-              padding: '32px 24px', gap: 20,
+              padding: '24px 24px 32px', gap: 0,
+              backgroundColor: '#0a0a0a',
             }}>
-              {/* Phone mockup */}
+              {/* Instagram post mockup */}
               <div style={{
-                width: isMobile ? '100%' : 320,
-                maxWidth: isMobile ? 380 : undefined,
+                width: isMobile ? '100%' : 470,
+                maxWidth: isMobile ? 470 : undefined,
                 flexShrink: 0,
-                backgroundColor: '#111',
-                border: '8px solid #1A1A1A',
-                borderRadius: 44,
+                backgroundColor: '#0a0a0a',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 4,
                 overflow: 'hidden',
-                boxShadow: '0 32px 80px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.06)',
-                position: 'relative',
               }}>
-                <div style={{ height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#111' }}>
-                  <div style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#222', border: '1px solid #333' }} />
+                {/* Post header */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '10px 12px', backgroundColor: '#0a0a0a',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    {current?.profileAvatarUrl ? (
+                      <img src={current.profileAvatarUrl} alt="" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.15)' }} />
+                    ) : (
+                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: '#fff', fontWeight: 700 }}>
+                        {((current?.profileHandle ?? '').replace('@','').slice(0,1) || 'U').toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff', fontFamily: ff, lineHeight: 1.2 }}>
+                        {(current?.profileHandle ?? 'seu.perfil').replace('@','')}
+                      </p>
+                      <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.45)', fontFamily: ff }}>Publicidade</p>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: 18, color: 'rgba(255,255,255,0.6)', letterSpacing: 2, lineHeight: 1, cursor: 'default' }}>•••</span>
                 </div>
 
-                {carouselId && current && (
-                  <button
-                    onClick={() => { if (uploadingSlideId) return; uploadTargetSlideId.current = current.id; fileInputRef.current?.click() }}
-                    disabled={!!uploadingSlideId}
-                    style={{
-                      position: 'absolute', bottom: 28, right: 10, zIndex: 20,
-                      backgroundColor: 'rgba(0,0,0,0.72)', border: '1px solid rgba(255,255,255,0.18)',
-                      borderRadius: 8, height: 28, padding: '0 10px',
-                      display: 'flex', alignItems: 'center', gap: 5,
-                      cursor: uploadingSlideId ? 'default' : 'pointer',
-                      color: uploadingSlideId ? 'rgba(255,255,255,0.4)' : T,
-                      fontSize: 11, fontFamily: ff, fontWeight: 600, backdropFilter: 'blur(6px)',
-                    }}
-                  >
-                    <Camera size={12} />
-                    {uploadingSlideId === current.id ? 'Enviando...' : 'Trocar'}
-                  </button>
-                )}
-
-                <AnimatePresence mode="wait">
-                  {current && (
-                    <motion.div
-                      key={`${current.id}-${flashKey}`}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      transition={{ duration: 0.25 }}
-                      style={{ height: 440, ...getSlideContainerStyle(current, activeSlide, slides.length, selectedTemplate, imageStyle, 1) }}
+                {/* Slide */}
+                <div style={{ position: 'relative', width: '100%' }}>
+                  {carouselId && current && (
+                    <button
+                      onClick={() => { if (uploadingSlideId) return; uploadTargetSlideId.current = current.id; fileInputRef.current?.click() }}
+                      disabled={!!uploadingSlideId}
+                      style={{
+                        position: 'absolute', bottom: 10, right: 10, zIndex: 20,
+                        backgroundColor: 'rgba(0,0,0,0.72)', border: '1px solid rgba(255,255,255,0.18)',
+                        borderRadius: 8, height: 28, padding: '0 10px',
+                        display: 'flex', alignItems: 'center', gap: 5,
+                        cursor: uploadingSlideId ? 'default' : 'pointer',
+                        color: uploadingSlideId ? 'rgba(255,255,255,0.4)' : T,
+                        fontSize: 11, fontFamily: ff, fontWeight: 600, backdropFilter: 'blur(6px)',
+                      }}
                     >
-                      <SlideRenderer
-                        slide={current}
-                        index={activeSlide}
-                        total={slides.length}
-                        template={selectedTemplate}
-                        imageStyle={imageStyle}
-                        scale={1}
-                        selectedEl={selectedEl}
-                        onSelectEl={setSelectedEl}
-                        onTitleMouseDown={(e) => {
-                          if (selectedEl !== 'titulo') return
-                          e.preventDefault()
-                          isDraggingTitle.current = true
-                          const pos = current?.titlePos ?? { x: 0, y: 0 }
-                          dragStart.current = { mx: e.clientX, my: e.clientY, ox: pos.x, oy: pos.y }
-                        }}
-                        hasWatermark={hasWatermark}
-                        onBodyWordClick={(word) => {
-                          if (!current) return
-                          const highlighted = current.highlightedWords ?? []
-                          const newHighlighted = highlighted.includes(word)
-                            ? highlighted.filter(w => w !== word)
-                            : [...highlighted, word]
-                          updateTitleStyle(current.id, { highlightedWords: newHighlighted })
-                        }}
-                        onTitleWordClick={(word) => {
-                          if (!current) return
-                          const highlighted = current.highlightedWords ?? []
-                          const newHighlighted = highlighted.includes(word)
-                            ? highlighted.filter(w => w !== word)
-                            : [...highlighted, word]
-                          updateTitleStyle(current.id, { highlightedWords: newHighlighted })
-                        }}
-                      />
-                    </motion.div>
+                      <Camera size={12} />
+                      {uploadingSlideId === current.id ? 'Enviando...' : 'Trocar'}
+                    </button>
                   )}
-                </AnimatePresence>
+                  <AnimatePresence mode="wait">
+                    {current && (
+                      <motion.div
+                        key={`${current.id}-${flashKey}`}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        transition={{ duration: 0.25 }}
+                        style={{ width: '100%', aspectRatio: '4/5', ...getSlideContainerStyle(current, activeSlide, slides.length, selectedTemplate, imageStyle, 1) }}
+                      >
+                        <SlideRenderer
+                          slide={current}
+                          index={activeSlide}
+                          total={slides.length}
+                          template={selectedTemplate}
+                          imageStyle={imageStyle}
+                          scale={1}
+                          selectedEl={selectedEl}
+                          onSelectEl={setSelectedEl}
+                          onTitleMouseDown={(e) => {
+                            if (selectedEl !== 'titulo') return
+                            e.preventDefault()
+                            isDraggingTitle.current = true
+                            const pos = current?.titlePos ?? { x: 0, y: 0 }
+                            dragStart.current = { mx: e.clientX, my: e.clientY, ox: pos.x, oy: pos.y }
+                          }}
+                          hasWatermark={hasWatermark}
+                          onBodyWordClick={(word) => {
+                            if (!current) return
+                            const highlighted = current.highlightedWords ?? []
+                            const newHighlighted = highlighted.includes(word)
+                              ? highlighted.filter(w => w !== word)
+                              : [...highlighted, word]
+                            updateTitleStyle(current.id, { highlightedWords: newHighlighted })
+                          }}
+                          onTitleWordClick={(word) => {
+                            if (!current) return
+                            const highlighted = current.highlightedWords ?? []
+                            const newHighlighted = highlighted.includes(word)
+                              ? highlighted.filter(w => w !== word)
+                              : [...highlighted, word]
+                            updateTitleStyle(current.id, { highlightedWords: newHighlighted })
+                          }}
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
 
-                <div style={{ height: 20, backgroundColor: '#111' }} />
+                {/* Post footer */}
+                <div style={{ padding: '10px 12px 12px', backgroundColor: '#0a0a0a' }}>
+                  {/* Action icons */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                      <span style={{ fontSize: 22, cursor: 'default', lineHeight: 1 }}>♡</span>
+                      <span style={{ fontSize: 20, cursor: 'default', lineHeight: 1 }}>💬</span>
+                      <span style={{ fontSize: 20, cursor: 'default', lineHeight: 1 }}>✈</span>
+                    </div>
+                    <span style={{ fontSize: 20, cursor: 'default', lineHeight: 1 }}>🔖</span>
+                  </div>
+                  {/* Likes */}
+                  <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 700, color: '#fff', fontFamily: ff }}>1.234 curtidas</p>
+                  {/* Caption */}
+                  <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.8)', fontFamily: ff, lineHeight: 1.4 }}>
+                    <span style={{ fontWeight: 700 }}>{(current?.profileHandle ?? 'seu.perfil').replace('@','')}</span>
+                    {legenda ? ` ${legenda.slice(0, 80)}${legenda.length > 80 ? '...' : ''}` : ' Legenda do post aparece aqui'}
+                  </p>
+                  {/* Slide indicator */}
+                  <div style={{ display: 'flex', gap: 4, marginTop: 10, justifyContent: 'center' }}>
+                    {slides.map((_, i) => (
+                      <div key={i} style={{
+                        width: i === activeSlide ? 16 : 5, height: 5, borderRadius: 99,
+                        backgroundColor: i === activeSlide ? '#3797f0' : 'rgba(255,255,255,0.25)',
+                        transition: 'all 0.2s',
+                      }} />
+                    ))}
+                  </div>
+                </div>
               </div>
 
               {/* Navigation */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 20 }}>
                 <button onClick={() => setActiveSlide((p) => Math.max(0, p - 1))} disabled={activeSlide === 0}
                   style={{ width: 36, height: 36, borderRadius: '50%', backgroundColor: S2, border: `1px solid ${B}`, color: activeSlide === 0 ? M2 : T, cursor: activeSlide === 0 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
                   <ChevronLeft size={16} />
                 </button>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  {slides.map((_, i) => (
-                    <button key={i} onClick={() => setActiveSlide(i)} style={{
-                      width: i === activeSlide ? 18 : 6, height: 6, borderRadius: 99,
-                      backgroundColor: i === activeSlide ? A : B,
-                      border: 'none', cursor: 'pointer', padding: 0, transition: 'all 0.2s',
-                    }} />
-                  ))}
-                </div>
+                <span style={{ fontSize: 13, color: M, fontFamily: ff, fontWeight: 600 }}>{activeSlide + 1} / {slides.length}</span>
                 <button onClick={() => setActiveSlide((p) => Math.min(slides.length - 1, p + 1))} disabled={activeSlide === slides.length - 1}
                   style={{ width: 36, height: 36, borderRadius: '50%', backgroundColor: S2, border: `1px solid ${B}`, color: activeSlide === slides.length - 1 ? M2 : T, cursor: activeSlide === slides.length - 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
                   <ChevronRight size={16} />
                 </button>
               </div>
 
-              {/* Counter + hack */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                <p style={{ fontSize: 12, color: M, fontFamily: ff, margin: 0 }}>{activeSlide + 1} / {slides.length}</p>
+              {/* Edit indicator + hack */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, marginTop: 10 }}>
                 {selectedEl && (
                   <span style={{ fontFamily: ff, fontSize: 11, color: selectedEl === 'titulo' ? A : '#00B4D8', margin: 0 }}>
                     {selectedEl === 'titulo' ? '✎ editando título' : '✎ editando corpo'}
@@ -3141,10 +3180,13 @@ export default function Studio() {
         // Campos extras
         afterImageUrl:       (s.after_image_url as string)                   ?? undefined,
         ctaText:             (s.cta_text as string)                          ?? undefined,
-        profileBadgeEnabled: (s.profile_badge_enabled as boolean)            ?? undefined,
-        profileHandle:       (s.profile_handle as string)                    ?? undefined,
-        profileAvatarUrl:    (s.profile_avatar_url as string)                ?? undefined,
-        profileBadgePosition:(s.profile_badge_position as 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right') ?? undefined,
+        profileBadgeEnabled:   (s.profile_badge_enabled as boolean)            ?? undefined,
+        profileHandle:         (s.profile_handle as string)                    ?? undefined,
+        profileAvatarUrl:      (s.profile_avatar_url as string)                ?? undefined,
+        profileBadgePosition:  (s.profile_badge_position as 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right') ?? undefined,
+        profileBadgeSize:      (s.profile_badge_size as number)                ?? undefined,
+        profileBadgeBg:        (s.profile_badge_bg as string)                  ?? undefined,
+        profileBadgeTextColor: (s.profile_badge_text_color as string)          ?? undefined,
       }))
 
       setLoadedCarousel({
