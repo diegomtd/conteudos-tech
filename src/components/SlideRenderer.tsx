@@ -1133,10 +1133,10 @@ export function SlideRenderer(props: SlideRenderProps): React.ReactElement {
       <div style={{
         ...posStyle,
         display: 'flex', alignItems: 'center', gap: `${6 * s}px`,
-        padding: `${6 * s}px ${10 * s}px`,
+        padding: `${4 * s}px ${8 * s}px`,
         backgroundColor: slide.profileBadgeBg ?? 'rgba(0,0,0,0.5)',
         backdropFilter: 'blur(8px)',
-        borderRadius: `${20 * s}px`, border: '1px solid rgba(255,255,255,0.15)',
+        borderRadius: `${(slide.profileBadgeSize ?? 28) * s}px`, border: '1px solid rgba(255,255,255,0.15)',
       }}>
         {slide.profileAvatarUrl ? (
           <img src={slide.profileAvatarUrl} alt="" style={{
@@ -1150,7 +1150,7 @@ export function SlideRenderer(props: SlideRenderProps): React.ReactElement {
             fontSize: `${(badgeSize * 0.4) * s}px`, fontFamily: bn, color: '#000', fontWeight: 700,
           }}>{initials}</div>
         )}
-        <span style={{ fontFamily: ff, fontSize: `${(badgeSize * 0.38) * s}px`, color: slide.profileBadgeTextColor ?? '#ffffff', fontWeight: 600, letterSpacing: `${0.3 * s}px` }}>
+        <span style={{ fontFamily: ff, fontSize: `${(slide.profileBadgeSize ?? 14) * 0.6 * s}px`, color: slide.profileBadgeTextColor ?? '#ffffff', fontWeight: 600, letterSpacing: `${0.3 * s}px` }}>
           @{handle}
         </span>
       </div>

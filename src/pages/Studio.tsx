@@ -2703,7 +2703,7 @@ function StatePreview({
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -20 }}
                         transition={{ duration: 0.25 }}
-                        style={{ width: '100%', aspectRatio: '4/5', ...getSlideContainerStyle(current, activeSlide, slides.length, selectedTemplate, imageStyle, 1) }}
+                        style={{ width: '360px', height: '450px', flexShrink: 0, ...getSlideContainerStyle(current, activeSlide, slides.length, selectedTemplate, imageStyle, 360/1080) }}
                       >
                         <SlideRenderer
                           slide={current}
@@ -2711,7 +2711,7 @@ function StatePreview({
                           total={slides.length}
                           template={selectedTemplate}
                           imageStyle={imageStyle}
-                          scale={1}
+                          scale={360/1080}
                           selectedEl={selectedEl}
                           onSelectEl={setSelectedEl}
                           onTitleMouseDown={(e) => {
@@ -3130,8 +3130,10 @@ export default function Studio() {
         return
       }
 
+      // Usa o UUID real do banco (não sintético) para que saveFormatToDb salve via UUID
+      // slides_json é apenas escrito (triggerAutoSave), nunca lido no reload — fonte é carousel_slides
       const slides: Slide[] = (slidesData as Array<Record<string, unknown>>).map((s) => ({
-        id: `slide-${carouselIdFromURL}-${s.position}`,
+        id: s.id as string,
         titulo: (s.titulo as string) ?? '',
         corpo: (s.corpo as string) ?? '',
         hack: (s.hack_aplicado as string) ?? '',
