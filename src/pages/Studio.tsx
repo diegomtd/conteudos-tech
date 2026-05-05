@@ -1091,7 +1091,6 @@ function StatePreview({
   const [exporting, setExporting] = useState(false)
   const [exportName, setExportName] = useState('')
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
-  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [showUpgrade, setShowUpgrade] = useState(false)
   const [generatingImages, setGeneratingImages] = useState(false)
   const [imageGenProgress, setImageGenProgress] = useState<string | null>(null)
@@ -1195,6 +1194,7 @@ function StatePreview({
   const saveFormatTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const saveFormatToDb = (slideId: string, dbUpdates: Record<string, unknown>) => {
+    setSaveStatus('saving')
     if (!carouselId || Object.keys(dbUpdates).length === 0) return
     const capturedSlideId = slideId
     const capturedUpdates = { ...dbUpdates }
@@ -1205,12 +1205,14 @@ function StatePreview({
         if (isNaN(position)) return
         const { error } = await supabase.from('carousel_slides')
           .update(capturedUpdates).eq('carousel_id', carouselId).eq('position', position)
-        if (error) console.error('[save] position:', error.message)
+        if (error) { console.error('[save] position:', error.message); return }
       } else {
         const { error } = await supabase.from('carousel_slides')
           .update(capturedUpdates).eq('id', capturedSlideId)
-        if (error) console.error('[save] uuid:', error.message)
+        if (error) { console.error('[save] uuid:', error.message); return }
       }
+      setSaveStatus('saved')
+      setTimeout(() => setSaveStatus('idle'), 2000)
     }, 800)
   }
 
@@ -1465,31 +1467,25 @@ function StatePreview({
   }, [selectedEl])
 
   // auto-save slides_json com debounce 2s
-  const slidesRef = useRef(slides)
-  useEffect(() => { slidesRef.current = slides }, [slides])
+  // slideStyle replaced by getSlideContainerStyle in the motion.div below
 
-  const triggerAutoSave = useCallback(() => {
+  const handleManualSave = async () => {
     if (!carouselId) return
     setSaveStatus('saving')
-    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
-    autoSaveTimer.current = setTimeout(async () => {
-      try {
-        await supabase.from('carousels')
-          .update({ slides_json: slidesRef.current })
-          .eq('id', carouselId)
-        setSaveStatus('saved')
-        setTimeout(() => setSaveStatus('idle'), 2000)
-      } catch {
-        setSaveStatus('idle')
+    for (const slide of slides) {
+      const db = buildDbPayload(slide)
+      if (Object.keys(db).length > 0) {
+        if (slide.id.startsWith('slide-')) {
+          const position = Number(slide.id.split('-').pop())
+          await supabase.from('carousel_slides').update(db).eq('carousel_id', carouselId).eq('position', position)
+        } else {
+          await supabase.from('carousel_slides').update(db).eq('id', slide.id)
+        }
       }
-    }, 2000)
-  }, [carouselId]) // SEM slides nas deps — usa slidesRef
-
-  useEffect(() => {
-    if (carouselId) triggerAutoSave()
-  }, [slides]) // slides aqui apenas para disparar, não para recriar a função
-
-  // slideStyle replaced by getSlideContainerStyle in the motion.div below
+    }
+    setSaveStatus('saved')
+    setTimeout(() => setSaveStatus('idle'), 2000)
+  }
 
   const handleGenerateImages = async () => {
     if (!carouselId || generatingImages) return
@@ -1719,7 +1715,7 @@ function StatePreview({
                 {saveStatus === 'saving' && <span style={{ fontSize: 11, color: M, fontFamily: ff }}>Salvando...</span>}
                 {saveStatus === 'saved' && <span style={{ fontSize: 11, color: '#C8FF00', fontFamily: ff }}>✓ Salvo</span>}
                 <button
-                  onClick={() => toast.success('Rascunho salvo')}
+                  onClick={handleManualSave}
                   style={{
                     background: 'none', border: `1px solid ${B}`, borderRadius: 5,
                     color: M, fontFamily: ff, fontSize: 10, cursor: 'pointer', padding: '3px 8px',
