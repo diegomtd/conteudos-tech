@@ -3237,6 +3237,36 @@ export default function Studio() {
         }
       })
     setTimeout(() => setAppState('preview'), 50)
+    // Recarrega do banco para garantir que edições persistam
+    setTimeout(async () => {
+      if (!result.carousel_id) return
+      const { data: slides } = await supabase
+        .from('carousel_slides')
+        .select('*')
+        .eq('carousel_id', result.carousel_id)
+        .order('position')
+      if (slides && slides.length > 0) {
+        setLoadedCarousel({
+          carouselId: result.carousel_id,
+          slides: slides.map((s) => ({
+            id: s.id,
+            position: s.position,
+            titulo: s.titulo ?? '',
+            corpo: s.corpo ?? '',
+            hack: '',
+            bgImageUrl: s.bg_image_url ?? undefined,
+            textColor: s.text_color as string | undefined,
+            bodyColor: s.body_color as string | undefined,
+            fontFamily: s.font_family as string | undefined,
+            titleFontSize: s.font_size_title as number | undefined,
+            bodyFontSize: s.font_size_body as number | undefined,
+          })),
+          legenda: result.legenda,
+          hasWatermark: result.has_watermark ?? false,
+          previewToken: result.preview_token ?? '',
+        })
+      }
+    }, 600)
   }, [user?.id])
 
   const handleError = useCallback(() => {
