@@ -268,7 +268,7 @@ function renderBodyWithHighlights(
     )
   }
 
-  const { style: baseStyle, ...restProps } = pProps
+  const { style: baseStyle, onClick: pOnClick, ...restProps } = pProps
   return (
     <p {...restProps} style={{ ...baseStyle, userSelect: 'none' }}>
       {words.map((word, i) => {
@@ -276,7 +276,11 @@ function renderBodyWithHighlights(
         return (
           <span
             key={i}
-            onClick={() => onWordClick(String(i))}
+            onClick={(e) => {
+              e.stopPropagation()
+              ;(pOnClick as unknown as (() => void) | undefined)?.()
+              onWordClick(String(i))
+            }}
             style={{
               color: isHighlighted ? accentClr : 'inherit',
               fontWeight: isHighlighted ? 'bold' : 'inherit',
@@ -321,7 +325,7 @@ function renderTitleWithHighlights(
     )
   }
 
-  const { style: baseStyle, ...restProps } = pProps
+  const { style: baseStyle, onClick: pOnClick, ...restProps } = pProps
   return (
     <p {...restProps} style={{ ...baseStyle, userSelect: 'none' }}>
       {words.map((word, i) => {
@@ -329,7 +333,11 @@ function renderTitleWithHighlights(
         return (
           <span
             key={i}
-            onClick={() => onTitleWordClick(String(i))}
+            onClick={(e) => {
+              e.stopPropagation()
+              ;(pOnClick as unknown as (() => void) | undefined)?.()
+              onTitleWordClick(String(i))
+            }}
             style={{
               color: isHighlighted ? accentClr : 'inherit',
               fontWeight: isHighlighted ? 'bold' : 'inherit',
