@@ -108,6 +108,7 @@ interface Slide {
   accentColor?: string
   bgPattern?: string
   bgPatternOpacity?: number
+  bgSolidColor?: string
 }
 
 const TEXT_COLORS = ['#F5F5F5', '#000000', '#C8FF00', '#FFD700', '#FF4444', '#4488FF', '#FF8C00', '#FF69B4']
@@ -1266,6 +1267,7 @@ function StatePreview({
     accentColor:          'accent_color',
     bgPattern:            'bg_pattern',
     bgPatternOpacity:     'bg_pattern_opacity',
+    bgSolidColor:         'bg_solid_color',
   }
 
   const buildDbPayload = (updates: Partial<Slide>): Record<string, unknown> => {
@@ -2054,6 +2056,24 @@ function StatePreview({
                       onChange={(v) => updateTitleStyle(current.id, { bgPatternOpacity: v })} />
                   </div>
                 )}
+                <div style={{ marginTop: 12 }}>
+                  <span style={{ fontSize: 9, color: M, fontFamily: ff, display: 'block', marginBottom: 6 }}>COR DE FUNDO SÓLIDA</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <input
+                      type="color"
+                      value={current.bgSolidColor ?? '#080808'}
+                      onChange={(e) => updateSlideFormat(current.id, { bgSolidColor: e.target.value })}
+                      style={{ width: 32, height: 32, border: 'none', borderRadius: 6, cursor: 'pointer', backgroundColor: 'transparent' }}
+                    />
+                    <span style={{ fontSize: 11, color: M, fontFamily: ff }}>{current.bgSolidColor ?? 'Nenhuma'}</span>
+                    {current.bgSolidColor && (
+                      <button onClick={() => updateSlideFormat(current.id, { bgSolidColor: undefined })}
+                        style={{ fontSize: 10, color: M, fontFamily: ff, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                        Remover
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* Efeito visual */}

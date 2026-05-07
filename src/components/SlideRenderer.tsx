@@ -38,6 +38,7 @@ export interface SlideData {
   bgPositionY?: number
   bgFilter?: string
   bgVisible?: boolean
+  bgSolidColor?: string
   borderVignette?: boolean
   vignetteIntensity?: number
   titleItalic?: boolean
@@ -173,6 +174,7 @@ export function getSlideContainerStyle(
   scale: number,
 ): React.CSSProperties {
   const hasImg  = !!slide.bgImageUrl
+  if (slide.bgSolidColor && !hasImg) return { ...{ position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }, background: slide.bgSolidColor, justifyContent: index === 0 ? 'center' : 'flex-end', alignItems: index === 0 ? 'center' : 'stretch', paddingTop: 20 * scale, paddingBottom: 20 * scale, paddingLeft: (slide.paddingX !== undefined ? slide.paddingX * scale : 20 * scale), paddingRight: (slide.paddingX !== undefined ? slide.paddingX * scale : 20 * scale) }
   const pos     = slide.textPosition ?? 'bottom'
   const justify = pos === 'top' ? 'flex-start' : pos === 'center' ? 'center' : 'flex-end'
   const pad     = 20 * scale
