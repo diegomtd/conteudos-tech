@@ -392,7 +392,7 @@ function Impacto({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown
           onClick: () => onSelectEl?.('titulo'),
           onMouseDown: onTitleMouseDown,
           style: {
-            fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 48) * s}px`, fontWeight: fw,
+            fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
             color, textAlign: align, margin: 0, zIndex: Z_CONTENT,
             transform: slide.titlePos ? `translate(${slide.titlePos.x * s}px,${slide.titlePos.y * s}px)` : undefined,
             cursor: onSelectEl ? (selectedEl === 'titulo' ? 'grab' : 'pointer') : 'default',
@@ -414,14 +414,14 @@ function Impacto({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown
         {renderTitleWithHighlights(slide.titulo, slide, {
           onClick: () => onSelectEl?.('titulo'),
           style: {
-            fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 28) * s}px`, fontWeight: fw,
+            fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
             color, textAlign: 'center', margin: 0,
             cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
           },
         }, onTitleWordClick)}
         {renderBodyWithHighlights(slide.corpo, slide, {
           onClick: () => onSelectEl?.('corpo'),
-          style: { fontSize: `${(slide.bodyFontSize ?? 12) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+          style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
         }, onBodyWordClick)}
         <p style={{ fontSize: `${10 * s}px`, color: slide.textColor ?? A, fontFamily: ff, fontWeight: 600, margin: 0 }}>
           {slide.ctaText ?? 'Salve para não perder'}
@@ -432,14 +432,14 @@ function Impacto({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown
         {renderTitleWithHighlights(slide.titulo, slide, {
           onClick: () => onSelectEl?.('titulo'),
           style: {
-            fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 26) * s}px`, fontWeight: fw,
+            fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
             color, textAlign: align, margin: `0 0 ${blockGap(slide, s)}`, zIndex: Z_CONTENT,
             cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
           },
         }, onTitleWordClick)}
         {renderBodyWithHighlights(slide.corpo, slide, {
           onClick: () => onSelectEl?.('corpo'),
-          style: { fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, textAlign: align, margin: 0, zIndex: Z_CONTENT, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+          style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, textAlign: align, margin: 0, zIndex: Z_CONTENT, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
         }, onBodyWordClick)}
       </>
     )}
@@ -459,14 +459,14 @@ function Editorial({ slide, index, total, selectedEl, onSelectEl, onBodyWordClic
     {renderTitleWithHighlights(slide.titulo, slide, {
       onClick: () => onSelectEl?.('titulo'),
       style: {
-        fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 38) * s}px`, fontWeight: fw,
+        fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
         color, margin: 0, zIndex: Z_CONTENT,
         cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
       },
     }, onTitleWordClick)}
     {renderBodyWithHighlights(slide.corpo, slide, {
       onClick: () => onSelectEl?.('corpo'),
-      style: { fontSize: `${(slide.bodyFontSize ?? 13) * s}px`, margin: `${blockGap(slide, s)} 0 0`, zIndex: Z_CONTENT, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+      style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: `${blockGap(slide, s)} 0 0`, zIndex: Z_CONTENT, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
     }, onBodyWordClick)}
     <p style={{
       position: 'absolute', bottom: `${14 * s}px`, right: `${16 * s}px`,
@@ -479,14 +479,14 @@ function Editorial({ slide, index, total, selectedEl, onSelectEl, onBodyWordClic
       {renderTitleWithHighlights(slide.titulo || 'E aí, faz sentido?', slide, {
         onClick: () => onSelectEl?.('titulo'),
         style: {
-          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 26) * s}px`, fontWeight: fw,
+          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
           color, textAlign: 'center', margin: 0,
           cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
         },
       }, onTitleWordClick)}
       {renderBodyWithHighlights(slide.corpo, slide, {
         onClick: () => onSelectEl?.('corpo'),
-        style: { fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+        style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
       }, onBodyWordClick)}
       <div style={{ width: `${36 * s}px`, height: `${2 * s}px`, backgroundColor: A, marginTop: `${4 * s}px` }} />
     </div>
@@ -501,14 +501,14 @@ function Editorial({ slide, index, total, selectedEl, onSelectEl, onBodyWordClic
     {renderTitleWithHighlights(slide.titulo, slide, {
       onClick: () => onSelectEl?.('titulo'),
       style: {
-        fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 20) * s}px`, fontWeight: fw,
+        fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
         color, margin: `0 0 ${blockGap(slide, s)}`, zIndex: Z_CONTENT,
         cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
       },
     }, onTitleWordClick)}
     {renderBodyWithHighlights(slide.corpo, slide, {
       onClick: () => onSelectEl?.('corpo'),
-      style: { fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, margin: 0, zIndex: Z_CONTENT, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+      style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: 0, zIndex: Z_CONTENT, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
     }, onBodyWordClick)}
     <div style={{
       position: 'absolute', bottom: `${12 * s}px`, left: `${18 * s}px`, right: `${18 * s}px`,
@@ -549,14 +549,14 @@ function Lista({ slide, index, total, selectedEl, onSelectEl, onBodyWordClick, o
     {renderTitleWithHighlights(slide.titulo, slide, {
       onClick: () => onSelectEl?.('titulo'),
       style: {
-        fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 30) * s}px`, fontWeight: fw,
+        fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
         color, margin: 0, zIndex: Z_CONTENT,
         cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
       },
     }, onTitleWordClick)}
     {renderBodyWithHighlights(slide.corpo, slide, {
       onClick: () => onSelectEl?.('corpo'),
-      style: { fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, margin: `${blockGap(slide, s)} 0 0`, zIndex: Z_CONTENT, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+      style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: `${blockGap(slide, s)} 0 0`, zIndex: Z_CONTENT, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
     }, onBodyWordClick)}
   </>
 
@@ -565,14 +565,14 @@ function Lista({ slide, index, total, selectedEl, onSelectEl, onBodyWordClick, o
       {renderTitleWithHighlights(slide.titulo, slide, {
         onClick: () => onSelectEl?.('titulo'),
         style: {
-          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 22) * s}px`, fontWeight: fw,
+          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
           color, textAlign: 'center', margin: 0,
           cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
         },
       }, onTitleWordClick)}
       {renderBodyWithHighlights(slide.corpo, slide, {
         onClick: () => onSelectEl?.('corpo'),
-        style: { fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+        style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
       }, onBodyWordClick)}
     </div>
   )
@@ -587,14 +587,14 @@ function Lista({ slide, index, total, selectedEl, onSelectEl, onBodyWordClick, o
     {renderTitleWithHighlights(slide.titulo, slide, {
       onClick: () => onSelectEl?.('titulo'),
       style: {
-        fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 20) * s}px`, fontWeight: fw,
+        fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
         color, margin: `0 0 ${blockGap(slide, s)}`, zIndex: Z_CONTENT,
         cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
       },
     }, onTitleWordClick)}
     {renderBodyWithHighlights(slide.corpo, slide, {
       onClick: () => onSelectEl?.('corpo'),
-      style: { fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, margin: 0, zIndex: Z_CONTENT, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+      style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: 0, zIndex: Z_CONTENT, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
     }, onBodyWordClick)}
     <ProgressDots />
   </>
@@ -627,7 +627,7 @@ function Citacao({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown
           onClick: () => onSelectEl?.('titulo'),
           onMouseDown: onTitleMouseDown,
           style: {
-            fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 22) * s}px`,
+            fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`,
             fontWeight: fw, color, textAlign: 'center', margin: 0,
             transform: slide.titlePos ? `translate(${slide.titlePos.x * s}px,${slide.titlePos.y * s}px)` : undefined,
             cursor: onSelectEl ? (selectedEl === 'titulo' ? 'grab' : 'pointer') : 'default',
@@ -636,7 +636,7 @@ function Citacao({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown
         }, onTitleWordClick)}
         {renderBodyWithHighlights(slide.corpo, slide, {
           onClick: () => onSelectEl?.('corpo'),
-          style: { fontSize: `${(slide.bodyFontSize ?? 10) * s}px`, margin: `${blockGap(slide, s)} 0 0`, textAlign: 'center', cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+          style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: `${blockGap(slide, s)} 0 0`, textAlign: 'center', cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
         }, onBodyWordClick)}
       </div>
     </> : isLast ? (
@@ -644,14 +644,14 @@ function Citacao({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown
         {renderTitleWithHighlights(slide.titulo, slide, {
           onClick: () => onSelectEl?.('titulo'),
           style: {
-            fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 22) * s}px`, fontWeight: fw,
+            fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
             color, textAlign: 'center', margin: 0,
             cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
           },
         }, onTitleWordClick)}
         {renderBodyWithHighlights(slide.corpo, slide, {
           onClick: () => onSelectEl?.('corpo'),
-          style: { fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+          style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
         }, onBodyWordClick)}
         <p style={{ fontSize: `${10 * s}px`, color: slide.textColor ?? A, fontFamily: ff, fontWeight: 600, margin: 0 }}>
           {slide.ctaText ?? 'Salve esse carrossel'}
@@ -663,14 +663,14 @@ function Citacao({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown
         {renderTitleWithHighlights(slide.titulo, slide, {
           onClick: () => onSelectEl?.('titulo'),
           style: {
-            fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 20) * s}px`,
+            fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`,
             fontWeight: fw, color, textAlign: 'center', margin: 0,
             cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
           },
         }, onTitleWordClick)}
         {renderBodyWithHighlights(slide.corpo, slide, {
           onClick: () => onSelectEl?.('corpo'),
-          style: { fontSize: `${(slide.bodyFontSize ?? 10) * s}px`, margin: `${blockGap(slide, s)} 0 0`, textAlign: 'center', cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+          style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: `${blockGap(slide, s)} 0 0`, textAlign: 'center', cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
         }, onBodyWordClick)}
       </div>
     )}
@@ -694,7 +694,7 @@ function Comparacao({ slide, index, total, selectedEl, onSelectEl, onBodyWordCli
       {renderTitleWithHighlights(slide.titulo, slide, {
         onClick: () => onSelectEl?.('titulo'),
         style: {
-          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 30) * s}px`, fontWeight: fw,
+          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
           color, textAlign: 'center', margin: 0,
           cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
         },
@@ -706,7 +706,7 @@ function Comparacao({ slide, index, total, selectedEl, onSelectEl, onBodyWordCli
       </div>
       {renderBodyWithHighlights(slide.corpo, slide, {
         onClick: () => onSelectEl?.('corpo'),
-        style: { fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+        style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
       }, onBodyWordClick)}
     </div>
   )
@@ -716,14 +716,14 @@ function Comparacao({ slide, index, total, selectedEl, onSelectEl, onBodyWordCli
       {renderTitleWithHighlights(slide.titulo, slide, {
         onClick: () => onSelectEl?.('titulo'),
         style: {
-          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 22) * s}px`, fontWeight: fw,
+          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
           color, textAlign: 'center', margin: 0,
           cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
         },
       }, onTitleWordClick)}
       {renderBodyWithHighlights(slide.corpo, slide, {
         onClick: () => onSelectEl?.('corpo'),
-        style: { fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+        style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
       }, onBodyWordClick)}
     </div>
   )
@@ -733,14 +733,14 @@ function Comparacao({ slide, index, total, selectedEl, onSelectEl, onBodyWordCli
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: `${16 * s}px ${14 * s}px`, gap: `${6 * s}px` }}>
         <span style={{ fontFamily: bn, fontSize: `${10 * s}px`, color: '#ff4444', letterSpacing: 1 }}>ANTES</span>
         {renderBodyWithHighlights(antesText, slide, {
-          style: { fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, margin: 0, ...bodyX(slide, s) },
+          style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: 0, ...bodyX(slide, s) },
         }, onBodyWordClick)}
       </div>
       <div style={{ width: 1, backgroundColor: 'rgba(255,255,255,0.15)', alignSelf: 'stretch' }} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: `${16 * s}px ${14 * s}px`, gap: `${6 * s}px` }}>
         <span style={{ fontFamily: bn, fontSize: `${10 * s}px`, color: A, letterSpacing: 1 }}>DEPOIS</span>
         {renderBodyWithHighlights(depoisText, slide, {
-          style: { fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, margin: 0, ...bodyX(slide, s) },
+          style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: 0, ...bodyX(slide, s) },
         }, onBodyWordClick)}
       </div>
     </div>
@@ -768,7 +768,7 @@ function Storytelling({ slide, index, total, selectedEl, onSelectEl, onTitleMous
         onClick: () => onSelectEl?.('titulo'),
         onMouseDown: onTitleMouseDown,
         style: {
-          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 22) * s}px`,
+          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`,
           fontWeight: fw, color, margin: 0, zIndex: Z_CONTENT,
           transform: slide.titlePos ? `translate(${slide.titlePos.x * s}px,${slide.titlePos.y * s}px)` : undefined,
           cursor: onSelectEl ? (selectedEl === 'titulo' ? 'grab' : 'pointer') : 'default',
@@ -777,21 +777,21 @@ function Storytelling({ slide, index, total, selectedEl, onSelectEl, onTitleMous
       }, onTitleWordClick)}
       {renderBodyWithHighlights(slide.corpo, slide, {
         onClick: () => onSelectEl?.('corpo'),
-        style: { fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, margin: `${blockGap(slide, s)} 0 0`, zIndex: Z_CONTENT, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+        style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: `${blockGap(slide, s)} 0 0`, zIndex: Z_CONTENT, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
       }, onBodyWordClick)}
     </> : isLast ? (
       <div style={{ display: 'flex', flexDirection: 'column', zIndex: Z_CONTENT, gap: `${8 * s}px` }}>
         {renderTitleWithHighlights(slide.titulo, slide, {
           onClick: () => onSelectEl?.('titulo'),
           style: {
-            fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 22) * s}px`, fontWeight: fw,
+            fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
             color, margin: 0,
             cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
           },
         }, onTitleWordClick)}
         {renderBodyWithHighlights(slide.corpo, slide, {
           onClick: () => onSelectEl?.('corpo'),
-          style: { fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+          style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
         }, onBodyWordClick)}
         <p style={{ fontSize: `${10 * s}px`, color: slide.textColor ?? A, fontFamily: ff, fontWeight: 600, margin: 0 }}>
           {slide.ctaText ?? 'Se isso te tocou, compartilha'}
@@ -800,12 +800,12 @@ function Storytelling({ slide, index, total, selectedEl, onSelectEl, onTitleMous
     ) : <>
       {renderBodyWithHighlights(slide.corpo, slide, {
         onClick: () => onSelectEl?.('corpo'),
-        style: { fontSize: `${(slide.bodyFontSize ?? 12) * s}px`, margin: `0 0 ${blockGap(slide, s)}`, zIndex: Z_CONTENT, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+        style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: `0 0 ${blockGap(slide, s)}`, zIndex: Z_CONTENT, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
       }, onBodyWordClick)}
       {renderTitleWithHighlights(slide.titulo, slide, {
         onClick: () => onSelectEl?.('titulo'),
         style: {
-          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 16) * s}px`, fontWeight: fw,
+          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
           color, margin: 0, zIndex: Z_CONTENT,
           cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
         },
@@ -859,7 +859,7 @@ function EditorialFoto({ slide, index, total, selectedEl, onSelectEl, onTitleMou
           onClick: () => onSelectEl?.('titulo'),
           onMouseDown: onTitleMouseDown,
           style: {
-            fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 40) * s}px`, fontWeight: 900,
+            fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: 900,
             color: _T, margin: 0,
             transform: slide.titlePos ? `translate(${slide.titlePos.x * s}px,${slide.titlePos.y * s}px)` : undefined,
             cursor: onSelectEl ? (selectedEl === 'titulo' ? 'grab' : 'pointer') : 'default',
@@ -868,7 +868,7 @@ function EditorialFoto({ slide, index, total, selectedEl, onSelectEl, onTitleMou
         }, onTitleWordClick)}
         {renderBodyWithHighlights(slide.corpo, slide, {
           onClick: () => onSelectEl?.('corpo'),
-          style: { fontSize: `${(slide.bodyFontSize ?? 12) * s}px`, margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+          style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
         }, onBodyWordClick)}
       </div>
     ) : isLast ? (
@@ -876,14 +876,14 @@ function EditorialFoto({ slide, index, total, selectedEl, onSelectEl, onTitleMou
         {renderTitleWithHighlights(slide.titulo, slide, {
           onClick: () => onSelectEl?.('titulo'),
           style: {
-            fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 26) * s}px`, fontWeight: fw,
+            fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
             color: _T, textAlign: 'center', margin: 0,
             cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
           },
         }, onTitleWordClick)}
         {renderBodyWithHighlights(slide.corpo, slide, {
           onClick: () => onSelectEl?.('corpo'),
-          style: { fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+          style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
         }, onBodyWordClick)}
       </div>
     ) : (
@@ -891,14 +891,14 @@ function EditorialFoto({ slide, index, total, selectedEl, onSelectEl, onTitleMou
         {renderTitleWithHighlights(slide.titulo, slide, {
           onClick: () => onSelectEl?.('titulo'),
           style: {
-            fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 28) * s}px`, fontWeight: 900,
+            fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: 900,
             color: _T, margin: 0,
             cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
           },
         }, onTitleWordClick)}
         {renderBodyWithHighlights(slide.corpo, slide, {
           onClick: () => onSelectEl?.('corpo'),
-          style: { fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+          style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
         }, onBodyWordClick)}
       </div>
     )}
@@ -918,14 +918,14 @@ function TextoImagem({ slide, index, total, selectedEl, onSelectEl, onBodyWordCl
       {renderTitleWithHighlights(slide.titulo, slide, {
         onClick: () => onSelectEl?.('titulo'),
         style: {
-          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 22) * s}px`, fontWeight: fw,
+          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
           color, textAlign: 'center', margin: 0,
           cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
         },
       }, onTitleWordClick)}
       {renderBodyWithHighlights(slide.corpo, slide, {
         onClick: () => onSelectEl?.('corpo'),
-        style: { fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+        style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
       }, onBodyWordClick)}
     </div>
   )
@@ -936,14 +936,14 @@ function TextoImagem({ slide, index, total, selectedEl, onSelectEl, onBodyWordCl
         {renderTitleWithHighlights(slide.titulo, slide, {
           onClick: () => onSelectEl?.('titulo'),
           style: {
-            fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 28) * s}px`, fontWeight: fw,
+            fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
             color, margin: `0 0 ${blockGap(slide, s)}`,
             cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
           },
         }, onTitleWordClick)}
         {renderBodyWithHighlights(slide.corpo, slide, {
           onClick: () => onSelectEl?.('corpo'),
-          style: { fontSize: `${(slide.bodyFontSize ?? 12) * s}px`, margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+          style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
         }, onBodyWordClick)}
       </div>
       <div style={{
@@ -968,14 +968,14 @@ function TextoImagem({ slide, index, total, selectedEl, onSelectEl, onBodyWordCl
         {renderTitleWithHighlights(slide.titulo, slide, {
           onClick: () => onSelectEl?.('titulo'),
           style: {
-            fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 24) * s}px`, fontWeight: fw,
+            fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
             color, margin: `0 0 ${blockGap(slide, s)}`,
             cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
           },
         }, onTitleWordClick)}
         {renderBodyWithHighlights(slide.corpo, slide, {
           onClick: () => onSelectEl?.('corpo'),
-          style: { fontSize: `${(slide.bodyFontSize ?? 11) * s}px`, margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+          style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
         }, onBodyWordClick)}
       </div>
       <div style={{
@@ -1003,14 +1003,14 @@ function SplitVisual({ slide, index, total, selectedEl, onSelectEl, onBodyWordCl
       {renderTitleWithHighlights(slide.titulo, slide, {
         onClick: () => onSelectEl?.('titulo'),
         style: {
-          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 28) * s}px`, fontWeight: fw,
+          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
           color, textAlign: 'center', margin: 0,
           cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
         },
       }, onTitleWordClick)}
       {renderBodyWithHighlights(slide.corpo, slide, {
         onClick: () => onSelectEl?.('corpo'),
-        style: { fontSize: `${(slide.bodyFontSize ?? 12) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+        style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
       }, onBodyWordClick)}
     </div>
   )
@@ -1033,7 +1033,7 @@ function SplitVisual({ slide, index, total, selectedEl, onSelectEl, onBodyWordCl
           onClick: () => onSelectEl?.('titulo'),
           style: {
             position: 'relative', fontFamily: titleFont(slide),
-            fontSize: `${(slide.titleFontSize ?? 22) * s}px`, fontWeight: fw,
+            fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
             color, textAlign: 'center', margin: 0, padding: `0 ${16 * s}px`, zIndex: 1,
             cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
           },
@@ -1049,7 +1049,7 @@ function SplitVisual({ slide, index, total, selectedEl, onSelectEl, onBodyWordCl
         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)' }} />
         {renderBodyWithHighlights(slide.corpo, slide, {
           onClick: () => onSelectEl?.('corpo'),
-          style: { position: 'relative', fontFamily: ff, fontSize: `${(slide.bodyFontSize ?? 14) * s}px`, textAlign: 'center', margin: 0, padding: `0 ${16 * s}px`, zIndex: 1, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+          style: { position: 'relative', fontFamily: ff, fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, textAlign: 'center', margin: 0, padding: `0 ${16 * s}px`, zIndex: 1, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
         }, onBodyWordClick)}
       </div>
     </div>
@@ -1080,7 +1080,7 @@ function CitacaoBold({ slide, index, total, selectedEl, onSelectEl, onBodyWordCl
       {renderTitleWithHighlights(slide.titulo, slide, {
         onClick: () => onSelectEl?.('titulo'),
         style: {
-          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 32) * s}px`,
+          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`,
           fontWeight: 900, color, textAlign: 'center', margin: 0,
           cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
         },
@@ -1088,7 +1088,7 @@ function CitacaoBold({ slide, index, total, selectedEl, onSelectEl, onBodyWordCl
       <div style={{ width: `${40 * s}px`, height: `${2 * s}px`, backgroundColor: A }} />
       {renderBodyWithHighlights(slide.corpo, slide, {
         onClick: () => onSelectEl?.('corpo'),
-        style: { fontSize: `${(slide.bodyFontSize ?? 12) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+        style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
       }, onBodyWordClick)}
       {isLast && (
         <p style={{ fontSize: `${10 * s}px`, color: slide.textColor ?? A, fontFamily: ff, fontWeight: 600, margin: `${4 * s}px 0 0` }}>
