@@ -1,86 +1,53 @@
-# ConteudOS — Contexto do Projeto
+# ConteudOS — CLAUDE.md
 
-## O que é
-SaaS de criação de carrosseis virais para Instagram com IA.
-Domínio: conteudos.tech
-Repositório: https://github.com/diegomtd/conteudos-tech
+## REGRAS DE TRABALHO (LEIA ANTES DE QUALQUER AÇÃO)
 
-## Stack
-- Frontend: React 18 + TypeScript + Vite + Tailwind CSS
-- Backend: Supabase (DB + Auth + Edge Functions + Storage)
-- IA texto: Claude API (claude-sonnet-4-20250514)
-- IA imagem: Gemini gemini-3.1-flash-image-preview (Nano Banana)
-- Pagamentos: Cakto (assinaturas) + InfinitePay (avulso)
-- Email: Resend
-- Notificações: Telegram Bot
-- Deploy: Vercel + GitHub
+### Economia de tokens — OBRIGATÓRIO
+- NUNCA usar `cat` em Studio.tsx, SlideRenderer.tsx ou qualquer arquivo >200 linhas
+- SEMPRE usar `grep -n "padrão"` para localizar antes de editar
+- SEMPRE usar `sed -n 'X,Yp'` para ler apenas o trecho necessário
+- 1 arquivo por prompt — nunca editar 2 arquivos ao mesmo tempo
+- `npm run build` antes de qualquer push — nunca push sem build limpo
 
-## Design System
-- Fundo dark: #050D14
-- Fundo card: #0A1E30
-- Accent cyan: #00B4D8
-- Accent escuro: #0077A8
-- Fonte display: Bebas Neue
-- Fonte texto: DM Sans
+### Antes de qualquer mudança
+1. grep -n para confirmar que o padrão existe
+2. Ler apenas o bloco relevante com sed
+3. Editar cirurgicamente — NÃO refatorar o que não foi pedido
+4. Build + push
 
-## Planos
-- Free: 1 exportação/mês com marca d'água ConteudOS
-- Starter R$47: 20 exportações/mês
-- Pro R$97: 50 exportações/mês + calendário + Telegram
-- Agency R$197: 150 exportações/mês + 5 subcontas
-- Créditos extras: R$29 por 20 exportações adicionais
+## STACK
+Frontend: React 18 + TypeScript + Vite + Tailwind v4
+Backend: Supabase PostgreSQL + RLS + Edge Functions (Deno)
+IA Copy: claude-sonnet-4-20250514
+IA Image: fal-ai/flux-2-pro
+Deploy: Vercel (auto no push main)
 
-## Regras absolutas de copy (IA)
-- ZERO travessão em qualquer campo
-- ZERO ponto de exclamação
-- ZERO conectivos de IA: portanto, ademais, vale destacar, sendo assim
-- Tom direto, observacional, humano
-- Cada slide = uma ideia
+## ARQUIVOS CRÍTICOS
+- src/pages/Studio.tsx (~3500 linhas) — NUNCA usar cat
+- src/components/SlideRenderer.tsx (~1000 linhas) — NUNCA usar cat
 
-## Rotas
-- / → Landing (público)
-- /auth → Login/cadastro (público)
-- /preview/:token → Preview público do carrossel (sem auth)
-- /dashboard → Painel principal (protegido)
-- /studio → Criação de carrossel (protegido)
-- /calendar → Calendário de posts (protegido)
-- /settings → Configurações (protegido)
-- /admin → Painel admin (protegido + role=admin)
+## SISTEMA DE SAVE
+- saveFormatToDb(slideId, dbUpdates)
+- UUID → .eq('id', slideId)
+- 'slide-N' → .eq('position', N)
+- triggerAutoSave foi REMOVIDO — não recriar
+- Capturar capturedSlideId ANTES do setTimeout (closure fix)
 
-## Canvas Editor — Especificacoes tecnicas
+## BUGS RESOLVIDOS — NÃO REGREDIR
+- triggerAutoSave sobrescrevia edições → REMOVIDO
+- UUID slides não salvavam → dual path id/position
+- Race condition handleDone → setTimeout 50ms
+- handleDone sem UUIDs → reload banco 600ms após geração
+- Export texto minúsculo → scale=1 + pixelRatio=2
+- Closure stale → captura antes do setTimeout
 
-### Tipo Slide completo (usar exatamente esses campos)
-bgZoom: number 50-300 default 100 — backgroundSize
-bgPosX: number 0-100 default 50 — backgroundPositionX
-bgPosY: number 0-100 default 50 — backgroundPositionY
-bgFilter: string — filter CSS aplicado SOMENTE na div da imagem (zIndex 0)
-bgVisible: boolean — display none/block na div da imagem
-imageOpacity: number 10-100 — opacity da div da imagem
-overlayOpacity: number 0-90 — opacity do overlay escuro (zIndex 1)
-borderVignette: boolean — boxShadow inset 0 0 80px rgba(0,0,0,0.7) no overlay
-titleFontSize, titleFontFamily, fontWeightTitle, titleItalic, titleUppercase
-titleLetterSpacing: number 0-10
-titleLineHeight: number 0.8-2.5 default 1.1
-textColor: string — cor do titulo
-titleBgEnabled: boolean + titleBgColor: string — highlight fundo titulo
-titleShadow: boolean + titleShadowIntensity: number 0-20
-bodyFontSize, bodyFontFamily, bodyFontWeight, bodyItalic
-bodyColor: string — cor do corpo SEPARADA do titulo
-bodyBgEnabled: boolean + bodyBgColor: string
-bodyLineHeight: number 1.2-3 default 1.6
-bodyLetterSpacing: number 0-10
-textAlign, textPosition, paddingX, blockSpacing, titlePos
+## SLIDE_TO_COL (React → banco)
+titleFontSize→font_size_title, bodyFontSize→font_size_body,
+fontFamily→font_family, textColor→text_color, bodyColor→body_color,
+textAlign→text_align, bgZoom→bg_zoom, bgPositionX→bg_pos_x,
+bgPositionY→bg_pos_y, overlayOpacity→overlay_opacity,
+highlightedWords→highlighted_words, accentColor→accent_color
 
-### Regras do SlideRenderer
-- filter SOMENTE na div zIndex 0 (imagem), nunca no container pai
-- overlayOpacity e imageOpacity sao layers separadas — nao misturar
-- titleBgEnabled aplica backgroundColor no proprio <p> com padding 2px 8px borderRadius 4px
-- bodyColor e textColor sao campos SEPARADOS — corpo tem cor independente
-- Quando bgZoom != 100, usar backgroundSize como porcentagem, nao 'cover'
-
-### Painel de edicao — UX obrigatorio
-- Cada slider: label caps 10px + valor numerico atualizado em tempo real a direita
-- Botao Reset inline quando valor diferente do default
-- Controles de TITULO e CORPO em sub-abas separadas dentro da secao TEXTOS
-- 6 templates em grid 2x3, todos visiveis sem scroll
-- Efeitos: Original, P&B, Sepia, Frio, Quente, Vintage, Dramatico, Desbotado
+## TOKENS DE DESIGN
+BG=#080808, S=#0F0F0F, S2=#141414, A=#C8FF00 (accent verde lima)
+ff=Bebas Neue, ffBody=DM Sans

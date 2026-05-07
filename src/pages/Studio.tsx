@@ -3054,7 +3054,7 @@ function StatePreview({
 
 // ─── Main ─────────────────────────────────────────────────────
 export default function Studio() {
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const temaFromURL       = searchParams.get('tema') ?? ''
   const carouselIdFromURL = searchParams.get('carousel_id') ?? ''
   const { user } = useAuth()
@@ -3209,6 +3209,7 @@ export default function Studio() {
 
   const handleDone = useCallback((result: GenerateResult) => {
     setGenerateResult(result)
+    setSearchParams({ carousel_id: result.carousel_id }, { replace: true })
     // Aplica identidade visual do perfil nos slides gerados
     supabase.from('profiles')
       .select('visual_kit')
