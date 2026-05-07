@@ -261,7 +261,7 @@ function renderBodyWithHighlights(
       <p {...pProps}>
         {words.map((word, i) => {
           return (
-            <span key={i} style={highlighted.includes('b_' + String(i)) ? { color: accentClr, fontWeight: 'bold' } : undefined}>
+            <span key={i} style={highlighted.includes(word.toUpperCase()) ? { color: accentClr, fontWeight: 'bold' } : undefined}>
               {word}{i < words.length - 1 ? ' ' : ''}
             </span>
           )
@@ -274,14 +274,14 @@ function renderBodyWithHighlights(
   return (
     <p {...restProps} style={{ ...baseStyle, userSelect: 'none' }}>
       {words.map((word, i) => {
-        const isHighlighted = highlighted.includes('b_' + String(i))
+        const isHighlighted = highlighted.includes(word.toUpperCase())
         return (
           <span
             key={i}
             onClick={(e) => {
               e.stopPropagation()
               ;(pOnClick as unknown as (() => void) | undefined)?.()
-              onWordClick('b_' + String(i))
+              onWordClick(word.toUpperCase())
             }}
             style={{
               color: isHighlighted ? accentClr : 'inherit',
@@ -317,7 +317,7 @@ function renderTitleWithHighlights(
       <p {...pProps}>
         {words.map((word, i) => {
           return (
-            <span key={i} style={highlighted.includes('t_' + String(i)) ? { color: accentClr, fontWeight: 'bold' } : undefined}>
+            <span key={i} style={highlighted.includes(word.toUpperCase()) ? { color: accentClr, fontWeight: 'bold' } : undefined}>
               {word}{i < words.length - 1 ? ' ' : ''}
             </span>
           )
@@ -330,14 +330,14 @@ function renderTitleWithHighlights(
   return (
     <p {...restProps} style={{ ...baseStyle, userSelect: 'none' }}>
       {words.map((word, i) => {
-        const isHighlighted = highlighted.includes('t_' + String(i))
+        const isHighlighted = highlighted.includes(word.toUpperCase())
         return (
           <span
             key={i}
             onClick={(e) => {
               e.stopPropagation()
               ;(pOnClick as unknown as (() => void) | undefined)?.()
-              onTitleWordClick('t_' + String(i))
+              onTitleWordClick(word.toUpperCase())
             }}
             style={{
               color: isHighlighted ? accentClr : 'inherit',

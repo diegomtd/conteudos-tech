@@ -2288,27 +2288,59 @@ function StatePreview({
           {current && (
             <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '16px 12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
               <span style={{ fontSize: 10, color: M, fontFamily: ff, fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase' }}>Destaque de palavras</span>
-              {((current.highlightedWords ?? []).length > 0 || selectedEl !== null) ? (
-                <>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                    {TEXT_COLORS.map((c) => (
-                      <div key={c} onClick={() => updateTitleStyle(current.id, { accentColor: c })} style={{
-                        width: 20, height: 20, borderRadius: '50%', backgroundColor: c, cursor: 'pointer', flexShrink: 0,
-                        border: (current.accentColor ?? '#C8FF00') === c ? '2px solid #fff' : '2px solid transparent',
-                        transition: 'border-color 0.15s',
-                      }} />
-                    ))}
-                  </div>
-                  {(current.highlightedWords ?? []).length > 0 && (
-                    <button onClick={() => updateTitleStyle(current.id, { highlightedWords: [] })}
-                      style={{ height: 26, background: 'none', border: `1px solid rgba(248,113,113,0.3)`, borderRadius: 6, color: '#f87171', fontFamily: ff, fontSize: 11, padding: '0 10px', cursor: 'pointer', alignSelf: 'flex-start' }}>
-                      Limpar destaques
-                    </button>
-                  )}
-                </>
-              ) : (
-                <p style={{ fontSize: 10, color: M, fontFamily: ff, margin: 0 }}>↑ Clique nas palavras do slide para destacar</p>
-              )}
+              {(() => {
+                const allText = `${current.titulo ?? ''} ${current.corpo ?? ''}`
+                const chips = [...new Set(
+                  allText.split(/\s+/)
+                    .map(w => w.replace(/[.,!?;:"""''«»]/g, '').toUpperCase())
+                    .filter(w => w.length >= 3)
+                )]
+                const highlighted = current.highlightedWords ?? []
+                return (
+                  <>
+                    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                      {chips.map((w) => {
+                        const isActive = highlighted.includes(w)
+                        return (
+                          <button
+                            key={w}
+                            onClick={() => {
+                              const newH = isActive ? highlighted.filter(h => h !== w) : [...highlighted, w]
+                              updateTitleStyle(current.id, { highlightedWords: newH })
+                            }}
+                            style={{
+                              padding: '3px 9px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                              fontFamily: ff, fontSize: 10, fontWeight: isActive ? 700 : 400,
+                              background: isActive ? (current.accentColor ?? A) : 'rgba(255,255,255,0.07)',
+                              color: isActive ? '#000' : 'rgba(255,255,255,0.65)',
+                              transition: 'all 0.15s',
+                            }}
+                          >
+                            {w}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    {highlighted.length > 0 && (
+                      <>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: 4 }}>
+                          {TEXT_COLORS.map((c) => (
+                            <div key={c} onClick={() => updateTitleStyle(current.id, { accentColor: c })} style={{
+                              width: 20, height: 20, borderRadius: '50%', backgroundColor: c, cursor: 'pointer', flexShrink: 0,
+                              border: (current.accentColor ?? '#C8FF00') === c ? '2px solid #fff' : '2px solid transparent',
+                              transition: 'border-color 0.15s',
+                            }} />
+                          ))}
+                        </div>
+                        <button onClick={() => updateTitleStyle(current.id, { highlightedWords: [] })}
+                          style={{ height: 26, background: 'none', border: `1px solid rgba(248,113,113,0.3)`, borderRadius: 6, color: '#f87171', fontFamily: ff, fontSize: 11, padding: '0 10px', cursor: 'pointer', alignSelf: 'flex-start' }}>
+                          Limpar destaques
+                        </button>
+                      </>
+                    )}
+                  </>
+                )
+              })()}
             </div>
           )}
 

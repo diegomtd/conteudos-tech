@@ -30,6 +30,11 @@ function buildPrompt(tema: string, style: string): string {
   return `${NO_TEXT_PREFIX}${tema}, ${modifier}${NO_TEXT_SUFFIX}`
 }
 
+function buildContextualPrompt(titulo: string, corpo: string, style: string): string {
+  const modifier = STYLE_MODIFIERS[style] ?? STYLE_MODIFIERS['cinematic']
+  return `${NO_TEXT_PREFIX}Visual representation of: "${titulo}". Context: ${corpo}. ${modifier}${NO_TEXT_SUFFIX}`
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
@@ -52,9 +57,12 @@ serve(async (req) => {
     if (!userId) return json({ error: 'unauthorized' }, 401)
 
     // ── Parse body ────────────────────────────────────────────────────
-    const { carousel_id, style } = await req.json() as {
+    const { carousel_id, style, slide_id, titulo, corpo } = await req.json() as {
       carousel_id: string
       style: string
+      slide_id?: string
+      titulo?: string
+      corpo?: string
     }
 
     if (!carousel_id) return json({ error: 'missing_fields' }, 400)
@@ -72,19 +80,26 @@ serve(async (req) => {
       return json({ error: 'ai_images_limit_reached' }, 403)
     }
 
-    // ── Busca tema do carrossel ───────────────────────────────────────
-    const { data: carousel, error: carouselError } = await supabase
-      .from('carousels')
-      .select('tema')
-      .eq('id', carousel_id)
-      .single()
-
-    if (carouselError || !carousel) return json({ error: 'carousel_not_found' }, 404)
-
+    // ── Monta prompt ──────────────────────────────────────────────────
     const styleKey = (style ?? 'cinematic').toLowerCase()
-    const fullPrompt = buildPrompt(carousel.tema, styleKey)
+    let fullPrompt: string
 
-    console.log('[generate-image] prompt:', fullPrompt)
+    if (slide_id && titulo) {
+      // Prompt contextual para slide específico
+      fullPrompt = buildContextualPrompt(titulo, corpo ?? '', styleKey)
+    } else {
+      // Prompt genérico baseado no tema do carrossel
+      const { data: carousel, error: carouselError } = await supabase
+        .from('carousels')
+        .select('tema')
+        .eq('id', carousel_id)
+        .single()
+
+      if (carouselError || !carousel) return json({ error: 'carousel_not_found' }, 404)
+      fullPrompt = buildPrompt(carousel.tema, styleKey)
+    }
+
+    console.log('[generate-image] slide_id:', slide_id ?? 'all', 'prompt:', fullPrompt)
 
     // ── Chama fal.ai ──────────────────────────────────────────────────
     const falKey = Deno.env.get('FAL_KEY') ?? ''
@@ -122,22 +137,37 @@ serve(async (req) => {
 
     console.log('[fal] imagem gerada:', imageUrl)
 
-    // ── Aplica a mesma URL em todos os slides do carrossel ────────────
-    const { error: updateError } = await supabase
-      .from('carousel_slides')
-      .update({ bg_image_url: imageUrl })
-      .eq('carousel_id', carousel_id)
+    if (slide_id) {
+      // ── Atualiza apenas o slide específico ────────────────────────
+      const { error: updateError } = await supabase
+        .from('carousel_slides')
+        .update({ bg_image_url: imageUrl })
+        .eq('id', slide_id)
 
-    if (updateError) {
-      console.error('[db] update error:', updateError)
-      return json({ error: 'db_update_error', detail: updateError.message }, 500)
+      if (updateError) {
+        console.error('[db] update error:', updateError)
+        return json({ error: 'db_update_error', detail: updateError.message }, 500)
+      }
+
+      // Contador será incrementado pelo frontend após o loop
+    } else {
+      // ── Aplica a mesma URL em todos os slides do carrossel ────────
+      const { error: updateError } = await supabase
+        .from('carousel_slides')
+        .update({ bg_image_url: imageUrl })
+        .eq('carousel_id', carousel_id)
+
+      if (updateError) {
+        console.error('[db] update error:', updateError)
+        return json({ error: 'db_update_error', detail: updateError.message }, 500)
+      }
+
+      // ── Incrementa contador de imagens IA ────────────────────────
+      await supabase
+        .from('profiles')
+        .update({ ai_images_used_this_month: profile.ai_images_used_this_month + 1 })
+        .eq('user_id', userId)
     }
-
-    // ── Incrementa contador de imagens IA ────────────────────────────
-    await supabase
-      .from('profiles')
-      .update({ ai_images_used_this_month: profile.ai_images_used_this_month + 1 })
-      .eq('user_id', userId)
 
     return json({ success: true, bg_image_url: imageUrl })
 
