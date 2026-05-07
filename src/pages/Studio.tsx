@@ -2700,7 +2700,7 @@ function StatePreview({
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -20 }}
                         transition={{ duration: 0.25 }}
-                        style={{ width: '360px', height: '450px', flexShrink: 0, ...getSlideContainerStyle(current, activeSlide, slides.length, selectedTemplate, imageStyle, 360/1080) }}
+                        style={{ width: '500px', height: '625px', flexShrink: 0, ...getSlideContainerStyle(current, activeSlide, slides.length, selectedTemplate, imageStyle, 500/1080) }}
                       >
                         <SlideRenderer
                           slide={current}
@@ -2708,7 +2708,7 @@ function StatePreview({
                           total={slides.length}
                           template={selectedTemplate}
                           imageStyle={imageStyle}
-                          scale={360/1080}
+                          scale={500/1080}
                           selectedEl={selectedEl}
                           onSelectEl={setSelectedEl}
                           onTitleMouseDown={(e) => {
