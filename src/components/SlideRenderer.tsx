@@ -1192,3 +1192,4 @@ export function SlideRenderer(props: SlideRenderProps): React.ReactElement {
     )}
   </>
 }
+// cache bust qui  7 mai 2026 10:22:26 -03
