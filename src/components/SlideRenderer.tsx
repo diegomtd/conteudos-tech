@@ -261,7 +261,7 @@ function renderBodyWithHighlights(
       <p {...pProps}>
         {words.map((word, i) => {
           return (
-            <span key={i} style={highlighted.includes(String(i)) ? { color: accentClr, fontWeight: 'bold' } : undefined}>
+            <span key={i} style={highlighted.includes('b_' + String(i)) ? { color: accentClr, fontWeight: 'bold' } : undefined}>
               {word}{i < words.length - 1 ? ' ' : ''}
             </span>
           )
@@ -274,19 +274,18 @@ function renderBodyWithHighlights(
   return (
     <p {...restProps} style={{ ...baseStyle, userSelect: 'none' }}>
       {words.map((word, i) => {
-        const isHighlighted = highlighted.includes(String(i))
+        const isHighlighted = highlighted.includes('b_' + String(i))
         return (
           <span
             key={i}
             onClick={(e) => {
               e.stopPropagation()
               ;(pOnClick as unknown as (() => void) | undefined)?.()
-              onWordClick(String(i))
+              onWordClick('b_' + String(i))
             }}
             style={{
               color: isHighlighted ? accentClr : 'inherit',
               fontWeight: isHighlighted ? 'bold' : 'inherit',
-              backgroundColor: isHighlighted ? 'rgba(200,255,0,0.1)' : 'transparent',
               borderRadius: 2,
               padding: '0 1px',
               cursor: 'pointer',
@@ -318,7 +317,7 @@ function renderTitleWithHighlights(
       <p {...pProps}>
         {words.map((word, i) => {
           return (
-            <span key={i} style={highlighted.includes(String(i)) ? { color: accentClr, fontWeight: 'bold' } : undefined}>
+            <span key={i} style={highlighted.includes('t_' + String(i)) ? { color: accentClr, fontWeight: 'bold' } : undefined}>
               {word}{i < words.length - 1 ? ' ' : ''}
             </span>
           )
@@ -331,19 +330,18 @@ function renderTitleWithHighlights(
   return (
     <p {...restProps} style={{ ...baseStyle, userSelect: 'none' }}>
       {words.map((word, i) => {
-        const isHighlighted = highlighted.includes(String(i))
+        const isHighlighted = highlighted.includes('t_' + String(i))
         return (
           <span
             key={i}
             onClick={(e) => {
               e.stopPropagation()
               ;(pOnClick as unknown as (() => void) | undefined)?.()
-              onTitleWordClick(String(i))
+              onTitleWordClick('t_' + String(i))
             }}
             style={{
               color: isHighlighted ? accentClr : 'inherit',
               fontWeight: isHighlighted ? 'bold' : 'inherit',
-              backgroundColor: isHighlighted ? 'rgba(200,255,0,0.1)' : 'transparent',
               borderRadius: 2,
               padding: '0 1px',
               cursor: 'pointer',
