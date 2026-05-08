@@ -2292,7 +2292,7 @@ function StatePreview({
                 const allText = `${current.titulo ?? ''} ${current.corpo ?? ''}`
                 const chips = [...new Set(
                   allText.split(/\s+/)
-                    .map(w => w.replace(/[.,!?;:"""''«»]/g, '').toUpperCase())
+                    .map(w => w.replace(/[.,!?;:"""''«»\-]/g, '').toUpperCase())
                     .filter(w => w.length >= 3)
                 )]
                 const highlighted = current.highlightedWords ?? []

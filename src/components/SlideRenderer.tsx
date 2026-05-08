@@ -261,7 +261,7 @@ function renderBodyWithHighlights(
       <p {...pProps}>
         {words.map((word, i) => {
           return (
-            <span key={i} style={highlighted.includes(word.toUpperCase()) ? { color: accentClr, fontWeight: 'bold' } : undefined}>
+            <span key={i} style={highlighted.includes(word.replace(/[.,!?;:"""'«»\-]/g, '').toUpperCase()) ? { color: accentClr, fontWeight: 'bold' } : undefined}>
               {word}{i < words.length - 1 ? ' ' : ''}
             </span>
           )
@@ -274,14 +274,14 @@ function renderBodyWithHighlights(
   return (
     <p {...restProps} style={{ ...baseStyle, userSelect: 'none' }}>
       {words.map((word, i) => {
-        const isHighlighted = highlighted.includes(word.toUpperCase())
+        const isHighlighted = highlighted.includes(word.replace(/[.,!?;:"""'«»\-]/g, '').toUpperCase())
         return (
           <span
             key={i}
             onClick={(e) => {
               e.stopPropagation()
               ;(pOnClick as unknown as (() => void) | undefined)?.()
-              onWordClick(word.toUpperCase())
+              onWordClick(word.replace(/[.,!?;:"""'«»\-]/g, '').toUpperCase())
             }}
             style={{
               color: isHighlighted ? accentClr : 'inherit',
@@ -317,7 +317,7 @@ function renderTitleWithHighlights(
       <p {...pProps}>
         {words.map((word, i) => {
           return (
-            <span key={i} style={highlighted.includes(word.toUpperCase()) ? { color: accentClr, fontWeight: 'bold' } : undefined}>
+            <span key={i} style={highlighted.includes(word.replace(/[.,!?;:"""'«»\-]/g, '').toUpperCase()) ? { color: accentClr, fontWeight: 'bold' } : undefined}>
               {word}{i < words.length - 1 ? ' ' : ''}
             </span>
           )
@@ -330,14 +330,14 @@ function renderTitleWithHighlights(
   return (
     <p {...restProps} style={{ ...baseStyle, userSelect: 'none' }}>
       {words.map((word, i) => {
-        const isHighlighted = highlighted.includes(word.toUpperCase())
+        const isHighlighted = highlighted.includes(word.replace(/[.,!?;:"""'«»\-]/g, '').toUpperCase())
         return (
           <span
             key={i}
             onClick={(e) => {
               e.stopPropagation()
               ;(pOnClick as unknown as (() => void) | undefined)?.()
-              onTitleWordClick(word.toUpperCase())
+              onTitleWordClick(word.replace(/[.,!?;:"""'«»\-]/g, '').toUpperCase())
             }}
             style={{
               color: isHighlighted ? accentClr : 'inherit',
