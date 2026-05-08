@@ -317,7 +317,7 @@ function renderTitleWithHighlights(
       <p {...pProps}>
         {words.map((word, i) => {
           return (
-            <span key={i} style={highlighted.includes(word.replace(/[.,!?;:"""'«»\-]/g, '').toUpperCase()) ? { color: accentClr, fontWeight: 'bold' } : undefined}>
+            <span key={i} style={highlighted.includes(word.replace(/[.,!?;:"""'«»\-]/g, '').toUpperCase()) ? { color: accentClr, fontWeight: 'bold', backgroundColor: 'rgba(200,255,0,0.3)' } : undefined}>
               {word}{i < words.length - 1 ? ' ' : ''}
             </span>
           )
