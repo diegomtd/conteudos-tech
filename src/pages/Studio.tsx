@@ -2306,7 +2306,7 @@ function StatePreview({
                             key={w}
                             onClick={() => {
                               const newH = isActive ? highlighted.filter(h => h !== w) : [...highlighted, w]
-                              updateTitleStyle(current.id, { highlightedWords: newH })
+                              updateTitleStyle(current.id, { highlightedWords: newH, accentColor: current.accentColor ?? '#C8FF00' })
                             }}
                             style={{
                               padding: '3px 9px', borderRadius: 20, border: 'none', cursor: 'pointer',
