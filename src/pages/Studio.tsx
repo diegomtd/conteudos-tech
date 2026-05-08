@@ -3279,6 +3279,7 @@ export default function Studio() {
               font_family: fonte,
               font_size_title: 80,
               font_size_body: 28,
+              accent_color: cor,
             })
             .eq('carousel_id', result.carousel_id)
             .then(() => {
@@ -3357,7 +3358,7 @@ export default function Studio() {
               : typeof s.highlighted_words === 'string'
               ? JSON.parse(s.highlighted_words)
               : undefined,
-            accentColor:           (s.accent_color as string)                       ?? undefined,
+            accentColor:           (s.accent_color as string)                       ?? '#C8FF00',
             bgPattern:             (s.bg_pattern as string)                         ?? undefined,
             bgPatternOpacity:      (s.bg_pattern_opacity as number)                 ?? undefined,
           })),
