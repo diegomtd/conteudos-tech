@@ -1,32 +1,141 @@
 @import "tailwindcss";
 
-@theme {
-  --color-bg: #080808;
-  --color-surface: #0F0F0F;
-  --color-surface-2: #1A1A1A;
-  --color-accent: #C8FF00;
-  --color-accent-dim: rgba(200, 255, 0, 0.12);
-  --color-accent-border: rgba(200, 255, 0, 0.3);
-  --color-text: #F5F5F5;
-  --color-text-muted: rgba(255, 255, 255, 0.45);
-  --color-border: rgba(255, 255, 255, 0.08);
-  --font-display: 'Bebas Neue', sans-serif;
-  --font-body: 'DM Sans', sans-serif;
-}
+/* ══════════════════════════════════════════════
+   ConteudOS — Design System v3.0 FUTURISTA
+   ══════════════════════════════════════════════ */
 
-* {
+/* ── Reset ─────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
 }
 
-input, textarea, select {
-  font-size: 16px;
-}
-
-body {
-  background-color: #080808;
-  color: #F5F5F5;
-  font-family: 'DM Sans', sans-serif;
+/* ── Body ─────────────────────────────────── */
+html, body {
   margin: 0;
+  padding: 0;
+  background-color: #06060A;
+  color: #EDEEF2;
+  font-family: 'DM Sans', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+/* ── Gradiente ambiente no fundo ─────────── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 70% 50% at 5% 0%,   rgba(200,255,0,0.04)   0%, transparent 55%),
+    radial-gradient(ellipse 50% 70% at 95% 100%, rgba(0,210,255,0.04)   0%, transparent 55%),
+    radial-gradient(ellipse 35% 35% at 50% 45%,  rgba(130,80,255,0.025) 0%, transparent 65%);
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+}
+
+/* ── Scrollbar ───────────────────────────── */
+::-webkit-scrollbar       { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
+
+/* ── Animações ───────────────────────────── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse-dot {
+  0%,100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(200,255,0,0.5); }
+  50%     { opacity: 0.85; transform: scale(1.15); box-shadow: 0 0 0 6px rgba(200,255,0,0); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes glow-pulse {
+  0%,100% { box-shadow: 0 0 20px rgba(200,255,0,0.15); }
+  50%     { box-shadow: 0 0 40px rgba(200,255,0,0.35); }
+}
+
+/* ── Utilitários globais ─────────────────── */
+.animate-fade-up {
+  animation: fade-up 0.3s ease forwards;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.pulse-dot {
+  animation: pulse-dot 2.2s ease-in-out infinite;
+}
+
+/* Texto com gradiente verde lima */
+.text-accent {
+  background: linear-gradient(135deg, #C8FF00 0%, #A0E800 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Texto com gradiente cyber ciano→violeta */
+.text-cyber {
+  background: linear-gradient(135deg, #00D2FF 0%, #8250FF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Texto com gradiente logo padrão */
+.text-logo {
+  background: linear-gradient(135deg, #EDEEF2 30%, #C8FF00 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Card surface padrão */
+.card {
+  background: #0D0D14;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.card:hover {
+  border-color: rgba(255,255,255,0.12);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+}
+
+/* Botão accent principal */
+.btn-primary {
+  background: linear-gradient(135deg, #C8FF00 0%, #A0E800 100%);
+  color: #06060A;
+  font-weight: 700;
+  border: none;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 20px rgba(200,255,0,0.25);
+}
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 32px rgba(200,255,0,0.4);
+}
+.btn-primary:active {
+  transform: translateY(0);
 }

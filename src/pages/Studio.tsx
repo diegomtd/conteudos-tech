@@ -10,17 +10,17 @@ import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import { SlideRenderer, getSlideContainerStyle, CarouselTemplate as _CarouselTemplate } from '@/components/SlideRenderer'
 
-// ── Design tokens v2 — hierarquia de profundidade ────────────
-const A    = '#C8FF00'                          // accent verde lima
-const BG   = '#070707'                          // fundo base ultra-dark
-const S    = '#0D0D0D'                          // surface primária
-const S2   = '#131313'                          // surface secundária
-const S3   = '#1A1A1A'                          // surface terciária (inputs)
-const T    = '#F0F0F0'                          // texto primário
-const M    = 'rgba(255,255,255,0.40)'           // texto muted
-const M2   = 'rgba(255,255,255,0.18)'           // texto muito muted
+// ── Design tokens v3.0 — ConteudOS Futurista ──────────────
+const A    = '#C8FF00'                          // verde lima — accent principal
+const CYAN = '#00D2FF'                          // ciano elétrico — IA / imagem
+const BG   = '#06060A'                          // preto azulado profundo
+const S    = '#0D0D14'                          // surface 1
+const S2   = '#13131C'                          // surface 2
+const S3   = '#1B1B26'                          // surface 3 — inputs
+const T    = '#EDEEF2'                          // texto primário
+const M    = 'rgba(237,238,242,0.42)'           // texto muted
+const M2   = 'rgba(237,238,242,0.18)'           // texto muito muted
 const B    = 'rgba(255,255,255,0.07)'           // borda padrão
-const CYAN = '#00B4D8'                          // cor de ação secundária
 const ff   = 'DM Sans, sans-serif'
 
 type AppState = 'input' | 'generating' | 'preview'
@@ -3409,7 +3409,7 @@ function StatePreview({
               alignItems: 'center',
               gap: 16,
               padding: '24px 32px',
-              backgroundColor: '#070707',
+              backgroundColor: BG,
               scrollbarWidth: 'thin',
               scrollbarColor: 'rgba(200,255,0,0.3) transparent',
             }}>
