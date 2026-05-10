@@ -113,14 +113,6 @@ interface Slide {
 
 const TEXT_COLORS = ['#F5F5F5', '#000000', '#C8FF00', '#FFD700', '#FF4444', '#4488FF', '#FF8C00', '#FF69B4']
 
-const FONT_OPTIONS: { label: string; value: string }[] = [
-  { label: 'Bebas Neue',       value: '"Bebas Neue", sans-serif' },
-  { label: 'DM Sans',          value: 'DM Sans, sans-serif' },
-  { label: 'Inter',            value: 'Inter, sans-serif' },
-  { label: 'Playfair Display', value: '"Playfair Display", serif' },
-  { label: 'Oswald',           value: 'Oswald, sans-serif' },
-  { label: 'Montserrat',       value: 'Montserrat, sans-serif' },
-]
 
 const MOCK_SLIDES: Slide[] = [
   { id: '1', titulo: 'VOCÊ NÃO É PREGUIÇOSO.',                     corpo: 'Você está travado por um motivo que ninguém te ensinou a resolver.',                            hack: 'Pattern Interrupt' },
@@ -164,53 +156,44 @@ const inputSt: React.CSSProperties = {
 function Header() {
   const { plan, exportsRemaining, exportLimit } = usePlan()
   const navigate = useNavigate()
-  const PLAN_COLORS: Record<string, string> = { free: M2, criador: '#00B4D8', profissional: A, agencia: '#A855F7' }
-  const color = PLAN_COLORS[plan] ?? M2
+  const PLAN_COLORS: Record<string, string> = { free: 'rgba(255,255,255,0.2)', criador: '#00B4D8', profissional: '#C8FF00', agencia: '#A855F7' }
+  const color = PLAN_COLORS[plan] ?? 'rgba(255,255,255,0.2)'
 
   return (
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 40,
-      backgroundColor: 'rgba(8,8,8,0.85)', backdropFilter: 'blur(12px)',
-      borderBottom: `1px solid ${B}`, padding: '0 24px',
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 56,
+      backgroundColor: 'rgba(8,8,8,0.95)', backdropFilter: 'blur(12px)',
+      borderBottom: '1px solid rgba(255,255,255,0.08)',
+      height: 44,
+      display: 'flex', alignItems: 'center',
+      padding: '0 16px', gap: 0,
     }}>
-      {/* Left: back button + logo */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        <button
-          onClick={() => navigate('/dashboard')}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: M, fontFamily: ff, fontSize: 13,
-            padding: '6px 10px 6px 6px', borderRadius: 8,
-            transition: 'color 0.15s, background 0.15s',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.color = T; e.currentTarget.style.background = B }}
-          onMouseLeave={e => { e.currentTarget.style.color = M; e.currentTarget.style.background = 'none' }}
-        >
-          <ChevronLeft size={16} />
-          Dashboard
-        </button>
-        <div style={{ width: 1, height: 20, background: B }} />
-        <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 22, color: T, letterSpacing: 1.5 }}>
-          Conteúd<span style={{ color: A }}>OS</span>
-        </span>
+      {/* Logo */}
+      <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 18, color: '#F5F5F5', letterSpacing: 1, marginRight: 20, flexShrink: 0 }}>
+        Conteúd<span style={{ color: '#C8FF00' }}>OS</span>
+      </span>
+      {/* Nav */}
+      <button onClick={() => navigate('/dashboard')} style={{ height: 44, padding: '0 14px', background: 'none', border: 'none', color: 'rgba(255,255,255,0.45)', fontFamily: 'DM Sans, sans-serif', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, borderBottom: '2px solid transparent', transition: 'color 0.15s' }}
+        onMouseEnter={e => e.currentTarget.style.color = '#F5F5F5'}
+        onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
+      >
+        Dashboard
+      </button>
+      <div style={{ height: 44, padding: '0 14px', display: 'flex', alignItems: 'center', borderBottom: '2px solid #C8FF00' }}>
+        <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: '#F5F5F5', fontWeight: 600 }}>Gerador</span>
       </div>
 
-      {/* Right: plan badge + exports */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span style={{
-          fontSize: 11, fontFamily: ff, fontWeight: 700, color,
-          border: `1px solid ${color}`, borderRadius: 99, padding: '3px 10px',
-          textTransform: 'uppercase', letterSpacing: 0.5,
-        }}>
-          {plan}
-        </span>
-        <span style={{ fontSize: 12, color: M, fontFamily: ff }}>
-          <span style={{ color: exportsRemaining > 0 ? T : '#f87171', fontWeight: 600 }}>{exportsRemaining}</span>
-          {' '}/ {exportLimit} exportações
-        </span>
-      </div>
+      {/* Spacer */}
+      <div style={{ flex: 1 }} />
+
+      {/* Plan badge */}
+      <span style={{ fontSize: 11, fontFamily: 'DM Sans, sans-serif', fontWeight: 700, color, border: `1px solid ${color}`, borderRadius: 99, padding: '3px 10px', textTransform: 'uppercase', letterSpacing: 0.5, marginRight: 12 }}>
+        {plan}
+      </span>
+      <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', fontFamily: 'DM Sans, sans-serif', marginRight: 8 }}>
+        <span style={{ color: exportsRemaining > 0 ? '#F5F5F5' : '#f87171', fontWeight: 600 }}>{exportsRemaining}</span>
+        {' '}/ {exportLimit} exportações
+      </span>
     </div>
   )
 }
@@ -1057,6 +1040,31 @@ function SliderRow({
 }
 
 // ─── Estado 3: Preview + Editor ───────────────────────────────
+function RefinarSlide({ current: _current, onRefinar }: { current: Slide; onRefinar: (instrucao: string) => void }) {
+  const [instrucao, setInstrucao] = React.useState('')
+  const [loading, setLoading] = React.useState(false)
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+      <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', fontFamily: 'DM Sans, sans-serif', textTransform: 'uppercase', letterSpacing: 0.5 }}>Refinar slide com IA</span>
+      <input
+        value={instrucao}
+        onChange={e => setInstrucao(e.target.value)}
+        placeholder='Ex: "mais agressivo", "adicione dado estatístico"'
+        style={{ width: '100%', background: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, color: 'rgba(255,255,255,0.7)', fontFamily: 'DM Sans, sans-serif', fontSize: 11, padding: '6px 8px', outline: 'none', boxSizing: 'border-box' }}
+        onFocus={e => e.target.style.borderColor = 'rgba(200,255,0,0.3)'}
+        onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
+        onKeyDown={e => { if (e.key === 'Enter' && instrucao.trim()) { setLoading(true); onRefinar(instrucao); setInstrucao(''); setTimeout(() => setLoading(false), 3000) } }}
+      />
+      <button
+        disabled={!instrucao.trim() || loading}
+        onClick={() => { if (instrucao.trim()) { setLoading(true); onRefinar(instrucao); setInstrucao(''); setTimeout(() => setLoading(false), 3000) } }}
+        style={{ height: 28, background: instrucao.trim() && !loading ? 'rgba(200,255,0,0.08)' : 'transparent', border: '1px solid rgba(200,255,0,0.2)', borderRadius: 6, color: instrucao.trim() && !loading ? '#C8FF00' : 'rgba(200,255,0,0.3)', fontFamily: 'DM Sans, sans-serif', fontSize: 10, cursor: instrucao.trim() && !loading ? 'pointer' : 'not-allowed' }}>
+        {loading ? 'Refinando...' : '✦ Refinar este slide'}
+      </button>
+    </div>
+  )
+}
+
 function StatePreview({
   onBack,
   initialSlides,
@@ -1921,6 +1929,70 @@ function StatePreview({
                     </div>
                   )}
 
+                  {/* Gerar conteúdo deste slide com IA */}
+                  {current && carouselId && (
+                    <button
+                      onClick={async () => {
+                        if (!current) return
+                        const toastId = toast.loading('Gerando conteúdo para o slide...')
+                        try {
+                          const res = await supabase.functions.invoke('generate-carousel', {
+                            body: {
+                              tema: `Reescreva apenas o slide ${activeSlide + 1} do carrossel sobre: "${slides[0]?.titulo ?? ''}"`,
+                              tom: 'Provocador',
+                              num_slides: 1,
+                              cta_tipo: 'Engajamento',
+                            }
+                          })
+                          if (res.data?.slides?.[0]) {
+                            const s = res.data.slides[0]
+                            updateSlide(current.id, 'titulo', s.titulo)
+                            updateSlide(current.id, 'corpo', s.corpo)
+                            saveFormatToDb(current.id, { titulo: s.titulo, corpo: s.corpo })
+                            toast.success('Slide atualizado', { id: toastId })
+                          }
+                        } catch { toast.error('Erro ao gerar', { id: toastId }) }
+                      }}
+                      style={{
+                        height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                        background: 'none', border: '1px solid rgba(200,255,0,0.25)', borderRadius: 7,
+                        color: '#C8FF00', fontFamily: ff, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                        transition: 'background 0.15s',
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(200,255,0,0.07)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                    >
+                      ✦ Gerar conteúdo deste slide com IA
+                    </button>
+                  )}
+
+                  {/* Refinar slide com IA */}
+                  {current && carouselId && (
+                    <RefinarSlide
+                      current={current}
+                      onRefinar={async (instrucao) => {
+                        const toastId = toast.loading('Refinando...')
+                        try {
+                          const res = await supabase.functions.invoke('generate-carousel', {
+                            body: {
+                              tema: `Reescreva o slide com base nessa instrução: "${instrucao}". Contexto atual: Título: "${current.titulo}" | Corpo: "${current.corpo}"`,
+                              tom: 'Provocador',
+                              num_slides: 1,
+                              cta_tipo: 'Engajamento',
+                            }
+                          })
+                          if (res.data?.slides?.[0]) {
+                            const s = res.data.slides[0]
+                            updateSlide(current.id, 'titulo', s.titulo)
+                            updateSlide(current.id, 'corpo', s.corpo)
+                            saveFormatToDb(current.id, { titulo: s.titulo, corpo: s.corpo })
+                            toast.success('Slide refinado', { id: toastId })
+                          }
+                        } catch { toast.error('Erro ao refinar', { id: toastId }) }
+                      }}
+                    />
+                  )}
+
                   {/* CTA text — only on last slide */}
                   {activeSlide === slides.length - 1 && (
                     <div>
@@ -2199,18 +2271,38 @@ function StatePreview({
                 )}
               </div>
               <div style={{ opacity: selectedEl ? 1 : 0.4, pointerEvents: selectedEl ? 'auto' : 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {/* Row 1: Font + Size */}
-                <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end' }}>
-                  <div style={{ flex: 1 }}>
-                    <span style={{ fontSize: 9, color: M, fontFamily: ff, display: 'block', marginBottom: 3 }}>Fonte</span>
-                    <select
-                      value={selectedEl === 'corpo' ? (current.bodyFontFamily ?? current.fontFamily ?? '"Bebas Neue", sans-serif') : (current.fontFamily ?? '"Bebas Neue", sans-serif')}
-                      onChange={(e) => updateSlideFormat(current.id, selectedEl === 'corpo' ? { bodyFontFamily: e.target.value } : { fontFamily: e.target.value })}
-                      style={{ width: '100%', backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 11, padding: '5px 6px', outline: 'none', cursor: 'pointer' }}
-                    >
-                      {FONT_OPTIONS.map((f) => <option key={f.value} value={f.value} style={{ backgroundColor: S2 }}>{f.label}</option>)}
-                    </select>
+                {/* Pares de fonte — sistema MyPostFlow */}
+                <div>
+                  <span style={{ fontSize: 9, color: M, fontFamily: ff, display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Par de fontes</span>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                    {([
+                      { title: '"Bebas Neue", sans-serif', body: 'DM Sans, sans-serif', label: 'Bebas', sub: 'DM Sans' },
+                      { title: '"Playfair Display", serif', body: 'DM Sans, sans-serif', label: 'Playfair', sub: 'DM Sans' },
+                      { title: '"Space Grotesk", sans-serif', body: 'Inter, sans-serif', label: 'Space', sub: 'Inter' },
+                      { title: 'Oswald, sans-serif', body: 'Inter, sans-serif', label: 'Oswald', sub: 'Inter' },
+                      { title: '"Montserrat", sans-serif', body: 'DM Sans, sans-serif', label: 'Montserrat', sub: 'DM Sans' },
+                      { title: 'Inter, sans-serif', body: 'Inter, sans-serif', label: 'Inter', sub: 'Inter' },
+                    ] as const).map((pair) => {
+                      const sel = current?.fontFamily === pair.title
+                      return (
+                        <button key={pair.title} onClick={() => {
+                          if (!current) return
+                          updateSlideFormat(current.id, { fontFamily: pair.title, bodyFontFamily: pair.body })
+                        }} style={{
+                          background: sel ? 'rgba(200,255,0,0.08)' : S2,
+                          border: `1px solid ${sel ? 'rgba(200,255,0,0.4)' : B}`,
+                          borderRadius: 6, padding: '7px 10px', cursor: 'pointer', textAlign: 'left',
+                          transition: 'all 0.15s',
+                        }}>
+                          <span style={{ fontFamily: pair.title, fontSize: 13, color: sel ? A : T, display: 'block', lineHeight: 1.2, fontWeight: 700 }}>{pair.label}</span>
+                          <span style={{ fontFamily: pair.body, fontSize: 10, color: M, display: 'block', lineHeight: 1.2, fontStyle: 'italic' }}>{pair.sub}</span>
+                        </button>
+                      )
+                    })}
                   </div>
+                </div>
+                {/* Row 1: Size */}
+                <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end' }}>
                   <div style={{ width: 58 }}>
                     <span style={{ fontSize: 9, color: M, fontFamily: ff, display: 'block', marginBottom: 3 }}>Tam.</span>
                     <input type="number" min={10} max={160}
