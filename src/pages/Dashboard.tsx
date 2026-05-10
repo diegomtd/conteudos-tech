@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { toast } from 'sonner'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
@@ -691,6 +692,56 @@ export default function Dashboard() {
             )}
           </div>
 
+          {/* ── 3 Cards de ação ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 40 }}>
+            {[
+              {
+                icon: <Sparkles size={20} />,
+                title: 'Criar com IA',
+                desc: 'Dê um tópico e deixe a IA montar o carrossel completo — texto, layout e imagens.',
+                cta: 'Começar →',
+                onClick: () => navigate('/studio'),
+                accent: true,
+              },
+              {
+                icon: <TrendingUp size={20} />,
+                title: 'Buscar Ideias',
+                desc: 'A IA sugere 8 temas virais baseados no seu nicho. Escolha e já vá criando.',
+                cta: 'Ver ideias →',
+                onClick: () => navigate('/studio?buscar=1'),
+                accent: false,
+              },
+              {
+                icon: <Zap size={20} />,
+                title: 'Criar do Zero',
+                desc: 'Abra o editor e construa seu carrossel manualmente, slide por slide.',
+                cta: 'Abrir editor →',
+                onClick: () => navigate('/studio?blank=1'),
+                accent: false,
+              },
+            ].map((card) => (
+              <motion.div
+                key={card.title}
+                whileHover={{ y: -3 }}
+                onClick={card.onClick}
+                style={{
+                  background: card.accent ? 'rgba(200,255,0,0.06)' : '#0A0A0A',
+                  border: `1px solid ${card.accent ? 'rgba(200,255,0,0.25)' : 'rgba(255,255,255,0.08)'}`,
+                  borderRadius: 14, padding: '22px 20px',
+                  cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 12,
+                  transition: 'box-shadow 0.2s',
+                }}
+              >
+                <div style={{ color: card.accent ? '#C8FF00' : 'rgba(255,255,255,0.45)' }}>{card.icon}</div>
+                <div>
+                  <p style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 18, color: '#F5F5F5', margin: '0 0 6px', letterSpacing: 0.5 }}>{card.title}</p>
+                  <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: 'rgba(255,255,255,0.45)', margin: 0, lineHeight: 1.55 }}>{card.desc}</p>
+                </div>
+                <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: card.accent ? '#C8FF00' : 'rgba(255,255,255,0.45)', fontWeight: 600, marginTop: 'auto' }}>{card.cta}</span>
+              </motion.div>
+            ))}
+          </div>
+
           {loading ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {[1, 2, 3].map(i => (
@@ -843,6 +894,25 @@ export default function Dashboard() {
                         {relativeTime(c.created_at)}
                       </p>
                     </div>
+
+                    {/* Prompt usado */}
+                    {c.carousel_slides && c.carousel_slides.length > 0 && (
+                      <div style={{
+                        position: 'absolute', bottom: 0, left: 0, right: 0,
+                        borderTop: '1px solid rgba(255,255,255,0.06)',
+                        paddingTop: 8, marginTop: 4,
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+                        padding: '8px 12px',
+                      }}>
+                        <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 11, color: 'rgba(255,255,255,0.3)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {c.tema}
+                        </span>
+                        <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(c.tema); toast.success('Tema copiado') }}
+                          style={{ flexShrink: 0, background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 5, padding: '2px 8px', color: 'rgba(255,255,255,0.35)', fontSize: 10, fontFamily: 'DM Sans, sans-serif', cursor: 'pointer' }}>
+                          Copiar
+                        </button>
+                      </div>
+                    )}
                   </motion.div>
                 )
               })}
