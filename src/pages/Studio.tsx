@@ -158,7 +158,19 @@ const inputSt: React.CSSProperties = {
 
 
 // ─── Header ───────────────────────────────────────────────────
-function Header() {
+function Header({
+  activeSlide,
+  totalSlides,
+  onPrevSlide,
+  onNextSlide,
+  carouselId,
+}: {
+  activeSlide: number
+  totalSlides: number
+  onPrevSlide: () => void
+  onNextSlide: () => void
+  carouselId?: string
+}) {
   const { plan, exportsRemaining, exportLimit } = usePlan()
   const navigate = useNavigate()
   const PLAN_COLORS: Record<string, string> = { free: 'rgba(255,255,255,0.2)', criador: CYAN, profissional: '#C8FF00', agencia: '#A855F7' }
@@ -190,6 +202,57 @@ function Header() {
 
       {/* Spacer */}
       <div style={{ flex: 1 }} />
+
+      {/* Centro: navegação de slides — só aparece quando tem carrossel */}
+      {carouselId && totalSlides > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          background: 'rgba(255,255,255,0.04)',
+          border: '1px solid rgba(255,255,255,0.07)',
+          borderRadius: 8, padding: '0 4px', height: 30,
+          marginRight: 16,
+        }}>
+          <button
+            onClick={onPrevSlide}
+            disabled={activeSlide === 0}
+            style={{
+              width: 26, height: 26, borderRadius: 6, border: 'none',
+              background: 'none', color: activeSlide === 0 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.5)',
+              cursor: activeSlide === 0 ? 'default' : 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'color 0.15s',
+            }}
+            onMouseEnter={e => { if (activeSlide > 0) e.currentTarget.style.color = '#F0F0F0' }}
+            onMouseLeave={e => { if (activeSlide > 0) e.currentTarget.style.color = 'rgba(255,255,255,0.5)' }}
+          >
+            <ChevronLeft size={13} />
+          </button>
+
+          <span style={{
+            fontFamily: 'DM Sans, sans-serif', fontSize: 12, fontWeight: 600,
+            color: '#F0F0F0', minWidth: 60, textAlign: 'center', whiteSpace: 'nowrap',
+          }}>
+            Slide {activeSlide + 1} de {totalSlides}
+          </span>
+
+          <button
+            onClick={onNextSlide}
+            disabled={activeSlide === totalSlides - 1}
+            style={{
+              width: 26, height: 26, borderRadius: 6, border: 'none',
+              background: 'none',
+              color: activeSlide === totalSlides - 1 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.5)',
+              cursor: activeSlide === totalSlides - 1 ? 'default' : 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'color 0.15s',
+            }}
+            onMouseEnter={e => { if (activeSlide < totalSlides - 1) e.currentTarget.style.color = '#F0F0F0' }}
+            onMouseLeave={e => { if (activeSlide < totalSlides - 1) e.currentTarget.style.color = 'rgba(255,255,255,0.5)' }}
+          >
+            <ChevronRight size={13} />
+          </button>
+        </div>
+      )}
 
       {/* Plan badge */}
       <span style={{ fontSize: 11, fontFamily: 'DM Sans, sans-serif', fontWeight: 700, color, border: `1px solid ${color}`, borderRadius: 99, padding: '3px 10px', textTransform: 'uppercase', letterSpacing: 0.5, marginRight: 12 }}>
@@ -1083,6 +1146,7 @@ function StatePreview({
   carouselId,
   hasWatermark,
   previewToken,
+  onSlideChange,
 }: {
   onBack: () => void
   initialSlides: Slide[]
@@ -1090,6 +1154,7 @@ function StatePreview({
   carouselId?: string
   hasWatermark?: boolean
   previewToken?: string
+  onSlideChange?: (active: number, total: number) => void
 }) {
   const { canExport, plan, exportsRemaining } = usePlan()
   const { user } = useAuth()
@@ -1097,6 +1162,9 @@ function StatePreview({
   const [profileColor, setProfileColor] = useState<string | null>(null)
   const [slides, setSlides] = useState<Slide[]>(initialSlides)
   const [activeSlide, setActiveSlide] = useState(0)
+  useEffect(() => {
+    onSlideChange?.(activeSlide, slides.length)
+  }, [activeSlide, slides.length])
   const [_editingField, _setEditingField] = useState<{ id: string; field: 'titulo' | 'corpo' } | null>(null)
   const [imageStyle, setImageStyle] = useState<string>('cinematic')
   const [selectedTemplate, setSelectedTemplate] = useState<CarouselTemplate>('impacto')
@@ -3781,9 +3849,17 @@ export default function Studio() {
   const previewWatermark  = loadedCarousel?.hasWatermark ?? generateResult?.has_watermark ?? true
   const previewTokenVal   = loadedCarousel?.previewToken ?? generateResult?.preview_token ?? ''
 
+  const [headerSlideInfo, setHeaderSlideInfo] = useState({ active: 0, total: 0 })
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: BG, overflow: 'hidden' }}>
-      <Header />
+      <Header
+        activeSlide={headerSlideInfo.active}
+        totalSlides={appState === 'preview' ? headerSlideInfo.total : 0}
+        onPrevSlide={() => setHeaderSlideInfo(p => ({ ...p, active: Math.max(0, p.active - 1) }))}
+        onNextSlide={() => setHeaderSlideInfo(p => ({ ...p, active: Math.min(p.total - 1, p.active + 1) }))}
+        carouselId={appState === 'preview' ? previewCarouselId : undefined}
+      />
 
       <div style={{
         flex: 1, paddingTop: 56,
@@ -3824,6 +3900,7 @@ export default function Studio() {
                 carouselId={previewCarouselId}
                 hasWatermark={previewWatermark}
                 previewToken={previewTokenVal || undefined}
+                onSlideChange={(active, total) => setHeaderSlideInfo({ active, total })}
               />
             </div>
           )}
