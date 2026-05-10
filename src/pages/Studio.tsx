@@ -1171,7 +1171,7 @@ function StatePreview({
   const [slideTheme, setSlideTheme] = useState<'dark' | 'light'>('dark')
   const [legenda, setLegenda] = useState(initialLegenda ?? '')
   // view & section state
-  const [viewMode, setViewMode] = useState<'slide' | 'grid'>('grid')
+  const [viewMode, setViewMode] = useState<'slide' | 'grid' | 'timeline'>('grid')
   const [secImagem,  setSecImagem]  = useState(false)
   const [secLegenda, setSecLegenda] = useState(false)
   const [_secTextoTab, _setSecTextoTab] = useState<'titulo' | 'corpo'>('titulo')
@@ -3094,8 +3094,9 @@ function StatePreview({
             )}
             <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
               {[
-                { mode: 'slide' as const, icon: <Maximize2 size={13} />, label: 'Mockup' },
-                { mode: 'grid' as const,  icon: <Grid size={13} />, label: 'Grade' },
+                { mode: 'slide' as const,    icon: <Maximize2 size={13} />,     label: 'Mockup' },
+                { mode: 'grid' as const,     icon: <Grid size={13} />,          label: 'Grade'  },
+                { mode: 'timeline' as const, icon: <ChevronRight size={13} />,  label: 'Linha'  },
               ].map(({ mode, icon, label }) => {
                 const sel = viewMode === mode
                 return (
@@ -3395,6 +3396,100 @@ function StatePreview({
                   )
                 })}
               </div>
+            </div>
+          )}
+
+          {/* ── Timeline view — slides lado a lado com scroll horizontal ── */}
+          {viewMode === 'timeline' && (
+            <div style={{
+              flex: 1,
+              overflowX: 'auto',
+              overflowY: 'hidden',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 16,
+              padding: '24px 32px',
+              backgroundColor: '#070707',
+              scrollbarWidth: 'thin',
+              scrollbarColor: 'rgba(200,255,0,0.3) transparent',
+            }}>
+              {slides.map((slide, idx) => {
+                const TIMELINE_W = 320
+                const ts = TIMELINE_W / 1080
+                const isActive = activeSlide === idx
+                return (
+                  <div key={slide.id} style={{ display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0 }}>
+                    {/* Número + label de role */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{
+                        fontFamily: '"Bebas Neue", sans-serif', fontSize: 11,
+                        color: isActive ? A : 'rgba(255,255,255,0.3)',
+                        letterSpacing: 0.5,
+                      }}>
+                        {String(idx + 1).padStart(2, '0')}
+                      </span>
+                      {(() => {
+                        const role = slide.slideRole ?? (idx === 0 ? 'capa' : idx === slides.length - 1 ? 'cta' : null)
+                        if (!role || role === 'conteudo') return null
+                        const rc: Record<string, string> = { capa: A, cta: '#A855F7' }
+                        const rl: Record<string, string> = { capa: 'CAPA', cta: 'CTA' }
+                        return (
+                          <span style={{
+                            fontSize: 8, fontFamily: '"Bebas Neue", sans-serif',
+                            color: rc[role], letterSpacing: 0.5,
+                            background: `${rc[role]}18`,
+                            borderRadius: 3, padding: '1px 5px',
+                          }}>
+                            {rl[role]}
+                          </span>
+                        )
+                      })()}
+                    </div>
+
+                    {/* Slide */}
+                    <div
+                      onClick={() => setActiveSlide(idx)}
+                      style={{
+                        width: TIMELINE_W,
+                        height: TIMELINE_W * (1350 / 1080),
+                        borderRadius: 10, overflow: 'hidden', cursor: 'pointer',
+                        border: `2px solid ${isActive ? A : B}`,
+                        transition: 'border-color 0.15s, transform 0.15s',
+                        transform: isActive ? 'scale(1.01)' : 'scale(1)',
+                        flexShrink: 0,
+                        ...getSlideContainerStyle(slide, idx, slides.length, selectedTemplate, imageStyle, ts),
+                      }}
+                    >
+                      <SlideRenderer
+                        slide={slide}
+                        index={idx}
+                        total={slides.length}
+                        template={selectedTemplate}
+                        imageStyle={imageStyle}
+                        scale={ts}
+                        hasWatermark={hasWatermark}
+                      />
+                    </div>
+
+                    {/* Baixar slide */}
+                    <button
+                      onClick={() => handleExportSingle(idx)}
+                      style={{
+                        height: 28, borderRadius: 6, background: 'transparent',
+                        border: `1px solid ${B}`,
+                        color: M, fontSize: 10,
+                        fontFamily: ff, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                        transition: 'all 0.15s',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = A; e.currentTarget.style.color = A }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = B; e.currentTarget.style.color = M }}
+                    >
+                      ⬇ Baixar slide
+                    </button>
+                  </div>
+                )
+              })}
             </div>
           )}
 
