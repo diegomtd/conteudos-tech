@@ -10,16 +10,18 @@ import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import { SlideRenderer, getSlideContainerStyle, CarouselTemplate as _CarouselTemplate } from '@/components/SlideRenderer'
 
-// ─── Tokens ───────────────────────────────────────────────────
-const A = '#C8FF00'
-const BG = '#080808'
-const S = '#0F0F0F'
-const S2 = '#1A1A1A'
-const T = '#F5F5F5'
-const M = 'rgba(255,255,255,0.45)'
-const M2 = 'rgba(255,255,255,0.2)'
-const B = 'rgba(255,255,255,0.08)'
-const ff = 'DM Sans, sans-serif'
+// ── Design tokens v2 — hierarquia de profundidade ────────────
+const A    = '#C8FF00'                          // accent verde lima
+const BG   = '#070707'                          // fundo base ultra-dark
+const S    = '#0D0D0D'                          // surface primária
+const S2   = '#131313'                          // surface secundária
+const S3   = '#1A1A1A'                          // surface terciária (inputs)
+const T    = '#F0F0F0'                          // texto primário
+const M    = 'rgba(255,255,255,0.40)'           // texto muted
+const M2   = 'rgba(255,255,255,0.18)'           // texto muito muted
+const B    = 'rgba(255,255,255,0.07)'           // borda padrão
+const CYAN = '#00B4D8'                          // cor de ação secundária
+const ff   = 'DM Sans, sans-serif'
 
 type AppState = 'input' | 'generating' | 'preview'
 
@@ -109,6 +111,7 @@ interface Slide {
   bgPattern?: string
   bgPatternOpacity?: number
   bgSolidColor?: string
+  slideRole?: 'capa' | 'conteudo' | 'cta'  // função narrativa do slide
 }
 
 const TEXT_COLORS = ['#F5F5F5', '#000000', '#C8FF00', '#FFD700', '#FF4444', '#4488FF', '#FF8C00', '#FF69B4']
@@ -156,13 +159,13 @@ const inputSt: React.CSSProperties = {
 function Header() {
   const { plan, exportsRemaining, exportLimit } = usePlan()
   const navigate = useNavigate()
-  const PLAN_COLORS: Record<string, string> = { free: 'rgba(255,255,255,0.2)', criador: '#00B4D8', profissional: '#C8FF00', agencia: '#A855F7' }
+  const PLAN_COLORS: Record<string, string> = { free: 'rgba(255,255,255,0.2)', criador: CYAN, profissional: '#C8FF00', agencia: '#A855F7' }
   const color = PLAN_COLORS[plan] ?? 'rgba(255,255,255,0.2)'
 
   return (
     <div style={{
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 40,
-      backgroundColor: 'rgba(8,8,8,0.95)', backdropFilter: 'blur(12px)',
+      backgroundColor: 'rgba(7,7,7,0.96)', backdropFilter: 'blur(12px)',
       borderBottom: '1px solid rgba(255,255,255,0.08)',
       height: 44,
       display: 'flex', alignItems: 'center',
@@ -416,7 +419,7 @@ function StateInput({
             background: viralOpen ? 'rgba(0,180,216,0.15)' : 'rgba(0,180,216,0.08)',
             border: '1px solid #00B4D8',
             borderRadius: viralOpen ? '10px 10px 0 0' : 10,
-            color: '#00B4D8', fontFamily: ff, fontSize: 13,
+            color: CYAN, fontFamily: ff, fontSize: 13,
             padding: '10px 16px', cursor: 'pointer',
             transition: 'background 0.15s',
             width: '100%',
@@ -457,7 +460,7 @@ function StateInput({
                     fontSize: 14, boxSizing: 'border-box',
                     border: '1px solid rgba(0,180,216,0.4)',
                   }}
-                  onFocus={e => { e.target.style.borderColor = '#00B4D8' }}
+                  onFocus={e => { e.target.style.borderColor = CYAN }}
                   onBlur={e => { e.target.style.borderColor = 'rgba(0,180,216,0.4)' }}
                 />
 
@@ -465,7 +468,7 @@ function StateInput({
                   onClick={applyViral}
                   disabled={!viralInput.trim() || analyzingViral}
                   style={{
-                    background: '#00B4D8', color: '#000', border: 'none',
+                    background: CYAN, color: '#000', border: 'none',
                     borderRadius: 8, padding: '11px 0', cursor: !viralInput.trim() || analyzingViral ? 'not-allowed' : 'pointer',
                     fontFamily: '"Bebas Neue", sans-serif', fontSize: 16, letterSpacing: 1,
                     opacity: !viralInput.trim() || analyzingViral ? 0.4 : 1,
@@ -496,7 +499,7 @@ function StateInput({
                     {viralResult.hacks && viralResult.hacks.length > 0 && (
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         {viralResult.hacks.map(h => (
-                          <span key={h} style={{ fontSize: 10, color: '#00B4D8', border: '1px solid rgba(0,180,216,0.3)', borderRadius: 99, padding: '2px 8px', fontFamily: ff }}>
+                          <span key={h} style={{ fontSize: 10, color: CYAN, border: '1px solid rgba(0,180,216,0.3)', borderRadius: 99, padding: '2px 8px', fontFamily: ff }}>
                             {h}
                           </span>
                         ))}
@@ -606,7 +609,7 @@ function StateInput({
             disabled={loadingTopics}
             style={{
               background: 'none', border: `1px solid rgba(0,180,216,0.3)`,
-              borderRadius: 8, color: '#00B4D8', fontSize: 13,
+              borderRadius: 8, color: CYAN, fontSize: 13,
               fontFamily: ff, padding: '8px 16px',
               cursor: loadingTopics ? 'not-allowed' : 'pointer',
               opacity: loadingTopics ? 0.6 : 1,
@@ -636,7 +639,7 @@ function StateInput({
                 <div
                   key={i}
                   style={{
-                    backgroundColor: S2, border: `1px solid ${B}`,
+                    backgroundColor: S3, border: `1px solid ${B}`,
                     borderRadius: 8, padding: '10px 14px',
                     cursor: 'pointer', transition: 'border-color 0.15s',
                     display: 'flex', flexDirection: 'column', gap: 4,
@@ -660,14 +663,14 @@ function StateInput({
             value={cta}
             onChange={(e) => setCta(e.target.value)}
             style={{
-              backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 8,
+              backgroundColor: S3, border: `1px solid ${B}`, borderRadius: 8,
               color: T, fontSize: 13, fontFamily: ff, padding: '8px 32px 8px 12px',
               outline: 'none', cursor: 'pointer', appearance: 'none',
               backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23ffffff66' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
               backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center',
             }}
           >
-            {CTA_OPTIONS.map((o) => <option key={o} value={o} style={{ backgroundColor: S2 }}>{o}</option>)}
+            {CTA_OPTIONS.map((o) => <option key={o} value={o} style={{ backgroundColor: S3 }}>{o}</option>)}
           </select>
         </div>
       </div>
@@ -921,7 +924,7 @@ function UpgradeModal({ onClose, plan }: { onClose: () => void; plan: string }) 
             { name: 'Agência', price: 'R$197/mês', limit: 'Ilimitado + 5 subcontas + 200 imagens IA' },
           ].map((p) => (
             <div key={p.name} style={{
-              backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 10,
+              backgroundColor: S3, border: `1px solid ${B}`, borderRadius: 10,
               padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             }}>
               <div>
@@ -1499,39 +1502,105 @@ function StatePreview({
     setTimeout(() => setSaveStatus('idle'), 2000)
   }
 
-  const handleGenerateImages = async () => {
+  const [imageQueueStatus, setImageQueueStatus] = useState<{
+    total: number
+    current: number
+    currentTitle: string
+    done: boolean
+  }>({ total: 0, current: 0, currentTitle: '', done: false })
+
+  const handleGenerateImages = async (slideIdOverride?: string) => {
     if (!carouselId || generatingImages) return
     setGeneratingImages(true)
-    setImageGenProgress('Gerando fundo com IA...')
 
     const { data: { session } } = await supabase.auth.getSession()
     const token = session?.access_token
     if (!token) { setGeneratingImages(false); return }
 
-    try {
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-image`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ carousel_id: carouselId, style: imageStyle }),
-      })
-      const data = await res.json()
-
-      if (data.error === 'ai_images_limit_reached') {
-        toast.error('Limite de imagens IA atingido. Faça upgrade para gerar mais fundos.')
-      } else if (data.bg_image_url) {
-        setSlides((prev) => prev.map((s) => ({ ...s, bgImageUrl: data.bg_image_url })))
-        toast.success('Fundo aplicado em todos os slides')
-      } else {
-        console.error('[generateImages] erro:', data)
-        toast.error('Erro ao gerar imagem. Tente novamente.')
-      }
-    } catch (e) {
-      console.error('[generateImages] exception:', e)
-      toast.error('Erro ao gerar imagem.')
+    // Modo individual: gera só um slide
+    if (slideIdOverride) {
+      const targetSlide = slides.find(s => s.id === slideIdOverride)
+      setImageGenProgress(`Gerando imagem para "${targetSlide?.titulo?.slice(0, 30) ?? 'slide'}"...`)
+      try {
+        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-image`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({
+            carousel_id: carouselId,
+            style: imageStyle,
+            slide_id: slideIdOverride,
+            titulo: targetSlide?.titulo ?? '',
+            corpo: targetSlide?.corpo ?? '',
+            is_first_slide: slides.indexOf(targetSlide!) === 0,
+          }),
+        })
+        const data = await res.json()
+        if (data.error === 'ai_images_limit_reached') {
+          toast.error('Limite de imagens IA atingido.')
+        } else if (data.bg_image_url) {
+          setSlides(prev => prev.map(s => s.id === slideIdOverride ? { ...s, bgImageUrl: data.bg_image_url } : s))
+          toast.success('Imagem gerada')
+        } else {
+          toast.error('Erro ao gerar imagem.')
+        }
+      } catch { toast.error('Erro ao gerar imagem.') }
+      setImageGenProgress(null)
+      setGeneratingImages(false)
+      return
     }
 
+    // Modo fila: gera um por um em sequência
+    const total = slides.length
+    setImageQueueStatus({ total, current: 0, currentTitle: '', done: false })
+
+    let limitReached = false
+    for (let i = 0; i < slides.length; i++) {
+      if (limitReached) break
+      const slide = slides[i]
+      setImageQueueStatus(prev => ({
+        ...prev,
+        current: i + 1,
+        currentTitle: slide.titulo?.slice(0, 40) ?? `Slide ${i + 1}`,
+      }))
+      setImageGenProgress(`Slide ${i + 1}/${total}: ${slide.titulo?.slice(0, 30) ?? ''}`)
+
+      try {
+        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-image`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({
+            carousel_id: carouselId,
+            style: imageStyle,
+            slide_id: slide.id,
+            titulo: slide.titulo ?? '',
+            corpo: slide.corpo ?? '',
+            is_first_slide: i === 0,
+            mode: 'queue_item',
+          }),
+        })
+        const data = await res.json()
+
+        if (data.error === 'ai_images_limit_reached') {
+          toast.error(`Limite atingido no slide ${i + 1}. Faça upgrade para continuar.`)
+          limitReached = true
+        } else if (data.bg_image_url) {
+          setSlides(prev => prev.map(s => s.id === slide.id ? { ...s, bgImageUrl: data.bg_image_url } : s))
+        }
+      } catch (e) {
+        console.error(`[fila] erro slide ${i}:`, e)
+      }
+
+      // Delay de 500ms entre imagens para não sobrecarregar a API
+      if (i < slides.length - 1 && !limitReached) {
+        await new Promise(resolve => setTimeout(resolve, 500))
+      }
+    }
+
+    setImageQueueStatus(prev => ({ ...prev, done: true }))
+    if (!limitReached) toast.success(`${total} imagens geradas com sucesso`)
     setImageGenProgress(null)
     setGeneratingImages(false)
+    setTimeout(() => setImageQueueStatus({ total: 0, current: 0, currentTitle: '', done: false }), 3000)
   }
 
   const copyLegenda = () => {
@@ -1807,6 +1876,23 @@ function StatePreview({
                     }}>
                       {idx + 1}
                     </span>
+                    {(() => {
+                      const role = slide.slideRole ?? (idx === 0 ? 'capa' : idx === slides.length - 1 ? 'cta' : null)
+                      if (!role || role === 'conteudo') return null
+                      const roleColors = { capa: '#C8FF00', cta: '#A855F7' }
+                      const roleLabels = { capa: 'C', cta: '→' }
+                      return (
+                        <span style={{
+                          position: 'absolute', top: 3, left: 3,
+                          fontFamily: '"Bebas Neue", sans-serif', fontSize: 8,
+                          color: roleColors[role as 'capa' | 'cta'],
+                          background: `${roleColors[role as 'capa' | 'cta']}18`,
+                          borderRadius: 2, padding: '1px 3px', lineHeight: 1,
+                        }}>
+                          {roleLabels[role as 'capa' | 'cta']}
+                        </span>
+                      )
+                    })()}
                   </div>
                 )
               })}
@@ -1827,7 +1913,7 @@ function StatePreview({
               </button>
               {current && (
                 <button onClick={() => duplicateSlide(current.id)} title="Duplicar" style={{
-                  width: 30, height: 30, background: S2, border: `1px solid ${B}`,
+                  width: 30, height: 30, background: S3, border: `1px solid ${B}`,
                   borderRadius: 6, color: M, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   transition: 'border-color 0.15s, color 0.15s',
                 }}
@@ -1856,6 +1942,35 @@ function StatePreview({
           {current && (
             <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '16px 12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
               <span style={{ fontSize: 10, color: M, fontFamily: ff, fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase' }}>Conteúdo</span>
+              {/* Label de função do slide */}
+              {current && (
+                <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+                  {(['capa', 'conteudo', 'cta'] as const).map((role) => {
+                    const labels = { capa: '↯ CAPA', conteudo: '◈ CONTEÚDO', cta: '⟳ CTA' }
+                    const colors = { capa: '#C8FF00', conteudo: CYAN, cta: '#A855F7' }
+                    const isCurrent = (current.slideRole ?? (
+                      activeSlide === 0 ? 'capa'
+                      : activeSlide === slides.length - 1 ? 'cta'
+                      : 'conteudo'
+                    )) === role
+                    return (
+                      <button key={role}
+                        onClick={() => setSlides(prev => prev.map(s => s.id === current.id ? { ...s, slideRole: role } : s))}
+                        style={{
+                          flex: 1, height: 22, borderRadius: 4, fontSize: 9, fontFamily: '"Bebas Neue", sans-serif',
+                          letterSpacing: 0.5, cursor: 'pointer', border: 'none',
+                          background: isCurrent ? `${colors[role]}18` : 'transparent',
+                          color: isCurrent ? colors[role] : M,
+                          borderBottom: `2px solid ${isCurrent ? colors[role] : 'transparent'}`,
+                          transition: 'all 0.15s',
+                        }}
+                      >
+                        {labels[role]}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
               {isComparacaoMiddle ? (
                 <>
                   <div>
@@ -1866,7 +1981,7 @@ function StatePreview({
                     <textarea value={current.beforeText ?? ''}
                       onChange={(e) => updateSlide(current.id, 'beforeText', e.target.value)}
                       rows={3}
-                      style={{ width: '100%', backgroundColor: S2, border: `1px solid rgba(255,112,112,0.3)`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, lineHeight: 1.5, padding: '8px 10px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                      style={{ width: '100%', backgroundColor: S3, border: `1px solid rgba(255,112,112,0.3)`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, lineHeight: 1.5, padding: '8px 10px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
                       onFocus={(e) => { e.target.style.borderColor = '#ff7070' }}
                       onBlur={(e) => { e.target.style.borderColor = 'rgba(255,112,112,0.3)' }}
                     />
@@ -1879,7 +1994,7 @@ function StatePreview({
                     <textarea value={current.afterText ?? ''}
                       onChange={(e) => updateSlide(current.id, 'afterText', e.target.value)}
                       rows={3}
-                      style={{ width: '100%', backgroundColor: S2, border: `1px solid rgba(200,255,0,0.3)`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, lineHeight: 1.5, padding: '8px 10px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                      style={{ width: '100%', backgroundColor: S3, border: `1px solid rgba(200,255,0,0.3)`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, lineHeight: 1.5, padding: '8px 10px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
                       onFocus={(e) => { e.target.style.borderColor = A }}
                       onBlur={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.3)' }}
                     />
@@ -1892,7 +2007,7 @@ function StatePreview({
                     {(['titulo', 'corpo'] as const).map((tab) => {
                       const sel = secTextoTab === tab
                       const isTitulo = tab === 'titulo'
-                      const activeColor = isTitulo ? '#C8FF00' : '#00B4D8'
+                      const activeColor = isTitulo ? '#C8FF00' : CYAN
                       return (
                         <button key={tab} onClick={() => { setSecTextoTab(tab); setSelectedEl(tab === 'titulo' ? 'titulo' : 'corpo') }} style={{
                           flex: 1, height: 36, borderRadius: 5, fontSize: 13, fontWeight: 700,
@@ -1922,7 +2037,7 @@ function StatePreview({
                         <textarea value={current.titulo}
                           onChange={(e) => { const val = e.target.value; updateSlide(current.id, 'titulo', val); saveFormatToDb(current.id, { titulo: val }) }}
                           rows={2}
-                          style={{ width: '100%', backgroundColor: S2, border: `1px solid rgba(200,255,0,0.25)`, borderRadius: 6, color: T, fontFamily: '"Bebas Neue", sans-serif', fontSize: 13, letterSpacing: 0.5, lineHeight: 1.3, padding: '8px 10px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                          style={{ width: '100%', backgroundColor: S3, border: `1px solid rgba(200,255,0,0.25)`, borderRadius: 6, color: T, fontFamily: '"Bebas Neue", sans-serif', fontSize: 13, letterSpacing: 0.5, lineHeight: 1.3, padding: '8px 10px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
                           onFocus={(e) => { e.target.style.borderColor = A }}
                           onBlur={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.25)' }}
                         />
@@ -1945,7 +2060,7 @@ function StatePreview({
                           onChange={(e) => { const val = e.target.value; updateSlide(current.id, 'corpo', val); saveFormatToDb(current.id, { corpo: val }) }}
                           rows={3}
                           placeholder="Digite o texto. Use Enter para nova linha."
-                          style={{ width: '100%', backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 6, color: 'rgba(255,255,255,0.7)', fontFamily: ff, fontSize: 12, lineHeight: 1.6, padding: '8px 10px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', transition: 'border-color 0.2s', whiteSpace: 'pre-wrap' }}
+                          style={{ width: '100%', backgroundColor: S3, border: `1px solid ${B}`, borderRadius: 6, color: 'rgba(255,255,255,0.7)', fontFamily: ff, fontSize: 12, lineHeight: 1.6, padding: '8px 10px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', transition: 'border-color 0.2s', whiteSpace: 'pre-wrap' }}
                           onFocus={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.25)' }}
                           onBlur={(e) => { e.target.style.borderColor = B }}
                         />
@@ -2025,7 +2140,7 @@ function StatePreview({
                         value={current.ctaText ?? ''}
                         onChange={(e) => updateTitleStyle(current.id, { ctaText: e.target.value })}
                         placeholder="Salve para não perder"
-                        style={{ width: '100%', backgroundColor: S2, border: `1px solid rgba(200,255,0,0.25)`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, padding: '6px 8px', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                        style={{ width: '100%', backgroundColor: S3, border: `1px solid rgba(200,255,0,0.25)`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, padding: '6px 8px', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
                         onFocus={(e) => { e.target.style.borderColor = A }}
                         onBlur={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.25)' }}
                       />
@@ -2135,8 +2250,8 @@ function StatePreview({
                         onClick={() => updateTitleStyle(current.id, { bgPattern: key })}
                         style={{
                           backgroundColor: active ? 'rgba(0,180,216,0.15)' : S2,
-                          border: `1px solid ${active ? '#00B4D8' : B}`,
-                          borderRadius: 6, color: active ? '#00B4D8' : M,
+                          border: `1px solid ${active ? CYAN : B}`,
+                          borderRadius: 6, color: active ? CYAN : M,
                           fontFamily: ff, fontSize: 11, padding: '6px 0',
                           cursor: 'pointer', transition: 'all 0.15s',
                         }}
@@ -2179,13 +2294,13 @@ function StatePreview({
                   value={current.bgFilter ?? 'none'}
                   onChange={(e) => updateBgFilter(current.id, e.target.value)}
                   style={{
-                    width: '100%', backgroundColor: S2, border: `1px solid ${B}`,
+                    width: '100%', backgroundColor: S3, border: `1px solid ${B}`,
                     borderRadius: 6, color: T, fontFamily: ff, fontSize: 12,
                     padding: '6px 8px', outline: 'none', cursor: 'pointer',
                   }}
                 >
                   {BG_FILTER_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value} style={{ backgroundColor: S2 }}>{o.label}</option>
+                    <option key={o.value} value={o.value} style={{ backgroundColor: S3 }}>{o.label}</option>
                   ))}
                 </select>
               </div>
@@ -2196,7 +2311,7 @@ function StatePreview({
                   onClick={() => { if (carouselId && current) { uploadTargetSlideId.current = current.id; fileInputRef.current?.click() } }}
                   style={{
                     height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                    background: S2, border: `1px solid ${B}`, borderRadius: 8,
+                    background: S3, border: `1px solid ${B}`, borderRadius: 8,
                     color: M, fontFamily: ff, fontSize: 12, fontWeight: 600, cursor: 'pointer',
                     transition: 'border-color 0.15s, color 0.15s',
                   }}
@@ -2206,21 +2321,67 @@ function StatePreview({
                   <Image size={12} /> Trocar imagem
                 </button>
                 {carouselId && (
-                  <button
-                    onClick={handleGenerateImages}
-                    disabled={generatingImages}
-                    style={{
-                      height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                      background: 'rgba(0,180,216,0.1)', border: `1px solid #00B4D8`, borderRadius: 8,
-                      color: '#00B4D8', fontFamily: ff, fontSize: 12, fontWeight: 600,
-                      cursor: generatingImages ? 'not-allowed' : 'pointer',
-                      opacity: generatingImages ? 0.6 : 1, transition: 'background 0.15s',
-                    }}
-                    onMouseEnter={(e) => { if (!generatingImages) e.currentTarget.style.background = 'rgba(0,180,216,0.2)' }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0,180,216,0.1)' }}
-                  >
-                    <Sparkles size={12} /> {imageGenProgress ?? 'Gerar com IA'}
-                  </button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {/* Progress bar da fila */}
+                    {generatingImages && imageQueueStatus.total > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: 10, color: CYAN, fontFamily: ff }}>
+                            {imageQueueStatus.current}/{imageQueueStatus.total} slides
+                          </span>
+                          <span style={{ fontSize: 10, color: M, fontFamily: ff }}>
+                            {Math.round((imageQueueStatus.current / imageQueueStatus.total) * 100)}%
+                          </span>
+                        </div>
+                        <div style={{ height: 3, background: B, borderRadius: 99, overflow: 'hidden' }}>
+                          <div style={{
+                            height: '100%',
+                            width: `${(imageQueueStatus.current / imageQueueStatus.total) * 100}%`,
+                            background: CYAN,
+                            borderRadius: 99,
+                            transition: 'width 0.4s ease',
+                          }} />
+                        </div>
+                        <span style={{ fontSize: 9, color: M, fontFamily: ff, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {imageQueueStatus.currentTitle}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Botão gerar todos */}
+                    <button
+                      onClick={() => handleGenerateImages()}
+                      disabled={generatingImages}
+                      style={{
+                        height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                        background: generatingImages ? 'transparent' : 'rgba(0,180,216,0.1)',
+                        border: '1px solid #00B4D8', borderRadius: 8,
+                        color: CYAN, fontFamily: ff, fontSize: 12, fontWeight: 600,
+                        cursor: generatingImages ? 'not-allowed' : 'pointer',
+                        opacity: generatingImages ? 0.6 : 1,
+                      }}
+                    >
+                      <Sparkles size={12} />
+                      {generatingImages ? imageGenProgress ?? 'Gerando...' : `Gerar todos (${slides.length} slides)`}
+                    </button>
+
+                    {/* Botão gerar só este slide */}
+                    {current && !generatingImages && (
+                      <button
+                        onClick={() => handleGenerateImages(current.id)}
+                        style={{
+                          height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                          background: 'transparent', border: `1px solid ${B}`, borderRadius: 7,
+                          color: M, fontFamily: ff, fontSize: 11, cursor: 'pointer',
+                          transition: 'all 0.15s',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = CYAN; e.currentTarget.style.color = CYAN }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = B; e.currentTarget.style.color = M }}
+                      >
+                        <Sparkles size={11} /> Gerar só este slide
+                      </button>
+                    )}
+                  </div>
                 )}
                 {current.bgImageUrl && (
                   <button
@@ -2247,7 +2408,7 @@ function StatePreview({
                     onClick={() => { if (carouselId && current) { afterImageTargetId.current = current.id; afterImageFileInputRef.current?.click() } }}
                     style={{
                       height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                      background: S2, border: `1px solid ${B}`, borderRadius: 7,
+                      background: S3, border: `1px solid ${B}`, borderRadius: 7,
                       color: M, fontFamily: ff, fontSize: 12, cursor: 'pointer',
                       transition: 'border-color 0.15s, color 0.15s',
                     }}
@@ -2282,9 +2443,9 @@ function StatePreview({
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   {selectedEl && (
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: selectedEl === 'titulo' ? '#C8FF00' : '#00B4D8', display: 'inline-block', flexShrink: 0 }} />
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: selectedEl === 'titulo' ? '#C8FF00' : CYAN, display: 'inline-block', flexShrink: 0 }} />
                   )}
-                  <span style={{ fontSize: 11, color: selectedEl ? (selectedEl === 'titulo' ? '#C8FF00' : '#00B4D8') : M, fontFamily: ff, fontWeight: 700, letterSpacing: 0.3 }}>
+                  <span style={{ fontSize: 11, color: selectedEl ? (selectedEl === 'titulo' ? '#C8FF00' : CYAN) : M, fontFamily: ff, fontWeight: 700, letterSpacing: 0.3 }}>
                     {selectedEl ? `✎ ${selectedEl === 'titulo' ? 'TÍTULO' : 'CORPO'}` : 'Selecione um elemento'}
                   </span>
                 </div>
@@ -2332,7 +2493,7 @@ function StatePreview({
                     <input type="number" min={10} max={160}
                       value={selectedEl === 'titulo' ? (current.titleFontSize ?? 80) : (current.bodyFontSize ?? 28)}
                       onChange={(e) => updateSlideFormat(current.id, selectedEl === 'titulo' ? { titleFontSize: Number(e.target.value) } : { bodyFontSize: Number(e.target.value) })}
-                      style={{ width: '100%', backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, padding: '5px 4px', outline: 'none', textAlign: 'center', boxSizing: 'border-box' }}
+                      style={{ width: '100%', backgroundColor: S3, border: `1px solid ${B}`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, padding: '5px 4px', outline: 'none', textAlign: 'center', boxSizing: 'border-box' }}
                     />
                   </div>
                 </div>
@@ -2447,7 +2608,7 @@ function StatePreview({
                     {highlighted.length > 0 && (
                       <>
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: 4 }}>
-                          {['#C8FF00','#FFD700','#FF4444','#A855F7','#10B981','#FF8C00','#FF69B4','#00B4D8','#F5F5F5','#000000'].map((c) => (
+                          {['#C8FF00','#FFD700','#FF4444','#A855F7','#10B981','#FF8C00','#FF69B4',CYAN,'#F5F5F5','#000000'].map((c) => (
                             <div key={c} onClick={() => updateTitleStyle(current.id, { accentColor: c })} style={{
                               width: 20, height: 20, borderRadius: 5, backgroundColor: c, cursor: 'pointer', flexShrink: 0,
                               border: accentClr === c ? '2px solid #fff' : '2px solid transparent',
@@ -2505,7 +2666,7 @@ function StatePreview({
                     <input type="text" value={current.profileHandle ?? ''}
                       onChange={(e) => updateTitleStyle(current.id, { profileHandle: e.target.value })}
                       placeholder="@seu.perfil"
-                      style={{ width: '100%', backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, padding: '6px 8px', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                      style={{ width: '100%', backgroundColor: S3, border: `1px solid ${B}`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, padding: '6px 8px', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
                       onFocus={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.4)' }}
                       onBlur={(e) => { e.target.style.borderColor = B }}
                     />
@@ -2528,7 +2689,7 @@ function StatePreview({
                       <input type="text" value={current.profileAvatarUrl ?? ''}
                         onChange={(e) => updateTitleStyle(current.id, { profileAvatarUrl: e.target.value })}
                         placeholder="https://..."
-                        style={{ width: '100%', backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, padding: '6px 8px', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                        style={{ width: '100%', backgroundColor: S3, border: `1px solid ${B}`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, padding: '6px 8px', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
                         onFocus={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.4)' }}
                         onBlur={(e) => { e.target.style.borderColor = B }}
                       />
@@ -2540,10 +2701,10 @@ function StatePreview({
                           <img src={current.profileAvatarUrl} alt="avatar"
                             style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: `1px solid ${B}` }} />
                         ) : (
-                          <div style={{ width: 32, height: 32, borderRadius: '50%', backgroundColor: S2, border: `1px dashed ${B}`, flexShrink: 0 }} />
+                          <div style={{ width: 32, height: 32, borderRadius: '50%', backgroundColor: S3, border: `1px dashed ${B}`, flexShrink: 0 }} />
                         )}
                         <button onClick={() => avatarFileInputRef.current?.click()} disabled={uploadingAvatar}
-                          style={{ flex: 1, height: 30, backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 6, color: uploadingAvatar ? M2 : M, fontFamily: ff, fontSize: 11, cursor: uploadingAvatar ? 'not-allowed' : 'pointer' }}>
+                          style={{ flex: 1, height: 30, backgroundColor: S3, border: `1px solid ${B}`, borderRadius: 6, color: uploadingAvatar ? M2 : M, fontFamily: ff, fontSize: 11, cursor: uploadingAvatar ? 'not-allowed' : 'pointer' }}>
                           {uploadingAvatar ? 'Enviando...' : 'Escolher foto'}
                         </button>
                         {current.profileAvatarUrl && (
@@ -2584,7 +2745,7 @@ function StatePreview({
                   <div>
                     <span style={{ fontSize: 10, color: M, fontFamily: ff, display: 'block', marginBottom: 6 }}>Fundo do badge</span>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                      {['transparent', '#000000', '#ffffff', '#C8FF00', '#00B4D8', '#FF4444', '#FFD700', '#FF69B4'].map((c) => {
+                      {['transparent', '#000000', '#ffffff', '#C8FF00', CYAN, '#FF4444', '#FFD700', '#FF69B4'].map((c) => {
                         const sel = (current.profileBadgeBg ?? 'transparent') === c
                         return (
                           <div key={c} onClick={() => updateTitleStyle(current.id, { profileBadgeBg: c })} style={{
@@ -2763,7 +2924,7 @@ function StatePreview({
             }
           >
             <textarea value={legenda} onChange={(e) => setLegenda(e.target.value)} rows={6}
-              style={{ width: '100%', backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 7, color: T, fontSize: 12, fontFamily: ff, lineHeight: 1.7, padding: '10px 12px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+              style={{ width: '100%', backgroundColor: S3, border: `1px solid ${B}`, borderRadius: 7, color: T, fontSize: 12, fontFamily: ff, lineHeight: 1.7, padding: '10px 12px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
               onFocus={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.3)' }}
               onBlur={(e) => { e.target.style.borderColor = B }}
             />
@@ -2963,12 +3124,12 @@ function StatePreview({
               {/* Navigation */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 20 }}>
                 <button onClick={() => setActiveSlide((p) => Math.max(0, p - 1))} disabled={activeSlide === 0}
-                  style={{ width: 36, height: 36, borderRadius: '50%', backgroundColor: S2, border: `1px solid ${B}`, color: activeSlide === 0 ? M2 : T, cursor: activeSlide === 0 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
+                  style={{ width: 36, height: 36, borderRadius: '50%', backgroundColor: S3, border: `1px solid ${B}`, color: activeSlide === 0 ? M2 : T, cursor: activeSlide === 0 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
                   <ChevronLeft size={16} />
                 </button>
                 <span style={{ fontSize: 13, color: M, fontFamily: ff, fontWeight: 600 }}>{activeSlide + 1} / {slides.length}</span>
                 <button onClick={() => setActiveSlide((p) => Math.min(slides.length - 1, p + 1))} disabled={activeSlide === slides.length - 1}
-                  style={{ width: 36, height: 36, borderRadius: '50%', backgroundColor: S2, border: `1px solid ${B}`, color: activeSlide === slides.length - 1 ? M2 : T, cursor: activeSlide === slides.length - 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
+                  style={{ width: 36, height: 36, borderRadius: '50%', backgroundColor: S3, border: `1px solid ${B}`, color: activeSlide === slides.length - 1 ? M2 : T, cursor: activeSlide === slides.length - 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
                   <ChevronRight size={16} />
                 </button>
               </div>
@@ -2976,7 +3137,7 @@ function StatePreview({
               {/* Edit indicator + hack */}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, marginTop: 10 }}>
                 {selectedEl && (
-                  <span style={{ fontFamily: ff, fontSize: 11, color: selectedEl === 'titulo' ? A : '#00B4D8', margin: 0 }}>
+                  <span style={{ fontFamily: ff, fontSize: 11, color: selectedEl === 'titulo' ? A : CYAN, margin: 0 }}>
                     {selectedEl === 'titulo' ? '✎ editando título' : '✎ editando corpo'}
                   </span>
                 )}
@@ -3002,8 +3163,8 @@ function StatePreview({
                       <button key={key} onClick={() => setImageStyle(key)} style={{
                         padding: '5px 12px', borderRadius: 6,
                         backgroundColor: sel ? 'rgba(0,180,216,0.15)' : S2,
-                        border: `1px solid ${sel ? '#00B4D8' : B}`,
-                        color: sel ? '#00B4D8' : M, fontSize: 11, fontFamily: ff,
+                        border: `1px solid ${sel ? CYAN : B}`,
+                        color: sel ? CYAN : M, fontSize: 11, fontFamily: ff,
                         fontWeight: sel ? 600 : 400, cursor: 'pointer', transition: 'all 0.15s',
                       }}>{label}</button>
                     )
@@ -3128,7 +3289,7 @@ function StatePreview({
                 value={scheduleDate}
                 onChange={(e) => setScheduleDate(e.target.value)}
                 style={{
-                  backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 8,
+                  backgroundColor: S3, border: `1px solid ${B}`, borderRadius: 8,
                   color: T, fontFamily: ff, fontSize: 13, padding: '10px 12px', outline: 'none',
                   colorScheme: 'dark',
                 }}
@@ -3174,7 +3335,7 @@ function StatePreview({
         <button
           onClick={() => setShowSchedule(true)}
           style={{
-            height: 38, padding: '0 16px', backgroundColor: S2,
+            height: 38, padding: '0 16px', backgroundColor: S3,
             border: `1px solid ${B}`, borderRadius: 8, color: T,
             fontSize: 13, fontFamily: ff, fontWeight: 600, cursor: 'pointer', transition: 'border-color 0.15s',
           }}
@@ -3207,7 +3368,7 @@ function StatePreview({
           onChange={e => setExportName(e.target.value)}
           placeholder="nome do arquivo"
           style={{
-            height: 38, padding: '0 12px', backgroundColor: S2,
+            height: 38, padding: '0 12px', backgroundColor: S3,
             border: `1px solid ${B}`, borderRadius: 8, color: T,
             fontSize: 13, fontFamily: ff, outline: 'none', width: 160,
           }}
@@ -3442,9 +3603,7 @@ export default function Studio() {
         .eq('carousel_id', result.carousel_id)
         .order('position')
       if (slides && slides.length > 0) {
-        setLoadedCarousel({
-          carouselId: result.carousel_id,
-          slides: slides.map((s) => ({
+        const mappedSlides = slides.map((s) => ({
             id: s.id as string,
             titulo: (s.titulo as string) ?? '',
             corpo: (s.corpo as string) ?? '',
@@ -3507,7 +3666,16 @@ export default function Studio() {
             bgPattern:             (s.bg_pattern as string)                         ?? undefined,
             bgPatternOpacity:      (s.bg_pattern_opacity as number)                 ?? undefined,
             bgSolidColor:          (s.bg_solid_color as string)                     ?? undefined,
-          })),
+          }))
+          const slidesWithRole = mappedSlides.map((s, i, arr) => ({
+            ...s,
+            slideRole: i === 0 ? 'capa' as const
+              : i === arr.length - 1 ? 'cta' as const
+              : 'conteudo' as const,
+          }))
+          setLoadedCarousel({
+          carouselId: result.carousel_id,
+          slides: slidesWithRole,
           legenda: result.legenda,
           hasWatermark: result.has_watermark ?? false,
           previewToken: result.preview_token ?? '',
