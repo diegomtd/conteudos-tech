@@ -404,10 +404,21 @@ function StateInput({
         onKeyDown={(e) => { if (e.key === 'Enter' && canCreate) onGenerate({ tema, slides, tom, cta, instructions: iaInstructions.trim() || undefined }) }}
         style={{
           ...inputSt, width: '100%', height: 72, padding: '0 20px',
-          fontSize: 18, boxSizing: 'border-box',
+          fontSize: 17,
+          boxSizing: 'border-box',
+          background: '#0D0D0D',
+          border: '1px solid rgba(255,255,255,0.12)',
+          borderRadius: 12,
+          transition: 'border-color 0.2s, box-shadow 0.2s',
         }}
-        onFocus={(e) => { e.target.style.borderColor = A }}
-        onBlur={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.3)' }}
+        onFocus={(e) => {
+          e.target.style.borderColor = 'rgba(200,255,0,0.5)'
+          e.target.style.boxShadow = '0 0 0 3px rgba(200,255,0,0.08)'
+        }}
+        onBlur={(e) => {
+          e.target.style.borderColor = 'rgba(255,255,255,0.12)'
+          e.target.style.boxShadow = 'none'
+        }}
       />
 
       {/* Botão "Analisar conteúdo viral" */}
@@ -639,17 +650,35 @@ function StateInput({
                 <div
                   key={i}
                   style={{
-                    backgroundColor: S3, border: `1px solid ${B}`,
-                    borderRadius: 8, padding: '10px 14px',
-                    cursor: 'pointer', transition: 'border-color 0.15s',
-                    display: 'flex', flexDirection: 'column', gap: 4,
+                    backgroundColor: '#0D0D0D',
+                    border: '1px solid rgba(255,255,255,0.07)',
+                    borderRadius: 10, padding: '10px 14px',
+                    cursor: 'pointer', transition: 'all 0.15s',
+                    display: 'flex', flexDirection: 'column', gap: 3,
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(200,255,0,0.3)' }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = B }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.borderColor = 'rgba(200,255,0,0.3)'
+                    e.currentTarget.style.background = 'rgba(200,255,0,0.03)'
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
+                    e.currentTarget.style.background = '#0D0D0D'
+                  }}
                   onClick={() => { setTema(t.titulo); setSuggestedTopics([]) }}
                 >
-                  <span style={{ fontSize: 13, color: T, fontFamily: ff, lineHeight: 1.3 }}>{t.titulo}</span>
-                  <span style={{ fontSize: 11, color: M, fontFamily: ff, lineHeight: 1.4 }}>{t.hook}</span>
+                  <span style={{ fontSize: 13, color: T, fontFamily: ff, lineHeight: 1.3, fontWeight: 500 }}>{t.titulo}</span>
+                  {t.hook && (
+                    <span style={{ fontSize: 10, color: M, fontFamily: ff, lineHeight: 1.4, fontStyle: 'italic' }}>{t.hook}</span>
+                  )}
+                  {t.tipo && (
+                    <span style={{
+                      alignSelf: 'flex-start', fontSize: 9,
+                      color: ({ curiosity_gap: CYAN, pattern_interrupt: '#C8FF00', identity_mirror: '#A855F7', revelation: '#F59E0B', social_proof: '#10B981', urgency: '#EF4444' } as Record<string, string>)[t.tipo] ?? M,
+                      fontFamily: ff, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase',
+                    }}>
+                      {({ curiosity_gap: 'Curiosidade', pattern_interrupt: 'Quebra padrão', identity_mirror: 'Espelho', revelation: 'Revelação', social_proof: 'Prova social', urgency: 'Urgência' } as Record<string, string>)[t.tipo] ?? t.tipo}
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
@@ -681,21 +710,24 @@ function StateInput({
           onClick={() => onGenerate({ tema, slides, tom, cta, instructions: iaInstructions.trim() || undefined })}
           disabled={!canCreate}
           style={{
-            width: '100%', height: 56,
-            backgroundColor: canCreate ? A : S2,
-            color: canCreate ? '#000' : M,
-            border: 'none', borderRadius: 10,
+            width: '100%', height: 60,
+            background: canCreate
+              ? 'linear-gradient(135deg, #C8FF00 0%, #A8E800 100%)'
+              : '#131313',
+            color: canCreate ? '#000' : 'rgba(255,255,255,0.2)',
+            border: canCreate ? 'none' : '1px solid rgba(255,255,255,0.07)',
+            borderRadius: 12,
             fontFamily: '"Bebas Neue", sans-serif', fontSize: 22,
-            letterSpacing: 1.5, cursor: canCreate ? 'pointer' : 'not-allowed',
-            opacity: canCreate ? 1 : 0.5,
-            transition: 'all 0.2s', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', gap: 10,
+            letterSpacing: 2, cursor: canCreate ? 'pointer' : 'not-allowed',
+            transition: 'all 0.2s',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+            boxShadow: canCreate ? '0 8px 32px rgba(200,255,0,0.25)' : 'none',
           }}
-          onMouseEnter={(e) => { if (canCreate) e.currentTarget.style.backgroundColor = '#ADDF00' }}
-          onMouseLeave={(e) => { if (canCreate) e.currentTarget.style.backgroundColor = A }}
+          onMouseEnter={(e) => { if (canCreate) e.currentTarget.style.transform = 'translateY(-1px)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)' }}
         >
           <Zap size={18} />
-          ANALISAR E CRIAR CARROSSEL →
+          ANALISAR E CRIAR CARROSSEL
         </button>
         <span style={{ fontFamily: ff, fontSize: 12, color: M, textAlign: 'center' }}>
           Gera copy, aplica hacks virais e monta o carrossel em ~30 segundos
@@ -2455,6 +2487,39 @@ function StatePreview({
                   </button>
                 )}
               </div>
+              {/* Escala Global — redimensiona título e corpo proporcionalmente */}
+              {current && (
+                <div style={{ marginBottom: 8 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span style={{ fontSize: 9, color: M, fontFamily: ff, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                      Escala global
+                    </span>
+                    <span style={{ fontSize: 9, color: A, fontFamily: ff, fontWeight: 700 }}>
+                      {Math.round(((current.titleFontSize ?? 80) / 80) * 100)}%
+                    </span>
+                  </div>
+                  <input
+                    type="range" min={40} max={160}
+                    value={Math.round(((current.titleFontSize ?? 80) / 80) * 100)}
+                    onChange={(e) => {
+                      const scale = Number(e.target.value) / 100
+                      updateSlideFormat(current.id, {
+                        titleFontSize: Math.round(80 * scale),
+                        bodyFontSize: Math.round(28 * scale),
+                      })
+                    }}
+                    style={{ width: '100%', accentColor: A, cursor: 'pointer' }}
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: 9, color: M2, fontFamily: ff }}>Menor</span>
+                    <button
+                      onClick={() => updateSlideFormat(current.id, { titleFontSize: 80, bodyFontSize: 28 })}
+                      style={{ fontSize: 9, color: M, fontFamily: ff, background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+                    >Reset</button>
+                    <span style={{ fontSize: 9, color: M2, fontFamily: ff }}>Maior</span>
+                  </div>
+                </div>
+              )}
               <div style={{ opacity: selectedEl ? 1 : 0.4, pointerEvents: selectedEl ? 'auto' : 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {/* Pares de fonte — sistema MyPostFlow */}
                 <div>
