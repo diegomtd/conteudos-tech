@@ -3382,78 +3382,92 @@ function StatePreview({
       )}
     </AnimatePresence>
 
-    {/* Bottom bar */}
+    {/* Bottom bar v2 */}
     <div style={{
-      height: 60, borderTop: `1px solid ${B}`,
-      backgroundColor: 'rgba(8,8,8,0.9)', backdropFilter: 'blur(12px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '0 24px', flexShrink: 0,
+      height: 56, borderTop: `1px solid ${B}`,
+      backgroundColor: 'rgba(7,7,7,0.97)', backdropFilter: 'blur(12px)',
+      display: 'flex', alignItems: 'center',
+      padding: '0 20px', gap: 10, flexShrink: 0,
     }}>
+      {/* Esquerda: voltar */}
       <button
         onClick={onBack}
-        style={{ background: 'none', border: 'none', color: M, fontSize: 13, fontFamily: ff, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+        style={{ background: 'none', border: 'none', color: M, fontSize: 13, fontFamily: ff, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, padding: '0 8px', height: 36, borderRadius: 8, transition: 'all 0.15s' }}
+        onMouseEnter={e => { e.currentTarget.style.background = B; e.currentTarget.style.color = T }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = M }}
       >
         <ChevronLeft size={14} /> Novo tema
       </button>
 
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div style={{ width: 1, height: 20, background: B }} />
+
+      {/* Centro: ações */}
+      <div style={{ flex: 1, display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'center' }}>
         <button
           onClick={() => setShowSchedule(true)}
           style={{
-            height: 38, padding: '0 16px', backgroundColor: S3,
-            border: `1px solid ${B}`, borderRadius: 8, color: T,
-            fontSize: 13, fontFamily: ff, fontWeight: 600, cursor: 'pointer', transition: 'border-color 0.15s',
+            height: 36, padding: '0 16px', background: 'transparent',
+            border: `1px solid ${B}`, borderRadius: 8, color: M,
+            fontSize: 13, fontFamily: ff, cursor: 'pointer', transition: 'all 0.15s',
+            display: 'flex', alignItems: 'center', gap: 6,
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = B }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; e.currentTarget.style.color = T }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = B; e.currentTarget.style.color = M }}
         >
           Agendar
         </button>
+
         {previewToken && (
           <button
-            onClick={() => {
-              const url = `https://conteudos.tech/preview/${previewToken}`
-              navigator.clipboard.writeText(url).then(() => toast.success('Link copiado'))
-            }}
+            onClick={() => { navigator.clipboard.writeText(`https://conteudos.tech/preview/${previewToken}`).then(() => toast.success('Link copiado')) }}
             style={{
-              height: 38, padding: '0 16px', backgroundColor: 'none',
-              background: 'rgba(200,255,0,0.06)', border: `1px solid rgba(200,255,0,0.3)`,
+              height: 36, padding: '0 16px',
+              background: 'rgba(200,255,0,0.06)',
+              border: `1px solid rgba(200,255,0,0.2)`,
               borderRadius: 8, color: A,
-              fontSize: 13, fontFamily: ff, fontWeight: 600, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: 6, transition: 'background 0.15s',
+              fontSize: 13, fontFamily: ff, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(200,255,0,0.12)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(200,255,0,0.06)' }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(200,255,0,0.12)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'rgba(200,255,0,0.06)'}
           >
             <Share2 size={13} /> Compartilhar
           </button>
         )}
+      </div>
+
+      {/* Direita: export */}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         <input
           value={exportName}
           onChange={e => setExportName(e.target.value)}
           placeholder="nome do arquivo"
           style={{
-            height: 38, padding: '0 12px', backgroundColor: S3,
+            height: 36, padding: '0 12px',
+            background: S3,
             border: `1px solid ${B}`, borderRadius: 8, color: T,
-            fontSize: 13, fontFamily: ff, outline: 'none', width: 160,
+            fontSize: 12, fontFamily: ff, outline: 'none', width: 140,
+            transition: 'border-color 0.15s',
           }}
-          onFocus={e => e.target.style.borderColor = 'rgba(200,255,0,0.4)'}
+          onFocus={e => e.target.style.borderColor = 'rgba(200,255,0,0.3)'}
           onBlur={e => e.target.style.borderColor = B}
         />
         <button
           onClick={handleExport}
           disabled={exporting}
           style={{
-            height: 38, padding: '0 22px',
-            backgroundColor: exporting ? S2 : A,
-            border: exporting ? `1px solid ${B}` : 'none',
-            borderRadius: 8, color: exporting ? M : '#000',
+            height: 36, padding: '0 20px',
+            background: exporting ? S2 : 'linear-gradient(135deg, #C8FF00 0%, #A8E800 100%)',
+            border: 'none', borderRadius: 8, color: exporting ? M : '#000',
             fontSize: 13, fontFamily: ff, fontWeight: 700,
-            cursor: exporting ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
-            display: 'flex', alignItems: 'center', gap: 7, opacity: exporting ? 0.7 : 1,
+            cursor: exporting ? 'not-allowed' : 'pointer',
+            display: 'flex', alignItems: 'center', gap: 7,
+            opacity: exporting ? 0.7 : 1,
+            transition: 'all 0.15s',
+            boxShadow: exporting ? 'none' : '0 4px 16px rgba(200,255,0,0.2)',
           }}
-          onMouseEnter={(e) => { if (!exporting) e.currentTarget.style.backgroundColor = '#ADDF00' }}
-          onMouseLeave={(e) => { if (!exporting) e.currentTarget.style.backgroundColor = A }}
+          onMouseEnter={(e) => { if (!exporting) e.currentTarget.style.transform = 'translateY(-1px)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)' }}
         >
           {exporting
             ? <><div style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.2)', borderTopColor: T, animation: 'spin 0.7s linear infinite' }} /> Exportando...</>
