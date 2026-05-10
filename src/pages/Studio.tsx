@@ -2286,56 +2286,76 @@ function StatePreview({
 
           {/* ─ Section 5: DESTAQUE DE PALAVRAS ─ */}
           {current && (
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '16px 12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '14px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
               <span style={{ fontSize: 10, color: M, fontFamily: ff, fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase' }}>Destaque de palavras</span>
               {(() => {
-                const allText = `${current.titulo ?? ''} ${current.corpo ?? ''}`
+                const allText = (current.titulo ?? '') + ' ' + (current.corpo ?? '')
                 const chips = [...new Set(
                   allText.split(/\s+/)
                     .map(w => w.replace(/[.,!?;:"""''«»\-]/g, '').toUpperCase())
                     .filter(w => w.length >= 3)
                 )]
-                const highlighted = current.highlightedWords ?? []
+                const highlighted: string[] = Array.isArray(current.highlightedWords)
+                  ? current.highlightedWords
+                  : typeof current.highlightedWords === 'string' && (current.highlightedWords as unknown as string).trim()
+                  ? (() => { try { return JSON.parse(current.highlightedWords as unknown as string) } catch { return [] } })()
+                  : []
+                const accentClr = current.accentColor ?? '#C8FF00'
+                if (chips.length === 0) return (
+                  <p style={{ fontSize: 11, color: M, fontFamily: ff, margin: 0 }}>Adicione texto para destacar palavras</p>
+                )
                 return (
                   <>
+                    {highlighted.length === 0 && (
+                      <p style={{ fontSize: 10, color: M, fontFamily: ff, margin: '0 0 4px', lineHeight: 1.5 }}>
+                        ↑ Clique nas palavras do slide para destacar
+                      </p>
+                    )}
                     <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                       {chips.map((w) => {
                         const isActive = highlighted.includes(w)
                         return (
-                          <button
-                            key={w}
-                            onClick={() => {
-                              const newH = isActive ? highlighted.filter(h => h !== w) : [...highlighted, w]
-                              updateTitleStyle(current.id, { highlightedWords: newH, accentColor: current.accentColor ?? '#C8FF00' })
-                            }}
-                            style={{
-                              padding: '3px 9px', borderRadius: 20, border: 'none', cursor: 'pointer',
-                              fontFamily: ff, fontSize: 10, fontWeight: isActive ? 700 : 400,
-                              background: isActive ? (current.accentColor ?? A) : 'rgba(255,255,255,0.07)',
-                              color: isActive ? '#000' : 'rgba(255,255,255,0.65)',
-                              transition: 'all 0.15s',
-                            }}
-                          >
-                            {w}
-                          </button>
+                          <button key={w} onClick={() => {
+                            const newH = isActive ? highlighted.filter(h => h !== w) : [...highlighted, w]
+                            updateTitleStyle(current.id, { highlightedWords: newH, accentColor: current.accentColor ?? '#C8FF00' })
+                          }} style={{
+                            padding: '3px 9px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                            fontFamily: ff, fontSize: 10, fontWeight: isActive ? 700 : 400,
+                            background: isActive ? accentClr : 'rgba(255,255,255,0.07)',
+                            color: isActive ? '#000' : 'rgba(255,255,255,0.65)',
+                            transition: 'all 0.15s',
+                          }}>{w}</button>
                         )
                       })}
                     </div>
                     {highlighted.length > 0 && (
                       <>
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: 4 }}>
-                          {TEXT_COLORS.map((c) => (
+                          {['#C8FF00','#FFD700','#FF4444','#A855F7','#10B981','#FF8C00','#FF69B4','#00B4D8','#F5F5F5','#000000'].map((c) => (
                             <div key={c} onClick={() => updateTitleStyle(current.id, { accentColor: c })} style={{
-                              width: 20, height: 20, borderRadius: '50%', backgroundColor: c, cursor: 'pointer', flexShrink: 0,
-                              border: (current.accentColor ?? '#C8FF00') === c ? '2px solid #fff' : '2px solid transparent',
+                              width: 20, height: 20, borderRadius: 5, backgroundColor: c, cursor: 'pointer', flexShrink: 0,
+                              border: accentClr === c ? '2px solid #fff' : '2px solid transparent',
                               transition: 'border-color 0.15s',
                             }} />
                           ))}
+                          <input type="color" value={accentClr}
+                            onChange={(e) => updateTitleStyle(current.id, { accentColor: e.target.value })}
+                            style={{ width: 20, height: 20, borderRadius: 5, border: 'none', cursor: 'pointer', padding: 0, backgroundColor: 'transparent', flexShrink: 0 }} />
                         </div>
-                        <button onClick={() => updateTitleStyle(current.id, { highlightedWords: [] })}
-                          style={{ height: 26, background: 'none', border: `1px solid rgba(248,113,113,0.3)`, borderRadius: 6, color: '#f87171', fontFamily: ff, fontSize: 11, padding: '0 10px', cursor: 'pointer', alignSelf: 'flex-start' }}>
-                          Limpar destaques
-                        </button>
+                        <div style={{ display: 'flex', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+                          <button onClick={() => {
+                            if (activeSlide < slides.length - 1) {
+                              const nextId = slides[activeSlide + 1].id
+                              updateTitleStyle(nextId, { accentColor: current.accentColor, highlightedWords: current.highlightedWords })
+                            }
+                          }} style={{ fontSize: 10, color: A, fontFamily: ff, background: 'none', border: `1px solid rgba(200,255,0,0.25)`, borderRadius: 6, padding: '3px 8px', cursor: 'pointer' }}>
+                            Aplicar no próximo slide
+                          </button>
+                          <button onClick={() => updateTitleStyle(current.id, { highlightedWords: [] })}
+                            style={{ fontSize: 10, color: '#f87171', fontFamily: ff, background: 'none', border: '1px solid rgba(248,113,113,0.3)', borderRadius: 6, padding: '3px 8px', cursor: 'pointer' }}>
+                            Limpar
+                          </button>
+                        </div>
                       </>
                     )}
                   </>
@@ -3238,6 +3258,15 @@ export default function Studio() {
         profileBadgeSize:      (s.profile_badge_size as number)                ?? undefined,
         profileBadgeBg:        (s.profile_badge_bg as string)                  ?? undefined,
         profileBadgeTextColor: (s.profile_badge_text_color as string)          ?? undefined,
+        highlightedWords: Array.isArray(s.highlighted_words)
+          ? (s.highlighted_words as string[])
+          : typeof s.highlighted_words === 'string' && (s.highlighted_words as string).trim()
+          ? (() => { try { return JSON.parse(s.highlighted_words as string) } catch { return [] } })()
+          : [],
+        accentColor:           (s.accent_color as string)                       ?? '#C8FF00',
+        bgPattern:             (s.bg_pattern as string)                         ?? undefined,
+        bgPatternOpacity:      (s.bg_pattern_opacity as number)                 ?? undefined,
+        bgSolidColor:          (s.bg_solid_color as string)                     ?? undefined,
       }))
 
       setLoadedCarousel({
@@ -3353,14 +3382,15 @@ export default function Studio() {
             profileBadgeSize:      (s.profile_badge_size as number)                 ?? undefined,
             profileBadgeBg:        (s.profile_badge_bg as string)                   ?? undefined,
             profileBadgeTextColor: (s.profile_badge_text_color as string)           ?? undefined,
-            highlightedWords:      Array.isArray(s.highlighted_words)
+            highlightedWords: Array.isArray(s.highlighted_words)
               ? (s.highlighted_words as string[])
-              : typeof s.highlighted_words === 'string'
-              ? JSON.parse(s.highlighted_words)
-              : undefined,
+              : typeof s.highlighted_words === 'string' && (s.highlighted_words as string).trim()
+              ? (() => { try { return JSON.parse(s.highlighted_words as string) } catch { return [] } })()
+              : [],
             accentColor:           (s.accent_color as string)                       ?? '#C8FF00',
             bgPattern:             (s.bg_pattern as string)                         ?? undefined,
             bgPatternOpacity:      (s.bg_pattern_opacity as number)                 ?? undefined,
+            bgSolidColor:          (s.bg_solid_color as string)                     ?? undefined,
           })),
           legenda: result.legenda,
           hasWatermark: result.has_watermark ?? false,
