@@ -164,28 +164,51 @@ function bodyX(slide: SlideData, s: number): React.CSSProperties {
 }
 
 
+// ─── Text block positioning ───────────────────────────────────
+export function getTextBlockPosition(slide: SlideData, _s: number): React.CSSProperties {
+  const vPos   = slide.textPosition ?? 'bottom'
+  const hAlign = slide.textAlign    ?? 'left'
+  const justifyMap: Record<string, string> = { top: 'flex-start', center: 'center', bottom: 'flex-end' }
+  const alignMap:   Record<string, string> = { left: 'flex-start', center: 'center', right: 'flex-end' }
+  return {
+    display: 'flex', flexDirection: 'column',
+    justifyContent: justifyMap[vPos]   ?? 'flex-end',
+    alignItems:     alignMap[hAlign]   ?? 'flex-start',
+  }
+}
+
 // ─── Container style ──────────────────────────────────────────
 // backgroundImage intentionally omitted — rendered as z-indexed child in SlideRenderer
 
 export function getSlideContainerStyle(
   slide: SlideData,
-  index: number,
+  _index: number,
   _total: number,
   template: CarouselTemplate,
   imageStyle: string,
   scale: number,
 ): React.CSSProperties {
-  const hasImg  = !!slide.bgImageUrl
-  if (slide.bgSolidColor && !hasImg) return { ...{ position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }, background: slide.bgSolidColor, justifyContent: index === 0 ? 'center' : 'flex-end', alignItems: index === 0 ? 'center' : 'stretch', paddingTop: 20 * scale, paddingBottom: 20 * scale, paddingLeft: (slide.paddingX !== undefined ? slide.paddingX * scale : 20 * scale), paddingRight: (slide.paddingX !== undefined ? slide.paddingX * scale : 20 * scale) }
-  const pos     = slide.textPosition ?? 'bottom'
-  const justify = pos === 'top' ? 'flex-start' : pos === 'center' ? 'center' : 'flex-end'
-  const pad     = 20 * scale
+  const hasImg    = !!slide.bgImageUrl
+  const pos       = slide.textPosition ?? 'bottom'
+  const justify   = pos === 'top' ? 'flex-start' : pos === 'center' ? 'center' : 'flex-end'
+  const hAlign    = slide.textAlign ?? 'left'
+  const aItems    = hAlign === 'center' ? 'center' : hAlign === 'right' ? 'flex-end' : 'flex-start'
+  const pad       = 20 * scale
   const base: React.CSSProperties = {
     position: 'relative', overflow: 'hidden',
     display: 'flex', flexDirection: 'column',
   }
-
   const px = slide.paddingX !== undefined ? slide.paddingX * scale : pad
+
+  if (slide.bgSolidColor && !hasImg) return {
+    ...base,
+    background: slide.bgSolidColor,
+    justifyContent: justify,
+    alignItems: aItems,
+    paddingTop: 20 * scale, paddingBottom: 20 * scale,
+    paddingLeft: (slide.paddingX !== undefined ? slide.paddingX * scale : 20 * scale),
+    paddingRight: (slide.paddingX !== undefined ? slide.paddingX * scale : 20 * scale),
+  }
 
   if (template === 'split_visual') {
     return { ...base, background: '#0a0a0a', padding: 0 }
@@ -196,7 +219,8 @@ export function getSlideContainerStyle(
     return {
       ...base,
       background: '#0a0a0a',
-      justifyContent: index === 0 ? 'flex-start' : template === 'comparacao' ? 'center' : justify,
+      justifyContent: justify,
+      alignItems: aItems,
       paddingTop: pad, paddingBottom: pad, paddingLeft: px, paddingRight: px,
     }
   }
@@ -205,7 +229,8 @@ export function getSlideContainerStyle(
     const bg = hasImg ? {} : { background: IA_BG[imageStyle] ?? 'linear-gradient(160deg, #060d14, #0d1f30)' }
     return {
       ...base, ...bg,
-      justifyContent: 'flex-end',
+      justifyContent: justify,
+      alignItems: aItems,
       paddingTop: pad, paddingBottom: pad, paddingLeft: px, paddingRight: px,
     }
   }
@@ -214,8 +239,8 @@ export function getSlideContainerStyle(
   return {
     ...base,
     ...bg,
-    justifyContent: index === 0 ? 'center' : justify,
-    alignItems: index === 0 ? 'center' : 'stretch',
+    justifyContent: justify,
+    alignItems: aItems,
     paddingTop: pad, paddingBottom: pad,
     paddingLeft: px, paddingRight: px,
   }
@@ -529,13 +554,15 @@ function Editorial({ slide, index, total, selectedEl, onSelectEl, onBodyWordClic
       style: {
         fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
         color, margin: `0 0 ${blockGap(slide, s)}`, zIndex: Z_CONTENT,
+        textAlign: slide.textAlign ?? 'left',
+        width: '100%',
         cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
       },
     }, onTitleWordClick)}
     {renderSubtitle(slide, s)}
     {renderBodyWithHighlights(slide.corpo, slide, {
       onClick: () => onSelectEl?.('corpo'),
-      style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: 0, zIndex: Z_CONTENT, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+      style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: 0, zIndex: Z_CONTENT, textAlign: slide.textAlign ?? 'left', width: '100%', cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
     }, onBodyWordClick)}
     <div style={{
       position: 'absolute', bottom: `${12 * s}px`, left: `${18 * s}px`, right: `${18 * s}px`,
@@ -618,13 +645,15 @@ function Lista({ slide, index, total, selectedEl, onSelectEl, onBodyWordClick, o
       style: {
         fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
         color, margin: `0 0 ${blockGap(slide, s)}`, zIndex: Z_CONTENT,
+        textAlign: slide.textAlign ?? 'left',
+        width: '100%',
         cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
       },
     }, onTitleWordClick)}
     {renderSubtitle(slide, s)}
     {renderBodyWithHighlights(slide.corpo, slide, {
       onClick: () => onSelectEl?.('corpo'),
-      style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: 0, zIndex: Z_CONTENT, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+      style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: 0, zIndex: Z_CONTENT, textAlign: slide.textAlign ?? 'left', width: '100%', cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
     }, onBodyWordClick)}
     <ProgressDots />
   </>
@@ -835,13 +864,14 @@ function Storytelling({ slide, index, total, selectedEl, onSelectEl, onTitleMous
     ) : <>
       {renderBodyWithHighlights(slide.corpo, slide, {
         onClick: () => onSelectEl?.('corpo'),
-        style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: `0 0 ${blockGap(slide, s)}`, zIndex: Z_CONTENT, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+        style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: `0 0 ${blockGap(slide, s)}`, zIndex: Z_CONTENT, textAlign: slide.textAlign ?? 'left', width: '100%', cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
       }, onBodyWordClick)}
       {renderTitleWithHighlights(slide.titulo, slide, {
         onClick: () => onSelectEl?.('titulo'),
         style: {
           fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
           color, margin: 0, zIndex: Z_CONTENT,
+          textAlign: slide.textAlign ?? 'left', width: '100%',
           cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
         },
       }, onTitleWordClick)}
@@ -925,19 +955,20 @@ function EditorialFoto({ slide, index, total, selectedEl, onSelectEl, onTitleMou
         }, onBodyWordClick)}
       </div>
     ) : (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: `${8 * s}px`, zIndex: Z_CONTENT }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: `${8 * s}px`, zIndex: Z_CONTENT, width: '100%' }}>
         {renderTitleWithHighlights(slide.titulo, slide, {
           onClick: () => onSelectEl?.('titulo'),
           style: {
             fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: 900,
             color: _T, margin: 0,
+            textAlign: slide.textAlign ?? 'left', width: '100%',
             cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
           },
         }, onTitleWordClick)}
         {renderSubtitle(slide, s)}
         {renderBodyWithHighlights(slide.corpo, slide, {
           onClick: () => onSelectEl?.('corpo'),
-          style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+          style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: 0, textAlign: slide.textAlign ?? 'left', width: '100%', cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
         }, onBodyWordClick)}
       </div>
     )}
