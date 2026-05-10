@@ -1089,6 +1089,7 @@ function StatePreview({
   const [_editingField, _setEditingField] = useState<{ id: string; field: 'titulo' | 'corpo' } | null>(null)
   const [imageStyle, setImageStyle] = useState<string>('cinematic')
   const [selectedTemplate, setSelectedTemplate] = useState<CarouselTemplate>('impacto')
+  const [slideTheme, setSlideTheme] = useState<'dark' | 'light'>('dark')
   const [legenda, setLegenda] = useState(initialLegenda ?? '')
   // view & section state
   const [viewMode, setViewMode] = useState<'slide' | 'grid'>('grid')
@@ -1738,6 +1739,29 @@ function StatePreview({
                   Salvar
                 </button>
               </div>
+            </div>
+
+            {/* Toggle Escuro/Claro */}
+            <div style={{ display: 'flex', gap: 4, padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              {(['dark', 'light'] as const).map((theme) => {
+                const sel = slideTheme === theme
+                return (
+                  <button key={theme} onClick={() => {
+                    setSlideTheme(theme)
+                    const newColor = theme === 'dark' ? '#F5F5F5' : '#000000'
+                    const newBg = theme === 'dark' ? undefined : '#FFFFFF'
+                    slides.forEach(s => updateSlideFormat(s.id, { textColor: newColor, bgSolidColor: newBg }))
+                  }} style={{
+                    flex: 1, height: 30, borderRadius: 6, fontSize: 12, fontFamily: 'DM Sans, sans-serif',
+                    background: sel ? (theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.9)') : 'transparent',
+                    border: `1px solid ${sel ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.08)'}`,
+                    color: sel ? (theme === 'dark' ? '#F5F5F5' : '#000') : 'rgba(255,255,255,0.45)',
+                    cursor: 'pointer',
+                  }}>
+                    {theme === 'dark' ? '☾ Escuro' : '☀ Claro'}
+                  </button>
+                )
+              })}
             </div>
 
             {/* Horizontal thumbnails */}
