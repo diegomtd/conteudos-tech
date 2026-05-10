@@ -69,6 +69,8 @@ export interface SlideData {
   accentColor?: string
   bgPattern?: string
   bgPatternOpacity?: number
+  subtitle?: string
+  subtitleFontSize?: number
 }
 
 export interface SlideRenderProps {
@@ -356,6 +358,25 @@ function renderTitleWithHighlights(
   )
 }
 
+// ─── Subtitle renderer ────────────────────────────────────────
+function renderSubtitle(slide: SlideData, s: number): React.ReactElement | null {
+  if (!slide.subtitle) return null
+  return (
+    <p style={{
+      fontFamily: slide.bodyFontFamily ?? slide.fontFamily ?? 'DM Sans, sans-serif',
+      fontSize: `${(slide.subtitleFontSize ?? 22) * s}px`,
+      color: slide.bodyColor ?? slide.textColor ?? 'rgba(255,255,255,0.75)',
+      fontWeight: 500,
+      lineHeight: 1.4,
+      margin: `${6 * s}px 0 0`,
+      textAlign: slide.textAlign ?? 'left',
+      letterSpacing: 0,
+    }}>
+      {slide.subtitle}
+    </p>
+  )
+}
+
 // ─── Template: IMPACTO ────────────────────────────────────────
 
 function Impacto({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown, onBodyWordClick, onTitleWordClick, scale: s = 1 }: SlideRenderProps & { scale: number }) {
@@ -399,6 +420,7 @@ function Impacto({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown
             ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
           },
         }, onTitleWordClick)}
+        {renderSubtitle(slide, s)}
         {slide.corpo ? renderBodyWithHighlights(slide.corpo, slide, {
           onClick: () => onSelectEl?.('corpo'),
           style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, textAlign: align, margin: `${blockGap(slide, s)} 0 0`, zIndex: Z_CONTENT, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
@@ -419,6 +441,7 @@ function Impacto({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown
             cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
           },
         }, onTitleWordClick)}
+        {renderSubtitle(slide, s)}
         {renderBodyWithHighlights(slide.corpo, slide, {
           onClick: () => onSelectEl?.('corpo'),
           style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
@@ -437,6 +460,7 @@ function Impacto({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown
             cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
           },
         }, onTitleWordClick)}
+        {renderSubtitle(slide, s)}
         {renderBodyWithHighlights(slide.corpo, slide, {
           onClick: () => onSelectEl?.('corpo'),
           style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, textAlign: align, margin: 0, zIndex: Z_CONTENT, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
@@ -464,6 +488,7 @@ function Editorial({ slide, index, total, selectedEl, onSelectEl, onBodyWordClic
         cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
       },
     }, onTitleWordClick)}
+    {renderSubtitle(slide, s)}
     {renderBodyWithHighlights(slide.corpo, slide, {
       onClick: () => onSelectEl?.('corpo'),
       style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: `${blockGap(slide, s)} 0 0`, zIndex: Z_CONTENT, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
@@ -484,6 +509,7 @@ function Editorial({ slide, index, total, selectedEl, onSelectEl, onBodyWordClic
           cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
         },
       }, onTitleWordClick)}
+      {renderSubtitle(slide, s)}
       {renderBodyWithHighlights(slide.corpo, slide, {
         onClick: () => onSelectEl?.('corpo'),
         style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
@@ -506,6 +532,7 @@ function Editorial({ slide, index, total, selectedEl, onSelectEl, onBodyWordClic
         cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
       },
     }, onTitleWordClick)}
+    {renderSubtitle(slide, s)}
     {renderBodyWithHighlights(slide.corpo, slide, {
       onClick: () => onSelectEl?.('corpo'),
       style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: 0, zIndex: Z_CONTENT, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
@@ -554,6 +581,7 @@ function Lista({ slide, index, total, selectedEl, onSelectEl, onBodyWordClick, o
         cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
       },
     }, onTitleWordClick)}
+    {renderSubtitle(slide, s)}
     {renderBodyWithHighlights(slide.corpo, slide, {
       onClick: () => onSelectEl?.('corpo'),
       style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: `${blockGap(slide, s)} 0 0`, zIndex: Z_CONTENT, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
@@ -570,6 +598,7 @@ function Lista({ slide, index, total, selectedEl, onSelectEl, onBodyWordClick, o
           cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
         },
       }, onTitleWordClick)}
+      {renderSubtitle(slide, s)}
       {renderBodyWithHighlights(slide.corpo, slide, {
         onClick: () => onSelectEl?.('corpo'),
         style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
@@ -592,6 +621,7 @@ function Lista({ slide, index, total, selectedEl, onSelectEl, onBodyWordClick, o
         cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
       },
     }, onTitleWordClick)}
+    {renderSubtitle(slide, s)}
     {renderBodyWithHighlights(slide.corpo, slide, {
       onClick: () => onSelectEl?.('corpo'),
       style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: 0, zIndex: Z_CONTENT, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
@@ -634,6 +664,7 @@ function Citacao({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown
             ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
           },
         }, onTitleWordClick)}
+        {renderSubtitle(slide, s)}
         {renderBodyWithHighlights(slide.corpo, slide, {
           onClick: () => onSelectEl?.('corpo'),
           style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: `${blockGap(slide, s)} 0 0`, textAlign: 'center', cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
@@ -649,6 +680,7 @@ function Citacao({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown
             cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
           },
         }, onTitleWordClick)}
+        {renderSubtitle(slide, s)}
         {renderBodyWithHighlights(slide.corpo, slide, {
           onClick: () => onSelectEl?.('corpo'),
           style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
@@ -668,6 +700,7 @@ function Citacao({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown
             cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
           },
         }, onTitleWordClick)}
+        {renderSubtitle(slide, s)}
         {renderBodyWithHighlights(slide.corpo, slide, {
           onClick: () => onSelectEl?.('corpo'),
           style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: `${blockGap(slide, s)} 0 0`, textAlign: 'center', cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
@@ -775,6 +808,7 @@ function Storytelling({ slide, index, total, selectedEl, onSelectEl, onTitleMous
           ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
         },
       }, onTitleWordClick)}
+      {renderSubtitle(slide, s)}
       {renderBodyWithHighlights(slide.corpo, slide, {
         onClick: () => onSelectEl?.('corpo'),
         style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: `${blockGap(slide, s)} 0 0`, zIndex: Z_CONTENT, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
@@ -789,6 +823,7 @@ function Storytelling({ slide, index, total, selectedEl, onSelectEl, onTitleMous
             cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
           },
         }, onTitleWordClick)}
+        {renderSubtitle(slide, s)}
         {renderBodyWithHighlights(slide.corpo, slide, {
           onClick: () => onSelectEl?.('corpo'),
           style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
@@ -810,6 +845,7 @@ function Storytelling({ slide, index, total, selectedEl, onSelectEl, onTitleMous
           cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
         },
       }, onTitleWordClick)}
+      {renderSubtitle(slide, s)}
       <p style={{
         position: 'absolute', bottom: `${10 * s}px`, left: 0, right: 0,
         textAlign: 'center', fontSize: `${14 * s}px`, color: 'rgba(255,255,255,0.25)',
@@ -866,6 +902,7 @@ function EditorialFoto({ slide, index, total, selectedEl, onSelectEl, onTitleMou
             ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
           },
         }, onTitleWordClick)}
+        {renderSubtitle(slide, s)}
         {renderBodyWithHighlights(slide.corpo, slide, {
           onClick: () => onSelectEl?.('corpo'),
           style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
@@ -881,6 +918,7 @@ function EditorialFoto({ slide, index, total, selectedEl, onSelectEl, onTitleMou
             cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
           },
         }, onTitleWordClick)}
+        {renderSubtitle(slide, s)}
         {renderBodyWithHighlights(slide.corpo, slide, {
           onClick: () => onSelectEl?.('corpo'),
           style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
@@ -896,6 +934,7 @@ function EditorialFoto({ slide, index, total, selectedEl, onSelectEl, onTitleMou
             cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
           },
         }, onTitleWordClick)}
+        {renderSubtitle(slide, s)}
         {renderBodyWithHighlights(slide.corpo, slide, {
           onClick: () => onSelectEl?.('corpo'),
           style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },

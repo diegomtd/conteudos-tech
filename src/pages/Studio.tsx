@@ -57,6 +57,8 @@ const TEMPLATE_GRADIENTS: Record<string, string> = {
 interface Slide {
   id: string
   titulo: string
+  subtitle?: string  // subtítulo separado — hierarquia tipográfica abaixo do título
+  subtitleFontSize?: number  // default: 22
   corpo: string
   hack: string
   bgImageUrl?: string
@@ -1074,32 +1076,6 @@ function SliderRow({
   )
 }
 
-// ─── Estado 3: Preview + Editor ───────────────────────────────
-function RefinarSlide({ current: _current, onRefinar }: { current: Slide; onRefinar: (instrucao: string) => void }) {
-  const [instrucao, setInstrucao] = React.useState('')
-  const [loading, setLoading] = React.useState(false)
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
-      <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', fontFamily: 'DM Sans, sans-serif', textTransform: 'uppercase', letterSpacing: 0.5 }}>Refinar slide com IA</span>
-      <input
-        value={instrucao}
-        onChange={e => setInstrucao(e.target.value)}
-        placeholder='Ex: "mais agressivo", "adicione dado estatístico"'
-        style={{ width: '100%', background: '#1A1A1A', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, color: 'rgba(255,255,255,0.7)', fontFamily: 'DM Sans, sans-serif', fontSize: 11, padding: '6px 8px', outline: 'none', boxSizing: 'border-box' }}
-        onFocus={e => e.target.style.borderColor = 'rgba(200,255,0,0.3)'}
-        onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
-        onKeyDown={e => { if (e.key === 'Enter' && instrucao.trim()) { setLoading(true); onRefinar(instrucao); setInstrucao(''); setTimeout(() => setLoading(false), 3000) } }}
-      />
-      <button
-        disabled={!instrucao.trim() || loading}
-        onClick={() => { if (instrucao.trim()) { setLoading(true); onRefinar(instrucao); setInstrucao(''); setTimeout(() => setLoading(false), 3000) } }}
-        style={{ height: 28, background: instrucao.trim() && !loading ? 'rgba(200,255,0,0.08)' : 'transparent', border: '1px solid rgba(200,255,0,0.2)', borderRadius: 6, color: instrucao.trim() && !loading ? '#C8FF00' : 'rgba(200,255,0,0.3)', fontFamily: 'DM Sans, sans-serif', fontSize: 10, cursor: instrucao.trim() && !loading ? 'pointer' : 'not-allowed' }}>
-        {loading ? 'Refinando...' : '✦ Refinar este slide'}
-      </button>
-    </div>
-  )
-}
-
 function StatePreview({
   onBack,
   initialSlides,
@@ -1130,7 +1106,7 @@ function StatePreview({
   const [viewMode, setViewMode] = useState<'slide' | 'grid'>('grid')
   const [secImagem,  setSecImagem]  = useState(false)
   const [secLegenda, setSecLegenda] = useState(false)
-  const [secTextoTab, setSecTextoTab] = useState<'titulo' | 'corpo'>('titulo')
+  const [_secTextoTab, _setSecTextoTab] = useState<'titulo' | 'corpo'>('titulo')
   const [secTemplate, setSecTemplate] = useState(false)
   const [flashKey, setFlashKey] = useState(0)
   const [exporting, setExporting] = useState(false)
@@ -1312,6 +1288,8 @@ function StatePreview({
     bgPattern:            'bg_pattern',
     bgPatternOpacity:     'bg_pattern_opacity',
     bgSolidColor:         'bg_solid_color',
+    subtitle:             'subtitle',
+    subtitleFontSize:     'subtitle_font_size',
   }
 
   const buildDbPayload = (updates: Partial<Slide>): Record<string, unknown> => {
@@ -1970,63 +1948,101 @@ function StatePreview({
             </div>
           </div>
 
-          {/* ─ Section 2: CONTEÚDO ─ */}
+          {/* ─ CONTEÚDO ─ */}
           {current && (
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '16px 12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <span style={{ fontSize: 10, color: M, fontFamily: ff, fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase' }}>Conteúdo</span>
-              {/* Label de função do slide */}
-              {current && (
-                <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
-                  {(['capa', 'conteudo', 'cta'] as const).map((role) => {
-                    const labels = { capa: '↯ CAPA', conteudo: '◈ CONTEÚDO', cta: '⟳ CTA' }
-                    const colors = { capa: '#C8FF00', conteudo: CYAN, cta: '#A855F7' }
-                    const isCurrent = (current.slideRole ?? (
-                      activeSlide === 0 ? 'capa'
-                      : activeSlide === slides.length - 1 ? 'cta'
-                      : 'conteudo'
-                    )) === role
+            <div style={{ borderBottom: `1px solid ${B}`, padding: '14px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+
+              {/* Labels de função do slide */}
+              <div style={{ display: 'flex', gap: 4 }}>
+                {(['capa', 'conteudo', 'cta'] as const).map((role) => {
+                  const labels = { capa: 'CAPA', conteudo: 'CONTEÚDO', cta: 'CTA' }
+                  const colors = { capa: '#C8FF00', conteudo: CYAN, cta: '#A855F7' }
+                  const derived = activeSlide === 0 ? 'capa' : activeSlide === slides.length - 1 ? 'cta' : 'conteudo'
+                  const isCurrent = (current.slideRole ?? derived) === role
+                  return (
+                    <button key={role}
+                      onClick={() => setSlides(prev => prev.map(s => s.id === current.id ? { ...s, slideRole: role } : s))}
+                      style={{
+                        flex: 1, height: 20, borderRadius: 4, fontSize: 8,
+                        fontFamily: '"Bebas Neue", sans-serif', letterSpacing: 0.8,
+                        cursor: 'pointer', border: 'none',
+                        background: isCurrent ? `${colors[role]}15` : 'transparent',
+                        color: isCurrent ? colors[role] : 'rgba(255,255,255,0.2)',
+                        borderBottom: `1.5px solid ${isCurrent ? colors[role] : 'transparent'}`,
+                        transition: 'all 0.15s',
+                      }}
+                    >{labels[role]}</button>
+                  )
+                })}
+              </div>
+
+              {/* Grid de posição 3×3 */}
+              <div>
+                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontFamily: 'DM Sans, sans-serif', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  Posição do texto
+                </span>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 3, marginBottom: 8 }}>
+                  {[
+                    { pos: 'top', align: 'left', label: '↖' },
+                    { pos: 'top', align: 'center', label: '↑' },
+                    { pos: 'top', align: 'right', label: '↗' },
+                    { pos: 'center', align: 'left', label: '←' },
+                    { pos: 'center', align: 'center', label: '⊙' },
+                    { pos: 'center', align: 'right', label: '→' },
+                    { pos: 'bottom', align: 'left', label: '↙' },
+                    { pos: 'bottom', align: 'center', label: '↓' },
+                    { pos: 'bottom', align: 'right', label: '↘' },
+                  ].map(({ pos, align, label }) => {
+                    const isActive = (current.textPosition ?? 'bottom') === pos && (current.textAlign ?? 'left') === align
                     return (
-                      <button key={role}
-                        onClick={() => setSlides(prev => prev.map(s => s.id === current.id ? { ...s, slideRole: role } : s))}
+                      <button
+                        key={`${pos}-${align}`}
+                        onClick={() => updateSlideFormat(current.id, {
+                          textPosition: pos as 'top' | 'center' | 'bottom',
+                          textAlign: align as 'left' | 'center' | 'right',
+                        })}
                         style={{
-                          flex: 1, height: 22, borderRadius: 4, fontSize: 9, fontFamily: '"Bebas Neue", sans-serif',
-                          letterSpacing: 0.5, cursor: 'pointer', border: 'none',
-                          background: isCurrent ? `${colors[role]}18` : 'transparent',
-                          color: isCurrent ? colors[role] : M,
-                          borderBottom: `2px solid ${isCurrent ? colors[role] : 'transparent'}`,
-                          transition: 'all 0.15s',
+                          height: 28, borderRadius: 5, fontSize: 13,
+                          background: isActive ? 'rgba(200,255,0,0.12)' : 'rgba(255,255,255,0.03)',
+                          border: `1px solid ${isActive ? 'rgba(200,255,0,0.35)' : 'rgba(255,255,255,0.06)'}`,
+                          color: isActive ? '#C8FF00' : 'rgba(255,255,255,0.35)',
+                          cursor: 'pointer', transition: 'all 0.12s',
                         }}
+                        onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.6)' }}}
+                        onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = 'rgba(255,255,255,0.35)' }}}
                       >
-                        {labels[role]}
+                        {label}
                       </button>
                     )
                   })}
                 </div>
-              )}
+              </div>
+
+              {/* Template comparação — campos ANTES/DEPOIS */}
               {isComparacaoMiddle ? (
                 <>
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <span style={{ fontSize: 10, color: '#ff7070', fontFamily: ff, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>ANTES</span>
-                      <span style={{ fontSize: 10, color: M2, fontFamily: ff }}>{(current.beforeText ?? '').length}</span>
+                      <span style={{ fontSize: 9, color: '#ff7070', fontFamily: ff, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>ANTES</span>
+                      <span style={{ fontSize: 9, color: M2, fontFamily: ff }}>{(current.beforeText ?? '').length}</span>
                     </div>
                     <textarea value={current.beforeText ?? ''}
                       onChange={(e) => updateSlide(current.id, 'beforeText', e.target.value)}
                       rows={3}
-                      style={{ width: '100%', backgroundColor: S3, border: `1px solid rgba(255,112,112,0.3)`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, lineHeight: 1.5, padding: '8px 10px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                      style={{ width: '100%', background: '#131313', border: `1px solid rgba(255,112,112,0.3)`, borderRadius: 7, color: T, fontFamily: ff, fontSize: 12, lineHeight: 1.5, padding: '8px 10px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
                       onFocus={(e) => { e.target.style.borderColor = '#ff7070' }}
                       onBlur={(e) => { e.target.style.borderColor = 'rgba(255,112,112,0.3)' }}
                     />
                   </div>
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>DEPOIS</span>
-                      <span style={{ fontSize: 10, color: M2, fontFamily: ff }}>{(current.afterText ?? '').length}</span>
+                      <span style={{ fontSize: 9, color: A, fontFamily: ff, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>DEPOIS</span>
+                      <span style={{ fontSize: 9, color: M2, fontFamily: ff }}>{(current.afterText ?? '').length}</span>
                     </div>
                     <textarea value={current.afterText ?? ''}
                       onChange={(e) => updateSlide(current.id, 'afterText', e.target.value)}
                       rows={3}
-                      style={{ width: '100%', backgroundColor: S3, border: `1px solid rgba(200,255,0,0.3)`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, lineHeight: 1.5, padding: '8px 10px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                      style={{ width: '100%', background: '#131313', border: `1px solid rgba(200,255,0,0.3)`, borderRadius: 7, color: T, fontFamily: ff, fontSize: 12, lineHeight: 1.5, padding: '8px 10px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
                       onFocus={(e) => { e.target.style.borderColor = A }}
                       onBlur={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.3)' }}
                     />
@@ -2034,85 +2050,113 @@ function StatePreview({
                 </>
               ) : (
                 <>
-                  {/* Sub-tab bar: TITULO | CORPO */}
-                  <div style={{ display: 'flex', gap: 4, marginBottom: 2 }}>
-                    {(['titulo', 'corpo'] as const).map((tab) => {
-                      const sel = secTextoTab === tab
-                      const isTitulo = tab === 'titulo'
-                      const activeColor = isTitulo ? '#C8FF00' : CYAN
-                      return (
-                        <button key={tab} onClick={() => { setSecTextoTab(tab); setSelectedEl(tab === 'titulo' ? 'titulo' : 'corpo') }} style={{
-                          flex: 1, height: 36, borderRadius: 5, fontSize: 13, fontWeight: 700,
-                          fontFamily: '"Bebas Neue", sans-serif', letterSpacing: 1,
-                          backgroundColor: sel ? (isTitulo ? 'rgba(200,255,0,0.15)' : 'rgba(0,180,216,0.15)') : 'transparent',
-                          border: 'none',
-                          borderBottom: sel ? `2px solid ${activeColor}` : `2px solid transparent`,
-                          color: sel ? activeColor : M,
-                          cursor: 'pointer', textTransform: 'uppercase',
-                          opacity: selectedEl === null ? 0.5 : 1,
-                          transition: 'all 0.15s',
-                        }}>
-                          {tab === 'titulo' ? 'TÍTULO' : 'CORPO'}
-                        </button>
-                      )
-                    })}
+                  {/* Campo TÍTULO */}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontFamily: 'DM Sans, sans-serif', textTransform: 'uppercase', letterSpacing: 0.5 }}>Título</span>
+                      <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', fontFamily: 'DM Sans, sans-serif' }}>{current.titulo.length}</span>
+                    </div>
+                    <textarea
+                      value={current.titulo}
+                      onChange={(e) => { const val = e.target.value; updateSlide(current.id, 'titulo', val); saveFormatToDb(current.id, { titulo: val }) }}
+                      rows={2}
+                      style={{
+                        width: '100%', background: '#131313',
+                        border: '1px solid rgba(255,255,255,0.07)',
+                        borderRadius: 7, color: '#F0F0F0',
+                        fontFamily: '"Bebas Neue", sans-serif', fontSize: 13, letterSpacing: 0.5,
+                        lineHeight: 1.3, padding: '8px 10px', outline: 'none',
+                        resize: 'vertical', boxSizing: 'border-box', transition: 'border-color 0.2s',
+                      }}
+                      onFocus={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.35)' }}
+                      onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.07)' }}
+                    />
                   </div>
 
-                  {/* TITULO tab */}
-                  {secTextoTab === 'titulo' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                          <span style={{ fontSize: 10, color: M, fontFamily: ff }}>Título</span>
-                          <span style={{ fontSize: 10, color: M2, fontFamily: ff }}>{current.titulo.length}</span>
-                        </div>
-                        <textarea value={current.titulo}
-                          onChange={(e) => { const val = e.target.value; updateSlide(current.id, 'titulo', val); saveFormatToDb(current.id, { titulo: val }) }}
-                          rows={2}
-                          style={{ width: '100%', backgroundColor: S3, border: `1px solid rgba(200,255,0,0.25)`, borderRadius: 6, color: T, fontFamily: '"Bebas Neue", sans-serif', fontSize: 13, letterSpacing: 0.5, lineHeight: 1.3, padding: '8px 10px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
-                          onFocus={(e) => { e.target.style.borderColor = A }}
-                          onBlur={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.25)' }}
-                        />
-                      </div>
-                      <p style={{ fontSize: 10, color: M, fontFamily: ff, margin: 0, lineHeight: 1.5 }}>
-                        Use <span style={{ color: A }}>*palavra*</span> para colorir o acento no template Editorial Foto
-                      </p>
+                  {/* Campo SUBTÍTULO */}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontFamily: 'DM Sans, sans-serif', textTransform: 'uppercase', letterSpacing: 0.5 }}>Subtítulo</span>
+                      <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', fontFamily: 'DM Sans, sans-serif' }}>{(current.subtitle ?? '').length}</span>
+                    </div>
+                    <textarea
+                      value={current.subtitle ?? ''}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        setSlides(prev => prev.map(s => s.id === current.id ? { ...s, subtitle: val } : s))
+                        saveFormatToDb(current.id, { subtitle: val })
+                      }}
+                      rows={2}
+                      placeholder="Linha de apoio abaixo do título..."
+                      style={{
+                        width: '100%', background: '#131313',
+                        border: '1px solid rgba(255,255,255,0.07)',
+                        borderRadius: 7, color: 'rgba(240,240,240,0.8)',
+                        fontFamily: 'DM Sans, sans-serif', fontSize: 12,
+                        lineHeight: 1.5, padding: '8px 10px', outline: 'none',
+                        resize: 'vertical', boxSizing: 'border-box', transition: 'border-color 0.2s',
+                      }}
+                      onFocus={(e) => { e.target.style.borderColor = 'rgba(0,180,216,0.35)' }}
+                      onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.07)' }}
+                    />
+                  </div>
+
+                  {/* Campo CORPO */}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontFamily: 'DM Sans, sans-serif', textTransform: 'uppercase', letterSpacing: 0.5 }}>Corpo</span>
+                      <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', fontFamily: 'DM Sans, sans-serif' }}>{current.corpo.length}</span>
+                    </div>
+                    <textarea
+                      value={current.corpo}
+                      onChange={(e) => { const val = e.target.value; updateSlide(current.id, 'corpo', val); saveFormatToDb(current.id, { corpo: val }) }}
+                      rows={3}
+                      placeholder="Texto principal do slide..."
+                      style={{
+                        width: '100%', background: '#131313',
+                        border: '1px solid rgba(255,255,255,0.07)',
+                        borderRadius: 7, color: 'rgba(240,240,240,0.65)',
+                        fontFamily: 'DM Sans, sans-serif', fontSize: 12,
+                        lineHeight: 1.6, padding: '8px 10px', outline: 'none',
+                        resize: 'vertical', boxSizing: 'border-box',
+                        whiteSpace: 'pre-wrap', transition: 'border-color 0.2s',
+                      }}
+                      onFocus={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.2)' }}
+                      onBlur={(e) => { e.target.style.borderColor = 'rgba(255,255,255,0.07)' }}
+                    />
+                  </div>
+
+                  {/* CTA text — só no último slide */}
+                  {activeSlide === slides.length - 1 && (
+                    <div>
+                      <span style={{ fontSize: 9, color: '#A855F7', fontFamily: 'DM Sans, sans-serif', display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>Texto do CTA</span>
+                      <input type="text"
+                        value={current.ctaText ?? ''}
+                        onChange={(e) => updateTitleStyle(current.id, { ctaText: e.target.value })}
+                        placeholder="Salve para não perder"
+                        style={{
+                          width: '100%', background: '#131313',
+                          border: '1px solid rgba(168,85,247,0.2)', borderRadius: 7,
+                          color: '#F0F0F0', fontFamily: 'DM Sans, sans-serif', fontSize: 12,
+                          padding: '7px 10px', outline: 'none', boxSizing: 'border-box',
+                        }}
+                        onFocus={(e) => { e.target.style.borderColor = 'rgba(168,85,247,0.5)' }}
+                        onBlur={(e) => { e.target.style.borderColor = 'rgba(168,85,247,0.2)' }}
+                      />
                     </div>
                   )}
 
-                  {/* CORPO tab */}
-                  {secTextoTab === 'corpo' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                          <span style={{ fontSize: 10, color: M, fontFamily: ff }}>Corpo</span>
-                          <span style={{ fontSize: 10, color: M2, fontFamily: ff }}>{current.corpo.length}</span>
-                        </div>
-                        <textarea value={current.corpo}
-                          onChange={(e) => { const val = e.target.value; updateSlide(current.id, 'corpo', val); saveFormatToDb(current.id, { corpo: val }) }}
-                          rows={3}
-                          placeholder="Digite o texto. Use Enter para nova linha."
-                          style={{ width: '100%', backgroundColor: S3, border: `1px solid ${B}`, borderRadius: 6, color: 'rgba(255,255,255,0.7)', fontFamily: ff, fontSize: 12, lineHeight: 1.6, padding: '8px 10px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', transition: 'border-color 0.2s', whiteSpace: 'pre-wrap' }}
-                          onFocus={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.25)' }}
-                          onBlur={(e) => { e.target.style.borderColor = B }}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Gerar conteúdo deste slide com IA */}
-                  {current && carouselId && (
+                  {/* Gerar conteúdo com IA */}
+                  {carouselId && (
                     <button
                       onClick={async () => {
-                        if (!current) return
-                        const toastId = toast.loading('Gerando conteúdo para o slide...')
+                        if (!current || !carouselId) return
+                        const toastId = toast.loading('Gerando...')
                         try {
                           const res = await supabase.functions.invoke('generate-carousel', {
                             body: {
-                              tema: `Reescreva apenas o slide ${activeSlide + 1} do carrossel sobre: "${slides[0]?.titulo ?? ''}"`,
-                              tom: 'Provocador',
-                              num_slides: 1,
-                              cta_tipo: 'Engajamento',
+                              tema: `Reescreva apenas o slide ${activeSlide + 1} sobre: "${slides[0]?.titulo ?? ''}"`,
+                              tom: 'Provocador', num_slides: 1, cta_tipo: 'Engajamento',
                             }
                           })
                           if (res.data?.slides?.[0]) {
@@ -2122,63 +2166,20 @@ function StatePreview({
                             saveFormatToDb(current.id, { titulo: s.titulo, corpo: s.corpo })
                             toast.success('Slide atualizado', { id: toastId })
                           }
-                        } catch { toast.error('Erro ao gerar', { id: toastId }) }
+                        } catch { toast.error('Erro', { id: toastId }) }
                       }}
                       style={{
-                        height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                        background: 'none', border: '1px solid rgba(200,255,0,0.25)', borderRadius: 7,
-                        color: '#C8FF00', fontFamily: ff, fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                        transition: 'background 0.15s',
+                        height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                        background: 'none', border: '1px solid rgba(200,255,0,0.18)', borderRadius: 7,
+                        color: 'rgba(200,255,0,0.7)', fontFamily: 'DM Sans, sans-serif', fontSize: 11,
+                        cursor: 'pointer', transition: 'all 0.15s',
                       }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(200,255,0,0.07)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(200,255,0,0.06)'; e.currentTarget.style.color = '#C8FF00' }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'rgba(200,255,0,0.7)' }}
                     >
                       ✦ Gerar conteúdo deste slide com IA
                     </button>
                   )}
-
-                  {/* Refinar slide com IA */}
-                  {current && carouselId && (
-                    <RefinarSlide
-                      current={current}
-                      onRefinar={async (instrucao) => {
-                        const toastId = toast.loading('Refinando...')
-                        try {
-                          const res = await supabase.functions.invoke('generate-carousel', {
-                            body: {
-                              tema: `Reescreva o slide com base nessa instrução: "${instrucao}". Contexto atual: Título: "${current.titulo}" | Corpo: "${current.corpo}"`,
-                              tom: 'Provocador',
-                              num_slides: 1,
-                              cta_tipo: 'Engajamento',
-                            }
-                          })
-                          if (res.data?.slides?.[0]) {
-                            const s = res.data.slides[0]
-                            updateSlide(current.id, 'titulo', s.titulo)
-                            updateSlide(current.id, 'corpo', s.corpo)
-                            saveFormatToDb(current.id, { titulo: s.titulo, corpo: s.corpo })
-                            toast.success('Slide refinado', { id: toastId })
-                          }
-                        } catch { toast.error('Erro ao refinar', { id: toastId }) }
-                      }}
-                    />
-                  )}
-
-                  {/* CTA text — only on last slide */}
-                  {activeSlide === slides.length - 1 && (
-                    <div>
-                      <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700, letterSpacing: 0.5, display: 'block', marginBottom: 4, textTransform: 'uppercase' }}>Texto do CTA</span>
-                      <input type="text"
-                        value={current.ctaText ?? ''}
-                        onChange={(e) => updateTitleStyle(current.id, { ctaText: e.target.value })}
-                        placeholder="Salve para não perder"
-                        style={{ width: '100%', backgroundColor: S3, border: `1px solid rgba(200,255,0,0.25)`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, padding: '6px 8px', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
-                        onFocus={(e) => { e.target.style.borderColor = A }}
-                        onBlur={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.25)' }}
-                      />
-                    </div>
-                  )}
-
                 </>
               )}
             </div>
