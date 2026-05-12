@@ -46,7 +46,7 @@ export default function Preview() {
 
       const { data: slidesData, error: slidesErr } = await supabase
         .from('carousel_slides')
-        .select('position, titulo, corpo, bg_image_url, font_size_title, font_size_body, font_weight_title, text_color, text_align, title_position_x, title_position_y')
+        .select('position, titulo, corpo, bg_image_url, bg_solid_color, font_size_title, font_size_body, font_weight_title, font_family, text_color, body_color, text_align, title_position_x, title_position_y, overlay_opacity, bg_zoom, bg_pos_x, bg_pos_y, highlighted_words, accent_color, subtitle, subtitle_font_size')
         .eq('carousel_id', car.id)
         .order('position', { ascending: true })
 
@@ -56,14 +56,29 @@ export default function Preview() {
         titulo:         (s.titulo as string)         ?? '',
         corpo:          (s.corpo as string)          ?? '',
         bgImageUrl:     (s.bg_image_url as string)   ?? undefined,
+        bgSolidColor:   (s.bg_solid_color as string) ?? undefined,
         titleFontSize:  (s.font_size_title as number) ?? undefined,
         bodyFontSize:   (s.font_size_body as number)  ?? undefined,
         fontWeightTitle:(s.font_weight_title as 'normal' | 'bold') ?? undefined,
+        fontFamily:     (s.font_family as string)    ?? undefined,
         textColor:      (s.text_color as string)     ?? undefined,
+        bodyColor:      (s.body_color as string)     ?? undefined,
         textAlign:      (s.text_align as 'left' | 'center' | 'right') ?? undefined,
         titlePos:       (s.title_position_x != null && s.title_position_y != null)
           ? { x: s.title_position_x as number, y: s.title_position_y as number }
           : undefined,
+        overlayOpacity: (s.overlay_opacity as number) ?? undefined,
+        bgZoom:         (s.bg_zoom as number)        ?? undefined,
+        bgPositionX:    (s.bg_pos_x as number)       ?? undefined,
+        bgPositionY:    (s.bg_pos_y as number)       ?? undefined,
+        highlightedWords: Array.isArray(s.highlighted_words)
+          ? (s.highlighted_words as string[])
+          : typeof s.highlighted_words === 'string' && (s.highlighted_words as string).trim()
+          ? (() => { try { return JSON.parse(s.highlighted_words as string) } catch { return [] } })()
+          : [],
+        accentColor:    (s.accent_color as string)   ?? undefined,
+        subtitle:       (s.subtitle as string)       ?? undefined,
+        subtitleFontSize:(s.subtitle_font_size as number) ?? undefined,
       }))
 
       setCarousel({

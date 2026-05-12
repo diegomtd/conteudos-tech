@@ -36,11 +36,12 @@ serve(async (req) => {
     if (!userId) return json({ error: 'unauthorized' }, 401)
 
     // ── Parse body ────────────────────────────────────────────────────
-    const { tema, tom, num_slides, cta_tipo } = await req.json() as {
+    const { tema, tom, num_slides, cta_tipo, instructions } = await req.json() as {
       tema: string
       tom: string
       num_slides: number
       cta_tipo: string
+      instructions?: string
     }
 
     if (!tema?.trim()) return json({ error: 'tema_required' }, 400)
@@ -103,7 +104,7 @@ ESTILO DE REFERÊNCIA: ${exemploTexto}`
 
     const userPrompt = `Tema: ${tema}
 CTA desejado: ${cta_tipo}
-Número de slides: ${num_slides}
+Número de slides: ${num_slides}${instructions ? `\n\nINSTRUÇÕES ADICIONAIS DO USUÁRIO:\n${instructions}` : ''}
 
 Retorne APENAS um JSON válido, sem markdown, sem explicação, sem código fence:
 {

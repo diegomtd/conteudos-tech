@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 
@@ -10,13 +10,13 @@ function Spinner() {
       alignItems: 'center',
       justifyContent: 'center',
       minHeight: '100vh',
-      backgroundColor: '#080808',
+      backgroundColor: '#010816',
     }}>
       <div style={{
         width: 40,
         height: 40,
-        border: '3px solid rgba(200,255,0,0.15)',
-        borderTopColor: '#C8FF00',
+        border: '3px solid rgba(0,212,255,0.15)',
+        borderTopColor: '#00D4FF',
         borderRadius: '50%',
         animation: 'spin 0.8s linear infinite',
       }} />
@@ -32,28 +32,34 @@ interface Props {
 
 export default function ProtectedRoute({ children, requireAdmin = false }: Props) {
   const { user, loading } = useAuth()
+  const location = useLocation()
   const [dbRole, setDbRole] = useState<string | null>(null)
-  const [roleLoading, setRoleLoading] = useState(requireAdmin)
+  const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null)
+  const [profileLoading, setProfileLoading] = useState(true)
 
   useEffect(() => {
-    if (!requireAdmin || !user) return
+    if (!user) { setProfileLoading(false); return }
 
     supabase
       .from('profiles')
-      .select('role')
+      .select('role, onboarding_completed')
       .eq('user_id', user.id)
       .single()
       .then(({ data }) => {
         setDbRole(data?.role ?? null)
-        setRoleLoading(false)
+        setOnboardingCompleted(data?.onboarding_completed ?? false)
+        setProfileLoading(false)
       })
-  }, [requireAdmin, user])
+  }, [user])
 
-  if (loading) return <Spinner />
+  if (loading || profileLoading) return <Spinner />
   if (!user) return <Navigate to="/auth" replace />
 
+  if (onboardingCompleted === false && location.pathname !== '/onboarding') {
+    return <Navigate to="/onboarding" replace />
+  }
+
   if (requireAdmin) {
-    if (roleLoading) return <Spinner />
     if (dbRole !== 'admin') return <Navigate to="/dashboard" replace />
   }
 

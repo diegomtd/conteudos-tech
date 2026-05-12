@@ -11,15 +11,15 @@ import { supabase } from '@/lib/supabase'
 import { SlideRenderer, getSlideContainerStyle, CarouselTemplate as _CarouselTemplate } from '@/components/SlideRenderer'
 
 // ── Design tokens v3.0 — ConteudOS Futurista ──────────────
-const A    = '#C8FF00'                          // verde lima — accent principal
-const CYAN = '#00D2FF'                          // ciano elétrico — IA / imagem
-const BG   = '#06060A'                          // preto azulado profundo
-const S    = '#0D0D14'                          // surface 1
-const S2   = '#13131C'                          // surface 2
-const S3   = '#1B1B26'                          // surface 3 — inputs
-const T    = '#EDEEF2'                          // texto primário
-const M    = 'rgba(237,238,242,0.42)'           // texto muted
-const M2   = 'rgba(237,238,242,0.18)'           // texto muito muted
+const A    = '#00D4FF'                          // cyan elétrico — accent principal
+const CYAN = '#6366F1'                          // índigo — IA / secundário
+const BG   = '#010816'                          // navy ultra escuro
+const S    = '#0A1628'                          // surface 1
+const S2   = '#0F2040'                          // surface 2
+const S3   = '#152848'                          // surface 3 — inputs
+const T    = '#E8F4FF'                          // texto primário
+const M    = 'rgba(232,244,255,0.42)'           // texto muted
+const M2   = 'rgba(232,244,255,0.18)'           // texto muito muted
 const B    = 'rgba(255,255,255,0.07)'           // borda padrão
 const ff   = 'DM Sans, sans-serif'
 
@@ -187,7 +187,7 @@ function Header({
     }}>
       {/* Logo */}
       <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 18, color: '#F5F5F5', letterSpacing: 1, marginRight: 20, flexShrink: 0 }}>
-        Conteúd<span style={{ color: '#C8FF00' }}>OS</span>
+        Conteúd<span style={{ color: A }}>OS</span>
       </span>
       {/* Nav */}
       <button onClick={() => navigate('/dashboard')} style={{ height: 44, padding: '0 14px', background: 'none', border: 'none', color: 'rgba(255,255,255,0.45)', fontFamily: 'DM Sans, sans-serif', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, borderBottom: '2px solid transparent', transition: 'color 0.15s' }}
@@ -196,7 +196,7 @@ function Header({
       >
         Dashboard
       </button>
-      <div style={{ height: 44, padding: '0 14px', display: 'flex', alignItems: 'center', borderBottom: '2px solid #C8FF00' }}>
+      <div style={{ height: 44, padding: '0 14px', display: 'flex', alignItems: 'center', borderBottom: `2px solid ${A}` }}>
         <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: '#F5F5F5', fontWeight: 600 }}>Gerador</span>
       </div>
 
@@ -777,7 +777,7 @@ function StateInput({
           style={{
             width: '100%', height: 60,
             background: canCreate
-              ? 'linear-gradient(135deg, #C8FF00 0%, #A8E800 100%)'
+              ? 'linear-gradient(135deg, #00D4FF 0%, #0EA5E9 100%)'
               : '#131313',
             color: canCreate ? '#000' : 'rgba(255,255,255,0.2)',
             border: canCreate ? 'none' : '1px solid rgba(255,255,255,0.07)',
@@ -1250,13 +1250,37 @@ function StatePreview({
       .select('visual_kit').eq('user_id', user?.id).single()
     if (!data?.visual_kit) return
     const vk = data.visual_kit as Record<string, string>
-    const updates = { text_color: vk.cor ?? '#C8FF00', font_family: vk.fonte ?? '"Bebas Neue", sans-serif' }
+    const updates = { text_color: vk.cor ?? A, font_family: vk.fonte ?? '"Bebas Neue", sans-serif' }
     await supabase.from('carousel_slides').update(updates).eq('carousel_id', carouselId)
-    setSlides(p => p.map(s => ({ ...s, textColor: vk.cor ?? '#C8FF00', fontFamily: vk.fonte ?? '"Bebas Neue", sans-serif' })))
+    setSlides(p => p.map(s => ({ ...s, textColor: vk.cor ?? A, fontFamily: vk.fonte ?? '"Bebas Neue", sans-serif' })))
     toast.success('Kit visual aplicado em todos os slides')
   }
 
-  const updateSlide = (id: string, field: 'titulo' | 'corpo' | 'beforeText' | 'afterText', value: string) =>
+  const applyFontToAll = async () => {
+    if (!current) return
+    const updates = { font_family: current.fontFamily, font_size_title: current.titleFontSize, font_size_body: current.bodyFontSize }
+    await supabase.from('carousel_slides').update(updates).eq('carousel_id', carouselId)
+    setSlides(p => p.map(s => ({ ...s, fontFamily: current.fontFamily, titleFontSize: current.titleFontSize, bodyFontSize: current.bodyFontSize })))
+    toast.success('Fonte aplicada em todos os slides')
+  }
+
+  const applyColorsToAll = async () => {
+    if (!current) return
+    const updates = { text_color: current.textColor, body_color: current.bodyColor, accent_color: current.accentColor, overlay_opacity: current.overlayOpacity }
+    await supabase.from('carousel_slides').update(updates).eq('carousel_id', carouselId)
+    setSlides(p => p.map(s => ({ ...s, textColor: current.textColor, bodyColor: current.bodyColor, accentColor: current.accentColor, overlayOpacity: current.overlayOpacity })))
+    toast.success('Cores aplicadas em todos os slides')
+  }
+
+  const applyLayoutToAll = async () => {
+    if (!current) return
+    const updates = { text_align: current.textAlign, title_position_x: current.titlePos?.x ?? 50, title_position_y: current.titlePos?.y ?? 50 }
+    await supabase.from('carousel_slides').update(updates).eq('carousel_id', carouselId)
+    setSlides(p => p.map(s => ({ ...s, textAlign: current.textAlign, titlePos: current.titlePos })))
+    toast.success('Layout aplicado em todos os slides')
+  }
+
+  const updateSlide =(id: string, field: 'titulo' | 'corpo' | 'beforeText' | 'afterText', value: string) =>
     setSlides((prev) => prev.map((s) => s.id === id ? { ...s, [field]: value } : s))
 
   // Global mouse events for title drag
@@ -1872,7 +1896,7 @@ function StatePreview({
               </span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 {saveStatus === 'saving' && <span style={{ fontSize: 11, color: M, fontFamily: ff }}>Salvando...</span>}
-                {saveStatus === 'saved' && <span style={{ fontSize: 11, color: '#C8FF00', fontFamily: ff }}>✓ Salvo</span>}
+                {saveStatus === 'saved' && <span style={{ fontSize: 11, color: A, fontFamily: ff }}>✓ Salvo</span>}
                 <button
                   onClick={handleManualSave}
                   style={{
@@ -2619,6 +2643,9 @@ function StatePreview({
                       )
                     })}
                   </div>
+                  <button onClick={applyFontToAll} style={{ marginTop: 6, width: '100%', fontSize: 10, padding: '4px 0', background: 'rgba(0,212,255,0.07)', border: '1px solid rgba(0,212,255,0.2)', borderRadius: 5, color: '#00D4FF', cursor: 'pointer', fontFamily: ff }}>
+                    Aplicar fonte em todos
+                  </button>
                 </div>
                 {/* Row 1: Size */}
                 <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end' }}>
@@ -2666,6 +2693,9 @@ function StatePreview({
                       }}>{labels[a]}</button>
                     )
                   })}
+                  <button onClick={applyLayoutToAll} style={{ flex: 1, fontSize: 10, padding: '4px 0', background: 'rgba(0,212,255,0.07)', border: '1px solid rgba(0,212,255,0.2)', borderRadius: 5, color: '#00D4FF', cursor: 'pointer', fontFamily: ff }}>
+                    Aplicar layout em todos
+                  </button>
                 </div>
                 {/* Row 3: Color palette */}
                 <div style={{ display: 'flex', gap: 5, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -2692,6 +2722,9 @@ function StatePreview({
                   })()}
                 </div>
               </div>
+              <button onClick={applyColorsToAll} style={{ margin: '4px 0 2px', width: '100%', fontSize: 10, padding: '4px 0', background: 'rgba(0,212,255,0.07)', border: '1px solid rgba(0,212,255,0.2)', borderRadius: 5, color: '#00D4FF', cursor: 'pointer', fontFamily: ff }}>
+                Aplicar cores em todos
+              </button>
             </div>
           )}
 
@@ -3621,7 +3654,7 @@ function StatePreview({
           disabled={exporting}
           style={{
             height: 36, padding: '0 20px',
-            background: exporting ? S2 : 'linear-gradient(135deg, #C8FF00 0%, #A8E800 100%)',
+            background: exporting ? S2 : 'linear-gradient(135deg, #00D4FF 0%, #0EA5E9 100%)',
             border: 'none', borderRadius: 8, color: exporting ? M : '#000',
             fontSize: 13, fontFamily: ff, fontWeight: 700,
             cursor: exporting ? 'not-allowed' : 'pointer',
