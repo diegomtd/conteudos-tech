@@ -20,17 +20,17 @@ type CarouselWithCover = {
 }
 
 // ─── Design tokens ────────────────────────────────────────────────
-const A   = '#C8FF00'
-const BG  = '#080808'
-const S   = '#0F0F0F'
-const S2  = '#1A1A1A'
-const T   = '#F5F5F5'
-const M   = 'rgba(255,255,255,0.45)'
-const B   = 'rgba(255,255,255,0.08)'
+const A   = '#00D4FF'
+const BG  = '#010816'
+const S   = '#0A1628'
+const S2  = '#0F2040'
+const T   = '#E8F4FF'
+const M   = 'rgba(232,244,255,0.42)'
+const B   = 'rgba(255,255,255,0.07)'
 const ff  = 'DM Sans, sans-serif'
 const ffd = '"Bebas Neue", sans-serif'
 
-const CARD_BG = '#0A0A0A'
+const CARD_BG = S
 
 // ─── Plan config ──────────────────────────────────────────────────
 const PLAN_LABELS: Record<string, string> = {

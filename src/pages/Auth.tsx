@@ -4,21 +4,21 @@ import { useAuth } from '@/hooks/useAuth'
 
 type Mode = 'login' | 'signup' | 'forgot'
 
-const ACCENT = '#C8FF00'
-const ACCENT_HOVER = '#ADDF00'
-const BG = '#080808'
-const SURFACE = '#0F0F0F'
-const BORDER_ACCENT = 'rgba(200,255,0,0.2)'
-const BORDER_INPUT = 'rgba(200,255,0,0.25)'
-const TEXT_MUTED = 'rgba(255,255,255,0.45)'
+const ACCENT = '#00D4FF'
+const ACCENT_HOVER = '#00BFEF'
+const BG = '#010816'
+const SURFACE = '#0A1628'
+const BORDER_ACCENT = 'rgba(0,212,255,0.2)'
+const BORDER_INPUT = 'rgba(0,212,255,0.25)'
+const TEXT_MUTED = 'rgba(232,244,255,0.42)'
 
 const inputBase: React.CSSProperties = {
   width: '100%',
-  backgroundColor: '#1A1A1A',
+  backgroundColor: '#152848',
   border: `1px solid ${BORDER_INPUT}`,
   borderRadius: 8,
   padding: '11px 14px',
-  color: '#F5F5F5',
+  color: '#E8F4FF',
   fontSize: 14,
   fontFamily: 'DM Sans, sans-serif',
   outline: 'none',
@@ -146,7 +146,7 @@ export default function Auth() {
       >
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 6 }}>
-          <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 40, color: '#F5F5F5', letterSpacing: 2 }}>
+          <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 40, color: '#E8F4FF', letterSpacing: 2 }}>
             Conteúd
           </span>
           <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 40, color: ACCENT, letterSpacing: 2 }}>

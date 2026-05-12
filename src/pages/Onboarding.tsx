@@ -5,14 +5,14 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 
 // ─── Design tokens ────────────────────────────────────────────
-const A = '#C8FF00'          // accent
-const AH = '#ADDF00'         // accent hover
-const BG = '#080808'
-const S = '#0F0F0F'          // surface
-const S2 = '#1A1A1A'         // surface-2
-const T = '#F5F5F5'          // text
-const M = 'rgba(255,255,255,0.45)' // muted
-const B = 'rgba(255,255,255,0.08)' // border
+const A  = '#00D4FF'
+const AH = '#00BFEF'
+const BG = '#010816'
+const S  = '#0A1628'
+const S2 = '#0F2040'
+const T  = '#E8F4FF'
+const M  = 'rgba(232,244,255,0.42)'
+const B  = 'rgba(255,255,255,0.07)'
 
 const TOTAL = 5
 const ff = 'DM Sans, sans-serif'
