@@ -3,7 +3,7 @@ import ProtectedRoute from '@/components/shared/ProtectedRoute'
 
 import Landing    from '@/pages/Landing'
 import Auth       from '@/pages/Auth'
-import Preview    from '@/pages/Preview'
+import PreviewPublic from '@/pages/PreviewPublic'
 import Onboarding from '@/pages/Onboarding'
 import Dashboard  from '@/pages/Dashboard'
 import Studio     from '@/pages/Studio'
@@ -19,7 +19,7 @@ export default function App() {
         {/* Públicas */}
         <Route path="/"               element={<Landing />} />
         <Route path="/auth"           element={<Auth />} />
-        <Route path="/preview/:token" element={<Preview />} />
+        <Route path="/preview/:token" element={<PreviewPublic />} />
 
         {/* Protegidas */}
         <Route path="/onboarding" element={
