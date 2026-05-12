@@ -107,11 +107,12 @@ const ff = 'DM Sans, sans-serif'
 const bn = '"Bebas Neue", sans-serif'
 
 const IA_BG: Record<string, string> = {
-  cinematic:    'linear-gradient(160deg,#060d14 0%,#0d1f30 60%,#091829 100%)',
-  illustration: 'linear-gradient(160deg,#080c1a 0%,#0f1e4a 60%,#081530 100%)',
-  abstract:     'linear-gradient(160deg,#0a0814 0%,#1a0f2e 60%,#0d0820 100%)',
-  minimal:      'linear-gradient(160deg,#080808 0%,#141414 100%)',
-  gradient:     'linear-gradient(160deg,#030a14 0%,#071525 100%)',
+  cinematic:      'linear-gradient(160deg,#060d14 0%,#0d1f30 60%,#091829 100%)',
+  dark_cinematic: 'linear-gradient(160deg,#060d14 0%,#0d1f30 60%,#091829 100%)',
+  illustration:   'linear-gradient(160deg,#080c1a 0%,#0f1e4a 60%,#081530 100%)',
+  abstract:       'linear-gradient(160deg,#0a0814 0%,#1a0f2e 60%,#0d0820 100%)',
+  minimal:        'linear-gradient(160deg,#080808 0%,#141414 100%)',
+  gradient:       'linear-gradient(160deg,#030a14 0%,#071525 100%)',
 }
 
 // ─── Helpers ──────────────────────────────────────────────────
@@ -139,7 +140,7 @@ function blockGap(slide: SlideData, s: number): string {
 function titleX(slide: SlideData, s: number): React.CSSProperties {
   return {
     fontStyle: slide.titleItalic ? 'italic' : 'normal',
-    textTransform: slide.titleUppercase ? 'uppercase' : 'none',
+    textTransform: (slide.titleUppercase || (slide.fontFamily ?? '').includes('Bebas')) ? 'uppercase' : 'none',
     letterSpacing: `${(slide.titleLetterSpacing ?? 0) * s}px`,
     lineHeight: slide.titleLineHeight ?? 1.1,
     backgroundColor: slide.titleBgEnabled ? (slide.titleBgColor ?? 'rgba(200,255,0,0.2)') : 'transparent',
@@ -188,7 +189,7 @@ export function getSlideContainerStyle(
   imageStyle: string,
   scale: number,
 ): React.CSSProperties {
-  const hasImg    = !!slide.bgImageUrl
+  const hasImg    = !!(slide.bgImageUrl && slide.bgImageUrl.trim() !== '')
   const pos       = slide.textPosition ?? 'bottom'
   const justify   = pos === 'top' ? 'flex-start' : pos === 'center' ? 'center' : 'flex-end'
   const hAlign    = slide.textAlign ?? 'left'
@@ -981,7 +982,7 @@ function TextoImagem({ slide, index, total, selectedEl, onSelectEl, onBodyWordCl
   const isLast = index === total - 1
   const color = slide.textColor ?? _T
   const fw = slide.fontWeightTitle === 'bold' ? 900 : 700
-  const hasImg = !!slide.bgImageUrl
+  const hasImg = !!(slide.bgImageUrl && slide.bgImageUrl.trim() !== '')
 
   if (isLast) return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: `${8 * s}px`, zIndex: Z_CONTENT }}>
@@ -1050,11 +1051,13 @@ function TextoImagem({ slide, index, total, selectedEl, onSelectEl, onBodyWordCl
       </div>
       <div style={{
         flex: 1, borderRadius: `${12 * s}px`, overflow: 'hidden',
-        backgroundImage: `url("${slide.bgImageUrl}")`,
-        backgroundSize: (slide.bgZoom ?? 100) === 100 ? 'cover' : `${slide.bgZoom ?? 100}%`,
-        backgroundPosition: `${slide.bgPositionX ?? 50}% ${slide.bgPositionY ?? 50}%`,
-        filter: slide.bgFilter ?? 'none',
-        opacity: (slide.imageOpacity ?? 100) / 100,
+        ...(slide.bgImageUrl && slide.bgImageUrl.trim() !== '' ? {
+          backgroundImage: `url("${slide.bgImageUrl}")`,
+          backgroundSize: (slide.bgZoom ?? 100) === 100 ? 'cover' : `${slide.bgZoom ?? 100}%`,
+          backgroundPosition: `${slide.bgPositionX ?? 50}% ${slide.bgPositionY ?? 50}%`,
+          filter: slide.bgFilter ?? 'none',
+          opacity: (slide.imageOpacity ?? 100) / 100,
+        } : { backgroundColor: slide.bgSolidColor ?? '#111111' }),
       }} />
     </div>
   )

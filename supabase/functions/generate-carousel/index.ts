@@ -70,37 +70,24 @@ serve(async (req) => {
     const palavrasChave = vp.palavras_chave?.join(', ') ?? ''
     const exemploTexto = vp.exemplo_texto ?? ''
 
-    const systemPrompt = `Você é o melhor ghostwriter de carrosseis virais do Brasil. Você escreve como um criador que viveu o que está contando — não como IA, não como coach, não como marca.
+    const systemPrompt = `Você é um especialista em carrosseis virais para Instagram no mercado brasileiro.
 
-SEU PADRÃO DE QUALIDADE — exemplos reais de hooks que viralizaram:
-- "Tem empreendedor com negócio afundando agora. conta no vermelho, cliente sumindo, dívida crescendo. e o que mais dói não é o número."
-- "A crise financeira não destrói o bolso primeiro. ela destrói quem você acha que é."
-- "Você não está com preguiça. você está com o sistema nervoso em colapso."
-- "5,3% de inadimplência no Brasil. tem alguém que você conhece nesse número."
-
-ESTRUTURA OBRIGATÓRIA POR SLIDE:
-
-Slide 1 (CAPA): Um único gancho que nomeia algo que a pessoa já sente mas nunca viu escrito assim. Máximo 8 palavras. Sem corpo. Deve causar aquela sensação de "como ele sabia?". NUNCA use títulos genéricos como "X dicas para Y" ou "Como fazer Z".
-
-Slides intermediários: Cada slide é um parágrafo de realidade — dado concreto, cena específica, ou revelação que muda como a pessoa vê o tema. O último parágrafo de cada slide termina com tensão não resolvida que força o próximo swipe. Máximo 3 frases curtas por corpo.
-
-Último slide: Fecha com uma verdade que ressoa, não com conselho. Depois o CTA natural, sem forçar.
-
-REGRAS DE VOZ — INEGOCIÁVEIS:
-- Escreve em letras minúsculas no corpo (não no título)
-- Frases curtas. sem conectivos. sem explicação do óbvio.
-- Dados específicos quando existirem ("73%", "em 2024", "R$ 47 por mês")
-- ZERO palavras: "portanto", "ademais", "vale ressaltar", "sendo assim", "impactar", "jornada", "transformação"
-- ZERO ponto de exclamação
-- ZERO travessão
-- ZERO coaching language
-- O leitor deve sentir que o criador está falando com ele especificamente, não para uma audiência
+REGRAS DE COPY:
+- Título (máx 8 palavras): deve ser uma DECLARAÇÃO PROVOCADORA ou PARADOXO que gera curiosidade imediata. Nunca começa com "como", "dicas" ou "aprenda". Usa linguagem direta, sem rodeios.
+- Corpo (máx 4 linhas, ~80 palavras): storytelling ou dado concreto que PROVA o título. Uma frase por linha. Última frase sempre muda a perspectiva ou entrega o insight.
+- Tom: meio culto, meio direto — como alguém que entende do assunto e não tem paciência pra enrolar.
+- Estrutura narrativa obrigatória: slide 1 = gancho polêmico, slides 2-N = provas/desenvolvimento, último slide = CTA ou síntese provocadora.
+- NUNCA use: "portanto", "ademais", "vale destacar", "no mundo atual", "nos dias de hoje".
+- SEMPRE use: frases curtas, números concretos quando possível, verbos de ação.
+- Escreve em letras minúsculas no corpo (não no título). ZERO ponto de exclamação. ZERO travessão. ZERO coaching language.
 
 TOM: ${tom}
 NICHO: ${profile.niche ?? 'empreendedorismo'}
 PALAVRAS PROIBIDAS: ${palavrasProibidas}
 PALAVRAS QUE O DEFINEM: ${palavrasChave}
-ESTILO DE REFERÊNCIA: ${exemploTexto}`
+ESTILO DE REFERÊNCIA: ${exemploTexto}
+
+Responda APENAS com o JSON solicitado, sem texto adicional.`
 
     const userPrompt = `Tema: ${tema}
 CTA desejado: ${cta_tipo}
@@ -182,12 +169,30 @@ Retorne APENAS um JSON válido, sem markdown, sem explicação, sem código fenc
     }
 
     // ── Salva slides individuais ──────────────────────────────────────
+    const kit = (profile.visual_kit ?? {}) as Record<string, string>
+    const kitCor   = kit.cor   ?? '#C8FF00'
+    const kitFonte = kit.fonte ?? '"Bebas Neue", sans-serif'
+    const isClaro  = kit.estilo === 'claro'
+
     const slideRows = parsed.slides.map((s) => ({
-      carousel_id: carousel.id,
-      position: s.position,
-      titulo: s.titulo,
-      corpo: s.corpo,
-      bg_image_url: '',
+      carousel_id:          carousel.id,
+      position:             s.position,
+      titulo:               s.titulo,
+      corpo:                s.corpo,
+      bg_image_url:         null,
+      font_family:          kitFonte,
+      accent_color:         kitCor,
+      text_color:           isClaro ? '#111111' : '#F5F5F5',
+      body_color:           isClaro ? '#222222' : '#F5F5F5',
+      overlay_opacity:      isClaro ? 30 : 50,
+      title_uppercase:      true,
+      font_size_title:      80,
+      font_size_body:       28,
+      title_line_height:    1.1,
+      title_letter_spacing: 2,
+      text_position:        'bottom',
+      padding_x:            20,
+      block_spacing:        16,
     }))
 
     const { error: slidesError } = await supabase

@@ -171,7 +171,7 @@ function Header({
   onNextSlide: () => void
   carouselId?: string
 }) {
-  const { plan, exportsRemaining, exportLimit } = usePlan()
+  const { plan, exportsRemaining, exportLimit, aiImagesRemaining: headerAiRemaining, aiImageLimit: headerAiLimit } = usePlan()
   const navigate = useNavigate()
   const PLAN_COLORS: Record<string, string> = { free: 'rgba(255,255,255,0.2)', criador: CYAN, profissional: '#C8FF00', agencia: '#A855F7' }
   const color = PLAN_COLORS[plan] ?? 'rgba(255,255,255,0.2)'
@@ -258,9 +258,16 @@ function Header({
       <span style={{ fontSize: 11, fontFamily: 'DM Sans, sans-serif', fontWeight: 700, color, border: `1px solid ${color}`, borderRadius: 99, padding: '3px 10px', textTransform: 'uppercase', letterSpacing: 0.5, marginRight: 12 }}>
         {plan}
       </span>
+      {headerAiLimit > 0 && (
+        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', fontFamily: 'DM Sans, sans-serif', marginRight: 8 }}>
+          <span style={{ color: A }}>✦</span>{' '}
+          <span style={{ color: headerAiRemaining > 0 ? '#F5F5F5' : '#f87171', fontWeight: 600 }}>{headerAiRemaining}</span>
+          /{headerAiLimit >= 999999 ? '∞' : headerAiLimit} IA
+        </span>
+      )}
       <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', fontFamily: 'DM Sans, sans-serif', marginRight: 8 }}>
-        <span style={{ color: exportsRemaining > 0 ? '#F5F5F5' : '#f87171', fontWeight: 600 }}>{exportsRemaining}</span>
-        {' '}/ {exportLimit} exportações
+        <span style={{ color: exportsRemaining > 0 ? '#F5F5F5' : '#f87171', fontWeight: 600 }}>{exportsRemaining >= 999999 ? '∞' : exportsRemaining}</span>
+        {' '}/ {exportLimit >= 999999 ? '∞' : exportLimit} exportações
       </span>
     </div>
   )
@@ -1156,7 +1163,7 @@ function StatePreview({
   previewToken?: string
   onSlideChange?: (active: number, total: number) => void
 }) {
-  const { canExport, plan, exportsRemaining } = usePlan()
+  const { canExport, plan, exportsRemaining, aiImagesRemaining, aiImageLimit } = usePlan()
   const { user } = useAuth()
   const [profileAvatarDefault, setProfileAvatarDefault] = useState<string | null>(null)
   const [profileColor, setProfileColor] = useState<string | null>(null)
@@ -1202,6 +1209,8 @@ function StatePreview({
   const isDraggingTitle = useRef(false)
   const dragStart = useRef({ mx: 0, my: 0, ox: 0, oy: 0 })
   const currentSlideIdRef = useRef<string | undefined>(undefined)
+  const [slideHistory, setSlideHistory] = useState<Record<string, Slide[]>>({})
+  const [slideHistoryIdx, setSlideHistoryIdx] = useState<Record<string, number>>({})
 
   // Mobile detection
   useEffect(() => {
@@ -1223,6 +1232,33 @@ function StatePreview({
         }
       })
     })
+  }, [])
+
+  // Undo/Redo keyboard handler
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey)) return
+      const isUndo = e.key === 'z' && !e.shiftKey
+      const isRedo = e.key === 'y' || (e.key === 'z' && e.shiftKey)
+      if (!isUndo && !isRedo) return
+      e.preventDefault()
+      const id = currentSlideIdRef.current
+      if (!id) return
+      if (isUndo) {
+        setSlideHistory(h => {
+          const stack = h[id] ?? []
+          if (stack.length === 0) return h
+          const prev = stack[stack.length - 1]
+          setSlides(p => p.map(s => s.id === id ? { ...prev } : s))
+          setSlideHistoryIdx(hi => ({ ...hi, [id]: Math.max(0, (hi[id] ?? 0) - 1) }))
+          return { ...h, [id]: stack.slice(0, -1) }
+        })
+      } else {
+        // Redo not stored separately — no-op for now
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
   }, [])
 
   // Load template from DB on mount
@@ -1254,6 +1290,30 @@ function StatePreview({
     await supabase.from('carousel_slides').update(updates).eq('carousel_id', carouselId)
     setSlides(p => p.map(s => ({ ...s, textColor: vk.cor ?? A, fontFamily: vk.fonte ?? '"Bebas Neue", sans-serif' })))
     toast.success('Kit visual aplicado em todos os slides')
+  }
+
+  const resetCurrentSlide = async () => {
+    if (!current) return
+    const { data } = await supabase.from('profiles')
+      .select('visual_kit').eq('user_id', user?.id).single()
+    const vk = (data?.visual_kit ?? {}) as Record<string, string>
+    const kitUpdates: Partial<Slide> = {
+      textColor: '#F5F5F5',
+      bodyColor: '#F5F5F5',
+      accentColor: vk.cor ?? '#C8FF00',
+      fontFamily: vk.fonte ?? '"Bebas Neue", sans-serif',
+      titleFontSize: 80,
+      bodyFontSize: 28,
+      titleUppercase: true,
+      titleLetterSpacing: 2,
+      titleLineHeight: 1.1,
+      textPosition: 'bottom',
+      paddingX: 20,
+      blockSpacing: 16,
+      overlayOpacity: 50,
+    }
+    updateSlideFormat(current.id, kitUpdates)
+    toast.success('Estilo resetado')
   }
 
   const applyFontToAll = async () => {
@@ -1398,7 +1458,16 @@ function StatePreview({
   }
 
   const updateSlideFormat = (id: string, updates: Partial<Slide>) => {
-    setSlides((prev) => prev.map((s) => s.id === id ? { ...s, ...updates } : s))
+    setSlides((prev) => {
+      const before = prev.find(s => s.id === id)
+      if (before) {
+        const idx = slideHistoryIdx[id] ?? 0
+        const stack = (slideHistory[id] ?? []).slice(0, idx)
+        setSlideHistory(h => ({ ...h, [id]: [...stack, before].slice(-20) }))
+        setSlideHistoryIdx(hi => ({ ...hi, [id]: Math.min(idx + 1, 20) }))
+      }
+      return prev.map((s) => s.id === id ? { ...s, ...updates } : s)
+    })
     const db = buildDbPayload(updates)
     if (Object.keys(db).length > 0) saveFormatToDb(id, db)
   }
@@ -1431,7 +1500,16 @@ function StatePreview({
     setSlides(p => p.map(s => s.id === id ? { ...s, vignetteIntensity: val } : s))
 
   const updateTitleStyle = (id: string, updates: Partial<Slide>) => {
-    setSlides(p => p.map(s => s.id === id ? { ...s, ...updates } : s))
+    setSlides(p => {
+      const prev = p.find(s => s.id === id)
+      if (prev) {
+        const idx = slideHistoryIdx[id] ?? 0
+        const stack = (slideHistory[id] ?? []).slice(0, idx)
+        setSlideHistory(h => ({ ...h, [id]: [...stack, prev].slice(-20) }))
+        setSlideHistoryIdx(hi => ({ ...hi, [id]: Math.min(idx + 1, 20) }))
+      }
+      return p.map(s => s.id === id ? { ...s, ...updates } : s)
+    })
     const db = buildDbPayload(updates)
     if (Object.keys(db).length > 0) saveFormatToDb(id, db)
   }
@@ -2043,6 +2121,33 @@ function StatePreview({
           {/* ─ CONTEÚDO ─ */}
           {current && (
             <div style={{ borderBottom: `1px solid ${B}`, padding: '14px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+
+              {/* Undo / Redo */}
+              <div style={{ display: 'flex', gap: 4 }}>
+                {[
+                  { label: '↩ Desfazer', action: () => {
+                    const id = current.id
+                    setSlideHistory(h => {
+                      const stack = h[id] ?? []
+                      if (stack.length === 0) return h
+                      const prev = stack[stack.length - 1]
+                      setSlides(p => p.map(s => s.id === id ? { ...prev } : s))
+                      setSlideHistoryIdx(hi => ({ ...hi, [id]: Math.max(0, (hi[id] ?? 0) - 1) }))
+                      return { ...h, [id]: stack.slice(0, -1) }
+                    })
+                  }, disabled: (slideHistory[current.id] ?? []).length === 0 },
+                ].map(({ label, action, disabled }) => (
+                  <button key={label} onClick={action} disabled={disabled} style={{
+                    flex: 1, height: 26, borderRadius: 6, border: `1px solid ${disabled ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.15)'}`,
+                    background: 'transparent', color: disabled ? 'rgba(255,255,255,0.2)' : M,
+                    fontFamily: ff, fontSize: 10, cursor: disabled ? 'default' : 'pointer',
+                    transition: 'all 0.15s',
+                  }}
+                    onMouseEnter={e => { if (!disabled) e.currentTarget.style.borderColor = A }}
+                    onMouseLeave={e => { if (!disabled) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)' }}
+                  >{label}</button>
+                ))}
+              </div>
 
               {/* Labels de função do slide */}
               <div style={{ display: 'flex', gap: 4 }}>
@@ -2969,6 +3074,14 @@ function StatePreview({
                 }}>
                   Aplicar kit em todos os slides
                 </button>
+                <button onClick={resetCurrentSlide} title="Resetar slide atual para o kit" style={{
+                  flexShrink: 0, width: 36, height: 36, background: 'transparent',
+                  border: `1px solid rgba(255,255,255,0.15)`, borderRadius: 8,
+                  color: M, fontFamily: ff, fontSize: 14, cursor: 'pointer', transition: 'all 0.15s',
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = A; e.currentTarget.style.color = A }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; e.currentTarget.style.color = M }}
+                >↺</button>
               </div>
             </div>
           )}
@@ -3100,7 +3213,7 @@ function StatePreview({
         </div>
 
         {/* ── RIGHT PANEL ── */}
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', backgroundColor: BG }}>
 
           {/* Toggle bar */}
           <div style={{
@@ -3405,23 +3518,51 @@ function StatePreview({
                           {idx + 1}
                         </div>
                       </div>
-                      {/* Download individual */}
-                      <button
-                        onClick={() => handleExportSingle(idx)}
-                        style={{
-                          width: '100%', height: 32, borderRadius: 6,
-                          backgroundColor: 'transparent',
-                          border: `1px solid ${B}`,
-                          color: M, fontSize: 11, fontFamily: ff,
-                          cursor: 'pointer', display: 'flex', alignItems: 'center',
-                          justifyContent: 'center', gap: 5,
-                          transition: 'all 0.15s',
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.borderColor = A; e.currentTarget.style.color = A }}
-                        onMouseLeave={(e) => { e.currentTarget.style.borderColor = B; e.currentTarget.style.color = M }}
-                      >
-                        ⬇ Baixar slide
-                      </button>
+                      {/* Ações do slide */}
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button
+                          onClick={() => handleExportSingle(idx)}
+                          style={{
+                            flex: 1, height: 32, borderRadius: 6,
+                            backgroundColor: 'transparent', border: `1px solid ${B}`,
+                            color: M, fontSize: 11, fontFamily: ff,
+                            cursor: 'pointer', display: 'flex', alignItems: 'center',
+                            justifyContent: 'center', gap: 4, transition: 'all 0.15s',
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.borderColor = A; e.currentTarget.style.color = A }}
+                          onMouseLeave={(e) => { e.currentTarget.style.borderColor = B; e.currentTarget.style.color = M }}
+                        >⬇ Baixar</button>
+                        {(() => {
+                          const noCredits = aiImagesRemaining <= 0
+                          const noAccess = aiImageLimit <= 0
+                          const tooltip = noAccess
+                            ? 'Disponível no plano Pro'
+                            : noCredits
+                              ? `Limite atingido (${aiImagesRemaining}/${aiImageLimit})`
+                              : `Gerar imagem IA (${aiImagesRemaining}/${aiImageLimit} restantes)`
+                          return (
+                            <button
+                              title={tooltip}
+                              disabled={noCredits || noAccess || generatingImages}
+                              onClick={() => handleGenerateImages(slide.id)}
+                              style={{
+                                flex: 1, height: 32, borderRadius: 6,
+                                backgroundColor: 'transparent',
+                                border: `1px solid ${noCredits || noAccess ? 'rgba(255,255,255,0.08)' : 'rgba(200,255,0,0.25)'}`,
+                                color: noCredits || noAccess ? 'rgba(255,255,255,0.2)' : A,
+                                fontSize: 11, fontFamily: ff,
+                                cursor: noCredits || noAccess || generatingImages ? 'default' : 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                                transition: 'all 0.15s',
+                              }}
+                              onMouseEnter={(e) => { if (!noCredits && !noAccess && !generatingImages) { e.currentTarget.style.backgroundColor = 'rgba(200,255,0,0.08)' } }}
+                              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
+                            >
+                              {generatingImages ? '...' : '✦ IA'}
+                            </button>
+                          )
+                        })()}
+                      </div>
                       <p style={{ fontSize: 10, color: M2, fontFamily: ff, margin: 0, textAlign: 'center' }}>
                         1080 × 1350px
                       </p>
