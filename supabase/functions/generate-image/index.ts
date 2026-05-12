@@ -149,7 +149,11 @@ serve(async (req) => {
         return json({ error: 'db_update_error', detail: updateError.message }, 500)
       }
 
-      // Contador será incrementado pelo frontend após o loop
+      // ── Incrementa contador de imagens IA ────────────────────────
+      await supabase
+        .from('profiles')
+        .update({ ai_images_used_this_month: profile.ai_images_used_this_month + 1 })
+        .eq('user_id', userId)
     } else {
       // ── Aplica a mesma URL em todos os slides do carrossel ────────
       const { error: updateError } = await supabase

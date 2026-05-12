@@ -48,18 +48,18 @@ serve(async (req) => {
     // ── Busca profile ─────────────────────────────────────────────────
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('voice_profile, visual_kit, niche, plan, exports_used_this_month, exports_limit')
+      .select('voice_profile, visual_kit, niche, plan, carousels_used_this_month, carousels_limit')
       .eq('user_id', userId)
       .single()
 
     if (profileError || !profile) return json({ error: 'profile_not_found' }, 404)
 
-    // ── Verifica limite de exportações ────────────────────────────────
-    // Planos profissional e agencia têm exportações ilimitadas
+    // ── Verifica limite de carrosséis ─────────────────────────────────
+    // Planos profissional e agencia têm geração ilimitada
     const unlimitedPlans = ['profissional', 'agencia']
     if (!unlimitedPlans.includes(profile.plan)) {
-      if (profile.exports_used_this_month >= profile.exports_limit) {
-        return json({ error: 'export_limit_reached' }, 403)
+      if (profile.carousels_used_this_month >= profile.carousels_limit) {
+        return json({ error: 'carousel_limit_reached' }, 403)
       }
     }
 
@@ -124,7 +124,7 @@ Retorne APENAS um JSON válido, sem markdown, sem explicação, sem código fenc
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-opus-4-5',
+        model: 'claude-sonnet-4-20250514',
         max_tokens: 4096,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }],
@@ -203,10 +203,10 @@ Retorne APENAS um JSON válido, sem markdown, sem explicação, sem código fenc
       cost_brl: costBrl,
     })
 
-    // ── Incrementa contador de exportações ────────────────────────────
+    // ── Incrementa contador de carrosséis ─────────────────────────────
     await supabase
       .from('profiles')
-      .update({ exports_used_this_month: profile.exports_used_this_month + 1 })
+      .update({ carousels_used_this_month: profile.carousels_used_this_month + 1 })
       .eq('user_id', userId)
 
     return json({
