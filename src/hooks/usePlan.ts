@@ -24,9 +24,17 @@ const AI_IMAGE_LIMITS: Record<Plan, number> = {
   agencia:    200,
 }
 
+const MAX_SLIDES_DEFAULT: Record<Plan, number> = {
+  free:       7,
+  construtor: 10,
+  escala:     15,
+  agencia:    15,
+}
+
 export function usePlan() {
   const { user } = useAuth()
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [maxSlides, setMaxSlides] = useState(10)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -38,8 +46,18 @@ export function usePlan() {
       .eq('user_id', user.id)
       .single()
       .then(({ data }) => {
-        setProfile(data as Profile)
-        setLoading(false)
+        const p = data as Profile
+        setProfile(p)
+        const plan = (p?.plan ?? 'free') as Plan
+        supabase
+          .from('plan_limits')
+          .select('max_slides')
+          .eq('plan', plan)
+          .single()
+          .then(({ data: pl }) => {
+            setMaxSlides(pl?.max_slides ?? MAX_SLIDES_DEFAULT[plan] ?? 10)
+            setLoading(false)
+          })
       })
   }, [user])
 
@@ -69,6 +87,7 @@ export function usePlan() {
     profile,
     loading,
     plan,
+    maxSlides,
     canExport,
     exportsRemaining,
     exportLimit,

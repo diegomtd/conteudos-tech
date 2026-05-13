@@ -1185,7 +1185,7 @@ function StatePreview({
   previewToken?: string
   onSlideChange?: (active: number, total: number) => void
 }) {
-  const { canExport, plan, exportsRemaining, aiImagesRemaining, aiImageLimit, aiImagesUsed } = usePlan()
+  const { canExport, plan, exportsRemaining, aiImagesRemaining, aiImageLimit, aiImagesUsed, maxSlides } = usePlan()
   const navigate = useNavigate()
   const { user } = useAuth()
   const [profileAvatarDefault, setProfileAvatarDefault] = useState<string | null>(null)
@@ -1625,6 +1625,10 @@ function StatePreview({
 
 
   const addSlide = () => {
+    if (slides.length >= maxSlides) {
+      toast.error(`Seu plano permite até ${maxSlides} slides por carrossel. Faça upgrade para adicionar mais.`)
+      return
+    }
     const newSlide: Slide = {
       id: String(Date.now()), titulo: 'NOVO SLIDE', corpo: 'Edite este texto.', hack: '',
       titleFontSize: 80, bodyFontSize: 28,

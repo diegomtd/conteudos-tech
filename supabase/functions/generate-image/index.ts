@@ -161,12 +161,6 @@ serve(async (req) => {
         console.error('[db] update error:', updateError)
         return json({ error: 'db_update_error', detail: updateError.message }, 500)
       }
-
-      // ── Incrementa contador de imagens IA ────────────────────────
-      await supabase
-        .from('profiles')
-        .update({ ai_images_used_this_month: profile.ai_images_used_this_month + 1 })
-        .eq('user_id', userId)
     } else {
       // ── Aplica a mesma URL em todos os slides do carrossel ────────
       const { error: updateError } = await supabase
@@ -178,13 +172,20 @@ serve(async (req) => {
         console.error('[db] update error:', updateError)
         return json({ error: 'db_update_error', detail: updateError.message }, 500)
       }
-
-      // ── Incrementa contador de imagens IA ────────────────────────
-      await supabase
-        .from('profiles')
-        .update({ ai_images_used_this_month: profile.ai_images_used_this_month + 1 })
-        .eq('user_id', userId)
     }
+
+    // ── Incrementa contador + loga custo ─────────────────────────────
+    await supabase
+      .from('profiles')
+      .update({ ai_images_used_this_month: (profile.ai_images_used_this_month ?? 0) + 1 })
+      .eq('user_id', userId)
+
+    await supabase.from('usage_logs').insert({
+      user_id:     userId,
+      action:      'generate_image',
+      tokens_used: 0,
+      cost_brl:    0.28,  // fal.ai flux-2-pro ≈ $0.05 USD × câmbio 5.6
+    })
 
     return json({ success: true, bg_image_url: imageUrl })
 

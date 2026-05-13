@@ -249,6 +249,12 @@ Retorne APENAS um JSON válido, sem markdown, sem explicação, sem código fenc
 
     if (slidesError) console.error('Slides insert error:', slidesError)
 
+    // ── Marca carrossel como pronto ───────────────────────────────────
+    await supabase
+      .from('carousels')
+      .update({ status: 'ready' })
+      .eq('id', carousel.id)
+
     // ── Log de uso ────────────────────────────────────────────────────
     await supabase.from('usage_logs').insert({
       user_id: userId,
@@ -260,7 +266,7 @@ Retorne APENAS um JSON válido, sem markdown, sem explicação, sem código fenc
     // ── Incrementa contador de carrosséis ─────────────────────────────
     await supabase
       .from('profiles')
-      .update({ carousels_used_this_month: profile.carousels_used_this_month + 1 })
+      .update({ carousels_used_this_month: (profile.carousels_used_this_month ?? 0) + 1 })
       .eq('user_id', userId)
 
     return json({

@@ -45,10 +45,10 @@ const PLAN_BORDER_SIDEBAR: Record<string, string> = {
 }
 
 const STATUS_COLOR: Record<string, string> = {
-  draft: '#555', exported: A, scheduled: '#F59E0B',
+  draft: '#555', ready: '#22C55E', exported: A, scheduled: '#F59E0B',
 }
 const STATUS_LABEL: Record<string, string> = {
-  draft: 'rascunho', exported: 'exportado', scheduled: 'agendado',
+  draft: 'rascunho', ready: 'pronto', exported: 'exportado', scheduled: 'agendado',
 }
 
 // ─── Fallback ideas ───────────────────────────────────────────────
@@ -407,7 +407,7 @@ export default function Dashboard() {
           .select('id, tema, status, created_at, exported_at, carousel_slides(bg_image_url, position)')
           .eq('user_id', user!.id)
           .order('created_at', { ascending: false })
-          .limit(5),
+          .limit(12),
         supabase.from('scheduled_posts')
           .select('*')
           .eq('user_id', user!.id)
