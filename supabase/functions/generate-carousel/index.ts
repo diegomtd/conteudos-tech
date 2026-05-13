@@ -264,10 +264,10 @@ Retorne APENAS um JSON válido, sem markdown, sem explicação, sem código fenc
     })
 
     // ── Incrementa contador de carrosséis ─────────────────────────────
-    await supabase
-      .from('profiles')
-      .update({ carousels_used_this_month: (profile.carousels_used_this_month ?? 0) + 1 })
-      .eq('user_id', userId)
+    await supabase.rpc('increment_counter', {
+      p_user_id: userId,
+      p_field: 'carousels_used_this_month',
+    })
 
     return json({
       carousel_id:   carousel.id,

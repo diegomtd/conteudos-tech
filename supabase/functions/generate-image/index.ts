@@ -175,10 +175,10 @@ serve(async (req) => {
     }
 
     // ── Incrementa contador + loga custo ─────────────────────────────
-    await supabase
-      .from('profiles')
-      .update({ ai_images_used_this_month: (profile.ai_images_used_this_month ?? 0) + 1 })
-      .eq('user_id', userId)
+    await supabase.rpc('increment_counter', {
+      p_user_id: userId,
+      p_field: 'ai_images_used_this_month',
+    })
 
     await supabase.from('usage_logs').insert({
       user_id:     userId,
