@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import ProtectedRoute from '@/components/shared/ProtectedRoute'
+import { useAuth } from '@/hooks/useAuth'
 
 import Landing    from '@/pages/Landing'
 import Auth       from '@/pages/Auth'
@@ -12,12 +13,19 @@ import Settings   from '@/pages/Settings'
 import Admin      from '@/pages/Admin'
 import Agency     from '@/pages/Agency'
 
+function RootRedirect() {
+  const { user, loading } = useAuth()
+  if (loading) return <div style={{ background: '#010816', minHeight: '100vh' }} />
+  if (user) return <Navigate to="/dashboard" replace />
+  return <Landing />
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         {/* Públicas */}
-        <Route path="/"               element={<Landing />} />
+        <Route path="/"               element={<RootRedirect />} />
         <Route path="/auth"           element={<Auth />} />
         <Route path="/preview/:token" element={<PreviewPublic />} />
 
