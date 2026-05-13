@@ -1,4 +1,4 @@
-export type Plan = 'free' | 'criador' | 'profissional' | 'agencia'
+export type Plan = 'free' | 'construtor' | 'escala' | 'agencia'
 export type UserRole = 'owner' | 'member' | 'admin'
 export type CarouselStatus = 'draft' | 'exported' | 'scheduled'
 export type PostStatus = 'pending' | 'notified' | 'posted'
@@ -22,6 +22,9 @@ export interface Profile {
   exports_limit: number
   ai_images_limit: number
   ai_images_used_this_month: number
+  carousels_limit: number
+  carousels_used_this_month: number
+  price_brl: number
   onboarding_completed: boolean
   telegram_chat_id: string | null
   avatar_url?: string | null

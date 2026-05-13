@@ -9,6 +9,7 @@ import { usePlan } from '@/hooks/usePlan'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import { SlideRenderer, getSlideContainerStyle, CarouselTemplate as _CarouselTemplate } from '@/components/SlideRenderer'
+import { TEMPLATE_CONFIG } from '@/lib/templates'
 
 // ── Design tokens v3.0 — ConteudOS Futurista ──────────────
 const A    = '#00D4FF'                          // cyan elétrico — accent principal
@@ -28,29 +29,21 @@ type AppState = 'input' | 'generating' | 'preview'
 type CarouselTemplate = _CarouselTemplate
 
 const TEMPLATES: { key: CarouselTemplate; icon: string; name: string; desc: string }[] = [
-  { key: 'impacto',       icon: '⚡', name: 'Impacto',      desc: 'Autoridade e hooks visuais' },
-  { key: 'editorial',     icon: '📰', name: 'Editorial',    desc: 'Educação e análises' },
-  { key: 'lista',         icon: '📋', name: 'Lista Viral',  desc: 'Dicas e passo a passo' },
-  { key: 'citacao',       icon: '💬', name: 'Citação',      desc: 'Frases e reflexões' },
-  { key: 'comparacao',    icon: '⚖️', name: 'Comparação',   desc: 'Antes vs Depois' },
-  { key: 'storytelling',  icon: '📖', name: 'Narrativa',    desc: 'Jornada e bastidores' },
-  { key: 'editorial_foto',icon: '🖼️', name: 'Edit. Foto',   desc: 'Texto sobre foto com gradiente' },
-  { key: 'texto_imagem',  icon: '📝', name: 'Texto + Img',  desc: 'Texto acima, imagem abaixo' },
-  { key: 'split_visual',  icon: '⬛', name: 'Split Visual', desc: 'Duas imagens divididas' },
-  { key: 'citacao_bold',  icon: '❝',  name: 'Citação Bold', desc: 'Frase grande centralizada' },
+  { key: 'impacto',      icon: '⚡', name: 'Impacto',      desc: 'Título gigante, texto mínimo. Para ganchos que param o scroll.' },
+  { key: 'editorial',    icon: '📰', name: 'Editorial',    desc: 'Equilíbrio entre título e corpo. Para conteúdo educativo denso.' },
+  { key: 'lista',        icon: '📋', name: 'Lista',        desc: 'Cada slide = 1 item de lista numerado. Para "X coisas que..."' },
+  { key: 'citacao',      icon: '💬', name: 'Citação',      desc: 'Frase de impacto centralizada. Para reflexões e provocações.' },
+  { key: 'storytelling', icon: '🎬', name: 'Bastidor',     desc: 'Narrativa sequencial. Para contar histórias e casos reais.' },
+  { key: 'dados',        icon: '📊', name: 'Dado Chocante',desc: 'Número ou estatística em destaque. Para dados que impressionam.' },
 ]
 
 const TEMPLATE_GRADIENTS: Record<string, string> = {
-  impacto:       'linear-gradient(135deg,#060d14,#1a2a3a)',
-  editorial:     'linear-gradient(135deg,#0a0a0a,#1a1a14)',
-  lista:         'linear-gradient(135deg,#060d14,#0f1e0f)',
-  citacao:       'linear-gradient(135deg,#0a0814,#1a0f2e)',
-  comparacao:    'linear-gradient(135deg,#140808,#0a0a14)',
-  storytelling:  'linear-gradient(135deg,#080614,#14060a)',
-  editorial_foto:'linear-gradient(135deg,#0a0a0a,#1a1400)',
-  texto_imagem:  'linear-gradient(135deg,#060d14,#081420)',
-  split_visual:  'linear-gradient(135deg,#080808,#141414)',
-  citacao_bold:  'linear-gradient(135deg,#0a0814,#14082a)',
+  impacto:      'linear-gradient(135deg,#060d14,#1a2a3a)',
+  editorial:    'linear-gradient(135deg,#0a0a0a,#1a1a14)',
+  lista:        'linear-gradient(135deg,#060d14,#0f1e0f)',
+  citacao:      'linear-gradient(135deg,#0a0814,#1a0f2e)',
+  storytelling: 'linear-gradient(135deg,#080614,#14060a)',
+  dados:        'linear-gradient(135deg,#0a0a0a,#141408)',
 }
 
 // ─── Mock slides ──────────────────────────────────────────────
@@ -336,12 +329,13 @@ function StateInput({
   temaInit, onGenerate,
 }: {
   temaInit: string
-  onGenerate: (config: { tema: string; slides: number; tom: string; cta: string; instructions?: string }) => void
+  onGenerate: (config: { tema: string; slides: number; tom: string; cta: string; template_id?: string; instructions?: string }) => void
 }) {
-  const [tema, setTema]         = useState(temaInit)
-  const [slides, setSlides]     = useState(7)
-  const [tom, setTom]           = useState('Provocador')
-  const [cta, setCta]           = useState('Engajamento')
+  const [tema, setTema]           = useState(temaInit)
+  const [slides, setSlides]       = useState(7)
+  const [tom, setTom]             = useState('Provocador')
+  const [cta, setCta]             = useState('Engajamento')
+  const [selectedTpl, setSelectedTpl] = useState<CarouselTemplate>('impacto')
   const [viralOpen, setViralOpen] = useState(false)
   const [viralInput, setViralInput] = useState('')
   const [analyzingViral, setAnalyzingViral] = useState(false)
@@ -384,6 +378,7 @@ function StateInput({
     10: '10 slides — aprofundamento com contexto e exemplos',
     12: '12 slides — storytelling longo com arco narrativo',
     15: '15 slides — conteúdo denso, ideal para tutoriais',
+    0:  'IA decide — número ideal baseado no tema',
   }
   const TOM_TOOLTIPS: Record<string, string> = {
     Provocador: 'Questiona crenças e provoca reflexão — alto engajamento',
@@ -473,7 +468,7 @@ function StateInput({
         onChange={(e) => setTema(e.target.value)}
         onClick={(e) => e.stopPropagation()}
         placeholder="Ex: por que 97% das pessoas nunca atingem a meta que definem"
-        onKeyDown={(e) => { if (e.key === 'Enter' && canCreate) onGenerate({ tema, slides, tom, cta, instructions: iaInstructions.trim() || undefined }) }}
+        onKeyDown={(e) => { if (e.key === 'Enter' && canCreate) onGenerate({ tema, slides, tom, cta, template_id: selectedTpl, instructions: iaInstructions.trim() || undefined }) }}
         style={{
           ...inputSt, width: '100%', height: 72, padding: '0 20px',
           fontSize: 17,
@@ -657,16 +652,42 @@ function StateInput({
 
       {/* Opções */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {/* Template */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <span style={{ fontSize: 12, color: M, fontFamily: ff }}>Template:</span>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+            {TEMPLATES.map(({ key, icon, name }) => {
+              const sel = selectedTpl === key
+              return (
+                <button key={key} onClick={() => {
+                  setSelectedTpl(key)
+                  const cfg = TEMPLATE_CONFIG[key as keyof typeof TEMPLATE_CONFIG]
+                  if (cfg) setSlides(cfg.num_slides_sugerido)
+                }} style={{
+                  borderRadius: 6, cursor: 'pointer', padding: '6px 8px',
+                  background: sel ? 'rgba(200,255,0,0.08)' : 'rgba(255,255,255,0.03)',
+                  border: `1.5px solid ${sel ? A : B}`,
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  transition: 'border-color 0.15s',
+                }}>
+                  <span style={{ fontSize: 14 }}>{icon}</span>
+                  <span style={{ fontFamily: ff, fontSize: 11, color: sel ? A : T, letterSpacing: 0.5 }}>{name}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
         {/* Slides */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 12, color: M, fontFamily: ff, minWidth: 48 }}>Slides:</span>
-          {[5, 7, 10, 12, 15].map((n) => (
+          {([5, 7, 10, 12, 15, 0] as const).map((n) => (
             <TooltipChip
               key={n}
-              label={String(n)}
+              label={n === 0 ? 'IA' : String(n)}
               active={slides === n}
               onClick={() => setSlides(n)}
-              tooltip={SLIDE_TOOLTIPS[n]}
+              tooltip={SLIDE_TOOLTIPS[n] ?? 'IA escolhe o ideal para o tema'}
             />
           ))}
         </div>
@@ -779,7 +800,7 @@ function StateInput({
       {/* Botão principal */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
         <button
-          onClick={() => onGenerate({ tema, slides, tom, cta, instructions: iaInstructions.trim() || undefined })}
+          onClick={() => onGenerate({ tema, slides, tom, cta, template_id: selectedTpl, instructions: iaInstructions.trim() || undefined })}
           disabled={!canCreate}
           style={{
             width: '100%', height: 60,
@@ -810,7 +831,7 @@ function StateInput({
 }
 
 // ─── Estado 2: Gerando ────────────────────────────────────────
-interface GenerateConfig { tema: string; slides: number; tom: string; cta: string; instructions?: string }
+interface GenerateConfig { tema: string; slides: number; tom: string; cta: string; template_id?: string; instructions?: string }
 interface GenerateResult {
   carousel_id: string
   preview_token: string
@@ -867,6 +888,7 @@ function StateGenerating({
             tom: config.tom,
             num_slides: config.slides,
             cta_tipo: config.cta,
+            template_id: config.template_id,
             ...(config.instructions ? { instructions: config.instructions } : {}),
           },
         })
@@ -1163,7 +1185,8 @@ function StatePreview({
   previewToken?: string
   onSlideChange?: (active: number, total: number) => void
 }) {
-  const { canExport, plan, exportsRemaining, aiImagesRemaining, aiImageLimit } = usePlan()
+  const { canExport, plan, exportsRemaining, aiImagesRemaining, aiImageLimit, aiImagesUsed } = usePlan()
+  const navigate = useNavigate()
   const { user } = useAuth()
   const [profileAvatarDefault, setProfileAvatarDefault] = useState<string | null>(null)
   const [profileColor, setProfileColor] = useState<string | null>(null)
@@ -1689,6 +1712,29 @@ function StatePreview({
     done: boolean
   }>({ total: 0, current: 0, currentTitle: '', done: false })
 
+  const showUpsellToast = () => {
+    const nextPlan   = plan === 'free' ? 'Construtor' : plan === 'construtor' ? 'Escala' : 'Agência'
+    const nextImages = plan === 'free' ? 20 : plan === 'construtor' ? 60 : 200
+    toast.custom(() => (
+      <div style={{
+        background: '#C8FF00', color: '#080808', borderRadius: 12, padding: '14px 18px',
+        display: 'flex', flexDirection: 'column', gap: 6, maxWidth: 360, boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+      }}>
+        <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 16, letterSpacing: 1 }}>Limite de imagens atingido</span>
+        <span style={{ fontFamily: '"DM Sans", sans-serif', fontSize: 13 }}>
+          Você usou {aiImagesUsed}/{aiImageLimit} imagens este mês.
+        </span>
+        <button onClick={() => navigate('/settings?tab=plano')} style={{
+          marginTop: 4, background: '#080808', color: '#C8FF00', border: 'none', borderRadius: 8,
+          padding: '8px 14px', fontFamily: '"Bebas Neue", sans-serif', fontSize: 13, letterSpacing: 1,
+          cursor: 'pointer',
+        }}>
+          Fazer upgrade para {nextPlan} → {nextImages} imagens/mês
+        </button>
+      </div>
+    ), { duration: 8000 })
+  }
+
   const handleGenerateImages = async (slideIdOverride?: string) => {
     if (!carouselId || generatingImages) return
     setGeneratingImages(true)
@@ -1716,7 +1762,7 @@ function StatePreview({
         })
         const data = await res.json()
         if (data.error === 'ai_images_limit_reached') {
-          toast.error('Limite de imagens IA atingido.')
+          showUpsellToast()
         } else if (data.bg_image_url) {
           setSlides(prev => prev.map(s => s.id === slideIdOverride ? { ...s, bgImageUrl: data.bg_image_url } : s))
           toast.success('Imagem gerada')
@@ -1761,7 +1807,7 @@ function StatePreview({
         const data = await res.json()
 
         if (data.error === 'ai_images_limit_reached') {
-          toast.error(`Limite atingido no slide ${i + 1}. Faça upgrade para continuar.`)
+          showUpsellToast()
           limitReached = true
         } else if (data.bg_image_url) {
           setSlides(prev => prev.map(s => s.id === slide.id ? { ...s, bgImageUrl: data.bg_image_url } : s))
@@ -1895,8 +1941,8 @@ function StatePreview({
     </div>
   )
 
-  const isComparacaoMiddle = selectedTemplate === 'comparacao' && activeSlide !== 0 && activeSlide !== slides.length - 1
-  const isSplitVisualMiddle = selectedTemplate === 'split_visual' && activeSlide !== 0 && activeSlide !== slides.length - 1
+  const isComparacaoMiddle = false
+  const isSplitVisualMiddle = false
 
   return (
     <>
@@ -3089,100 +3135,24 @@ function StatePreview({
           {/* ─ Section 8: TEMPLATE ─ */}
           <CollapsibleSection title="TEMPLATE" isOpen={secTemplate} onToggle={() => setSecTemplate(v => !v)}>
             {(() => {
-              const TEMPLATE_SVG: Record<string, React.ReactElement> = {
-                impacto: <svg viewBox="0 0 54 67" style={{width:'100%',height:'100%',opacity:0.7}}>
-                  <rect width="54" height="67" fill="#060d14"/>
-                  <rect x="4" y="42" width="46" height="8" rx="1" fill="rgba(255,255,255,0.7)"/>
-                  <rect x="4" y="54" width="30" height="3" rx="1" fill="rgba(255,255,255,0.3)"/>
-                  <rect x="4" y="59" width="20" height="3" rx="1" fill="rgba(255,255,255,0.3)"/>
-                </svg>,
-                editorial: <svg viewBox="0 0 54 67" style={{width:'100%',height:'100%',opacity:0.7}}>
-                  <rect width="54" height="67" fill="#0a0a0a"/>
-                  <rect x="4" y="8" width="46" height="2" rx="1" fill="#C8FF00"/>
-                  <rect x="4" y="16" width="38" height="6" rx="1" fill="rgba(255,255,255,0.7)"/>
-                  <rect x="4" y="26" width="46" height="2" rx="1" fill="rgba(255,255,255,0.2)"/>
-                  <rect x="4" y="32" width="40" height="2" rx="1" fill="rgba(255,255,255,0.2)"/>
-                  <rect x="4" y="38" width="34" height="2" rx="1" fill="rgba(255,255,255,0.2)"/>
-                </svg>,
-                lista: <svg viewBox="0 0 54 67" style={{width:'100%',height:'100%',opacity:0.7}}>
-                  <rect width="54" height="67" fill="#060d14"/>
-                  <text x="4" y="28" fontSize="20" fill="#C8FF00" fontFamily="sans-serif" fontWeight="bold">01</text>
-                  <rect x="4" y="34" width="36" height="4" rx="1" fill="rgba(255,255,255,0.6)"/>
-                  <rect x="4" y="42" width="46" height="2" rx="1" fill="rgba(255,255,255,0.2)"/>
-                  <rect x="4" y="48" width="40" height="2" rx="1" fill="rgba(255,255,255,0.2)"/>
-                </svg>,
-                citacao: <svg viewBox="0 0 54 67" style={{width:'100%',height:'100%',opacity:0.7}}>
-                  <rect width="54" height="67" fill="#0a0814"/>
-                  <text x="4" y="26" fontSize="24" fill="#C8FF00" fontFamily="serif" opacity="0.4">"</text>
-                  <rect x="8" y="28" width="38" height="3" rx="1" fill="rgba(255,255,255,0.6)"/>
-                  <rect x="10" y="35" width="34" height="3" rx="1" fill="rgba(255,255,255,0.6)"/>
-                  <rect x="14" y="42" width="26" height="3" rx="1" fill="rgba(255,255,255,0.6)"/>
-                </svg>,
-                comparacao: <svg viewBox="0 0 54 67" style={{width:'100%',height:'100%',opacity:0.7}}>
-                  <rect width="54" height="67" fill="#0a0a0a"/>
-                  <rect x="0" y="0" width="26" height="67" fill="rgba(255,80,80,0.1)"/>
-                  <rect x="28" y="0" width="26" height="67" fill="rgba(200,255,0,0.1)"/>
-                  <rect x="26" y="0" width="2" height="67" fill="rgba(255,255,255,0.2)"/>
-                  <text x="4" y="14" fontSize="7" fill="#ff5050" fontFamily="sans-serif">ANTES</text>
-                  <text x="30" y="14" fontSize="7" fill="#C8FF00" fontFamily="sans-serif">DEPOIS</text>
-                  <rect x="4" y="20" width="18" height="2" rx="1" fill="rgba(255,255,255,0.3)"/>
-                  <rect x="30" y="20" width="18" height="2" rx="1" fill="rgba(255,255,255,0.3)"/>
-                </svg>,
-                storytelling: <svg viewBox="0 0 54 67" style={{width:'100%',height:'100%',opacity:0.7}}>
-                  <rect width="54" height="67" fill="#080614"/>
-                  <rect x="4" y="28" width="46" height="2" rx="1" fill="rgba(255,255,255,0.4)"/>
-                  <rect x="4" y="34" width="42" height="2" rx="1" fill="rgba(255,255,255,0.4)"/>
-                  <rect x="4" y="40" width="38" height="2" rx="1" fill="rgba(255,255,255,0.4)"/>
-                  <rect x="4" y="52" width="24" height="4" rx="1" fill="rgba(255,255,255,0.6)"/>
-                </svg>,
-                editorial_foto: <svg viewBox="0 0 54 67" style={{width:'100%',height:'100%',opacity:0.7}}>
-                  <rect width="54" height="67" fill="#060d14"/>
-                  <rect x="0" y="0" width="54" height="40" fill="rgba(255,255,255,0.08)"/>
-                  <rect x="4" y="44" width="38" height="5" rx="1" fill="rgba(255,255,255,0.7)"/>
-                  <rect x="4" y="53" width="28" height="2" rx="1" fill="rgba(255,255,255,0.3)"/>
-                </svg>,
-                texto_imagem: <svg viewBox="0 0 54 67" style={{width:'100%',height:'100%',opacity:0.7}}>
-                  <rect width="54" height="67" fill="#0a0a0a"/>
-                  <rect x="4" y="6" width="36" height="5" rx="1" fill="rgba(255,255,255,0.7)"/>
-                  <rect x="4" y="15" width="46" height="2" rx="1" fill="rgba(255,255,255,0.3)"/>
-                  <rect x="4" y="21" width="40" height="2" rx="1" fill="rgba(255,255,255,0.3)"/>
-                  <rect x="2" y="30" width="50" height="32" rx="4" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.15)" strokeWidth="0.5"/>
-                </svg>,
-                split_visual: <svg viewBox="0 0 54 67" style={{width:'100%',height:'100%',opacity:0.7}}>
-                  <rect width="54" height="67" fill="#0a0a0a"/>
-                  <rect x="0" y="0" width="54" height="32" fill="rgba(200,255,0,0.06)"/>
-                  <rect x="0" y="35" width="54" height="32" fill="rgba(0,180,216,0.06)"/>
-                  <rect x="0" y="32" width="54" height="3" fill="#C8FF00" opacity="0.4"/>
-                  <rect x="14" y="12" width="26" height="3" rx="1" fill="rgba(255,255,255,0.5)"/>
-                  <rect x="14" y="47" width="26" height="3" rx="1" fill="rgba(255,255,255,0.5)"/>
-                </svg>,
-                citacao_bold: <svg viewBox="0 0 54 67" style={{width:'100%',height:'100%',opacity:0.7}}>
-                  <rect width="54" height="67" fill="#080814"/>
-                  <text x="2" y="38" fontSize="42" fill="#C8FF00" fontFamily="serif" opacity="0.12">"</text>
-                  <rect x="6" y="24" width="42" height="5" rx="1" fill="rgba(255,255,255,0.7)"/>
-                  <rect x="8" y="33" width="38" height="5" rx="1" fill="rgba(255,255,255,0.7)"/>
-                  <rect x="20" y="44" width="14" height="2" rx="1" fill="#C8FF00" opacity="0.6"/>
-                </svg>,
-              }
               return (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  {TEMPLATES.map(({ key, name }) => {
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {TEMPLATES.map(({ key, icon, name, desc }) => {
                     const sel = selectedTemplate === key
                     return (
                       <button key={key} onClick={() => handleTemplateChange(key)} style={{
-                        borderRadius: 8, cursor: 'pointer', padding: '4px 4px 4px',
-                        background: TEMPLATE_GRADIENTS[key] ?? TEMPLATE_GRADIENTS.impacto,
+                        borderRadius: 8, cursor: 'pointer', padding: '10px 12px',
+                        background: sel ? 'rgba(200,255,0,0.06)' : 'rgba(255,255,255,0.03)',
                         border: `1.5px solid ${sel ? A : B}`,
-                        display: 'flex', flexDirection: 'column',
-                        alignItems: 'center', gap: 4, height: 72,
-                        transition: 'border-color 0.15s',
-                        boxShadow: sel ? `0 0 12px rgba(200,255,0,0.15)` : 'none',
-                        overflow: 'hidden',
+                        display: 'flex', alignItems: 'flex-start', gap: 10,
+                        textAlign: 'left', transition: 'border-color 0.15s',
+                        boxShadow: sel ? '0 0 12px rgba(200,255,0,0.12)' : 'none',
                       }}>
-                        <div style={{ flex: 1, width: '100%', minHeight: 0 }}>
-                          {TEMPLATE_SVG[key]}
+                        <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0, marginTop: 1 }}>{icon}</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                          <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 13, color: sel ? A : T, letterSpacing: 1, lineHeight: 1 }}>{name}</span>
+                          <span style={{ fontFamily: '"DM Sans", sans-serif', fontSize: 10, color: 'rgba(255,255,255,0.45)', lineHeight: 1.4, whiteSpace: 'normal' }}>{desc}</span>
                         </div>
-                        <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 9, color: sel ? A : 'rgba(255,255,255,0.6)', letterSpacing: 1, lineHeight: 1, flexShrink: 0 }}>{name}</span>
                       </button>
                     )
                   })}
@@ -3460,12 +3430,12 @@ function StatePreview({
             <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', padding: 24 }}>
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, 360px)',
+                gridTemplateColumns: 'repeat(auto-fill, 680px)',
                 gap: 16,
                 justifyContent: 'center',
               }}>
                 {slides.map((slide, idx) => {
-                  const gs = 360 / 1080
+                  const gs = 680 / 1080
                   const isActive = activeSlide === idx
                   return (
                     <div key={slide.id} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -3473,7 +3443,7 @@ function StatePreview({
                         onClick={() => setActiveSlide(idx)}
                         style={{
                           cursor: 'pointer', position: 'relative',
-                          width: 360, height: 450,
+                          width: 680, height: 850,
                           borderRadius: 10, overflow: 'hidden',
                           border: `2px solid ${isActive ? A : B}`,
                           transition: 'border-color 0.15s',

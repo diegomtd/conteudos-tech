@@ -243,7 +243,7 @@ export default function Calendar() {
   const [loading,     setLoading]     = useState(true)
   const [showModal,   setShowModal]   = useState(false)
 
-  const canAccess = plan === 'profissional' || plan === 'agencia'
+  const canAccess = plan === 'escala' || plan === 'agencia'
 
   const fetchPosts = useCallback(async () => {
     if (!user) return

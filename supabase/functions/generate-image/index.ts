@@ -84,9 +84,22 @@ serve(async (req) => {
     const styleKey = (style ?? 'cinematic').toLowerCase()
     let fullPrompt: string
 
-    if (slide_id && titulo) {
-      // Prompt contextual para slide específico
-      fullPrompt = buildContextualPrompt(titulo, corpo ?? '', styleKey)
+    if (slide_id) {
+      // Busca conteúdo real do slide no banco para garantir dados atualizados
+      const { data: slideData } = await supabase
+        .from('carousel_slides')
+        .select('titulo, corpo')
+        .eq('id', slide_id)
+        .single()
+
+      const slideContext = slideData
+        ? `Slide de Instagram. Título: "${slideData.titulo}".${slideData.corpo ? ` Contexto: "${slideData.corpo.substring(0, 120)}"` : ''}`
+        : (titulo ? `Slide de Instagram. Título: "${titulo}".${corpo ? ` Contexto: "${corpo.substring(0, 120)}"` : ''}` : '')
+
+      const modifier = STYLE_MODIFIERS[styleKey] ?? STYLE_MODIFIERS['cinematic']
+      fullPrompt = slideContext
+        ? `Fotografia cinematográfica para ${slideContext} Estilo: dark moody, contraste alto, iluminação dramática. Sem texto, sem pessoas, sem rostos. Composição: regra dos terços, profundidade de campo. ${modifier}${NO_TEXT_SUFFIX}`
+        : buildPrompt(titulo ?? '', styleKey)
     } else {
       // Prompt genérico baseado no tema do carrossel
       const { data: carousel, error: carouselError } = await supabase

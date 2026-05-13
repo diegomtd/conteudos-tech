@@ -4,24 +4,24 @@ import { useAuth } from './useAuth'
 import type { Plan, Profile } from '@/types'
 
 const CAROUSEL_LIMITS: Record<Plan, number> = {
-  free:         3,
-  criador:      20,
-  profissional: 50,
-  agencia:      150,
+  free:       3,
+  construtor: 30,
+  escala:     100,
+  agencia:    999999,
 }
 
 const EXPORT_LIMITS: Record<Plan, number> = {
-  free:         3,
-  criador:      20,
-  profissional: 999999,
-  agencia:      999999,
+  free:       0,
+  construtor: 999999,
+  escala:     999999,
+  agencia:    999999,
 }
 
 const AI_IMAGE_LIMITS: Record<Plan, number> = {
-  free:         0,
-  criador:      20,
-  profissional: 60,
-  agencia:      200,
+  free:       3,
+  construtor: 20,
+  escala:     60,
+  agencia:    200,
 }
 
 export function usePlan() {
@@ -48,7 +48,7 @@ export function usePlan() {
   // Exportações
   const exportLimit      = profile?.exports_limit ?? EXPORT_LIMITS[plan]
   const exportsUsed      = profile?.exports_used_this_month ?? 0
-  const exportsRemaining = plan === 'profissional' || plan === 'agencia'
+  const exportsRemaining = plan === 'construtor' || plan === 'escala' || plan === 'agencia'
     ? 999999
     : Math.max(0, exportLimit - exportsUsed)
   const canExport = exportsRemaining > 0
@@ -59,9 +59,9 @@ export function usePlan() {
   const aiImagesRemaining = Math.max(0, aiImageLimit - aiImagesUsed)
 
   // Carrosseis
-  const carouselsLimit     = (profile as any)?.carousels_limit ?? CAROUSEL_LIMITS[plan]
-  const carouselsUsed      = (profile as any)?.carousels_used_this_month ?? 0
-  const carouselsRemaining = plan === 'profissional' || plan === 'agencia'
+  const carouselsLimit     = profile?.carousels_limit ?? CAROUSEL_LIMITS[plan]
+  const carouselsUsed      = profile?.carousels_used_this_month ?? 0
+  const carouselsRemaining = plan === 'escala' || plan === 'agencia'
     ? 999999
     : Math.max(0, carouselsLimit - carouselsUsed)
 

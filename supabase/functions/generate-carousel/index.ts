@@ -14,6 +14,30 @@ function json(data: unknown, status = 200) {
   })
 }
 
+// ─── Template configs (duplicado do frontend — Deno não importa de src/) ──────
+const TEMPLATE_CONFIGS: Record<string, {
+  font_size_title: number; font_size_body: number; title_uppercase: boolean
+  title_letter_spacing: number; text_position: string; overlay_opacity: number
+  body_max_lines: number; num_slides_sugerido: number
+}> = {
+  impacto:      { font_size_title: 96, font_size_body: 22, title_uppercase: true,  title_letter_spacing: 3, text_position: 'bottom', overlay_opacity: 60, body_max_lines: 3,  num_slides_sugerido: 7  },
+  editorial:    { font_size_title: 64, font_size_body: 26, title_uppercase: true,  title_letter_spacing: 1, text_position: 'center', overlay_opacity: 70, body_max_lines: 6,  num_slides_sugerido: 10 },
+  lista:        { font_size_title: 48, font_size_body: 28, title_uppercase: false, title_letter_spacing: 0, text_position: 'center', overlay_opacity: 65, body_max_lines: 5,  num_slides_sugerido: 7  },
+  citacao:      { font_size_title: 52, font_size_body: 20, title_uppercase: false, title_letter_spacing: 0, text_position: 'center', overlay_opacity: 75, body_max_lines: 2,  num_slides_sugerido: 5  },
+  storytelling: { font_size_title: 58, font_size_body: 24, title_uppercase: false, title_letter_spacing: 0, text_position: 'bottom', overlay_opacity: 55, body_max_lines: 5,  num_slides_sugerido: 10 },
+  dados:        { font_size_title: 88, font_size_body: 22, title_uppercase: true,  title_letter_spacing: 2, text_position: 'center', overlay_opacity: 70, body_max_lines: 3,  num_slides_sugerido: 7  },
+}
+
+// ─── Font size adaptativo por comprimento do título ───────────────────────────
+function adaptiveTitleFontSize(titulo: string, templateId: string): number {
+  const base = TEMPLATE_CONFIGS[templateId]?.font_size_title ?? 80
+  const words = titulo.trim().split(' ').length
+  if (words <= 3) return Math.min(base + 16, 120)
+  if (words <= 5) return base
+  if (words <= 8) return Math.max(base - 12, 56)
+  return Math.max(base - 20, 48)
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
@@ -36,15 +60,19 @@ serve(async (req) => {
     if (!userId) return json({ error: 'unauthorized' }, 401)
 
     // ── Parse body ────────────────────────────────────────────────────
-    const { tema, tom, num_slides, cta_tipo, instructions } = await req.json() as {
+    const { tema, tom, num_slides, cta_tipo, template_id, instructions } = await req.json() as {
       tema: string
       tom: string
       num_slides: number
       cta_tipo: string
+      template_id?: string
       instructions?: string
     }
 
     if (!tema?.trim()) return json({ error: 'tema_required' }, 400)
+
+    const tplId = template_id && TEMPLATE_CONFIGS[template_id] ? template_id : 'impacto'
+    const tplCfg = TEMPLATE_CONFIGS[tplId]
 
     // ── Busca profile ─────────────────────────────────────────────────
     const { data: profile, error: profileError } = await supabase
@@ -56,25 +84,38 @@ serve(async (req) => {
     if (profileError || !profile) return json({ error: 'profile_not_found' }, 404)
 
     // ── Verifica limite de carrosséis ─────────────────────────────────
-    // Planos profissional e agencia têm geração ilimitada
-    const unlimitedPlans = ['profissional', 'agencia']
+    const unlimitedPlans = ['escala', 'agencia']
     if (!unlimitedPlans.includes(profile.plan)) {
       if (profile.carousels_used_this_month >= profile.carousels_limit) {
-        return json({ error: 'carousel_limit_reached' }, 403)
+        return json({ error: 'carousel_limit_reached', limit: profile.carousels_limit }, 403)
       }
     }
 
+    // ── Voice profile context ─────────────────────────────────────────
+    const voice = (profile.voice_profile ?? {}) as Record<string, unknown>
+    const voiceContext = voice.tom
+      ? `\nTOM DE VOZ: ${voice.tom}.${
+          Array.isArray(voice.palavras_proibidas) && voice.palavras_proibidas.length
+            ? ` NUNCA usar: ${(voice.palavras_proibidas as string[]).join(', ')}.`
+            : ''
+        }${
+          Array.isArray(voice.palavras_definidoras) && voice.palavras_definidoras.length
+            ? ` Usar quando possível: ${(voice.palavras_definidoras as string[]).join(', ')}.`
+            : ''
+        }`
+      : ''
+
     // ── Monta system prompt ───────────────────────────────────────────
     const vp = profile.voice_profile ?? {}
-    const palavrasProibidas = vp.palavras_proibidas?.join(', ') ?? 'nenhuma'
-    const palavrasChave = vp.palavras_chave?.join(', ') ?? ''
-    const exemploTexto = vp.exemplo_texto ?? ''
+    const palavrasProibidas = (vp as Record<string, unknown>).palavras_proibidas
+    const palavrasChave     = (vp as Record<string, unknown>).palavras_chave
+    const exemploTexto      = (vp as Record<string, unknown>).exemplo_texto
 
-    const systemPrompt = `Você é um especialista em carrosseis virais para Instagram no mercado brasileiro.
+    let systemPrompt = `Você é um especialista em carrosseis virais para Instagram no mercado brasileiro.
 
 REGRAS DE COPY:
 - Título (máx 8 palavras): deve ser uma DECLARAÇÃO PROVOCADORA ou PARADOXO que gera curiosidade imediata. Nunca começa com "como", "dicas" ou "aprenda". Usa linguagem direta, sem rodeios.
-- Corpo (máx 4 linhas, ~80 palavras): storytelling ou dado concreto que PROVA o título. Uma frase por linha. Última frase sempre muda a perspectiva ou entrega o insight.
+- Corpo (máx ${tplCfg.body_max_lines} linhas, ~80 palavras): storytelling ou dado concreto que PROVA o título. Uma frase por linha. Última frase sempre muda a perspectiva ou entrega o insight.
 - Tom: meio culto, meio direto — como alguém que entende do assunto e não tem paciência pra enrolar.
 - Estrutura narrativa obrigatória: slide 1 = gancho polêmico, slides 2-N = provas/desenvolvimento, último slide = CTA ou síntese provocadora.
 - NUNCA use: "portanto", "ademais", "vale destacar", "no mundo atual", "nos dias de hoje".
@@ -83,15 +124,21 @@ REGRAS DE COPY:
 
 TOM: ${tom}
 NICHO: ${profile.niche ?? 'empreendedorismo'}
-PALAVRAS PROIBIDAS: ${palavrasProibidas}
-PALAVRAS QUE O DEFINEM: ${palavrasChave}
-ESTILO DE REFERÊNCIA: ${exemploTexto}
+PALAVRAS PROIBIDAS: ${Array.isArray(palavrasProibidas) ? (palavrasProibidas as string[]).join(', ') : 'nenhuma'}
+PALAVRAS QUE O DEFINEM: ${Array.isArray(palavrasChave) ? (palavrasChave as string[]).join(', ') : ''}
+ESTILO DE REFERÊNCIA: ${exemploTexto ?? ''}
+TEMPLATE ATUAL: ${tplId} — adapte o tom e tamanho ao template${voiceContext}
 
 Responda APENAS com o JSON solicitado, sem texto adicional.`
 
+    // ── num_slides: 0 = IA decide ─────────────────────────────────────
+    const slidesInstruction = num_slides === 0
+      ? `Escolha o número ideal de slides para este tema (entre 5 e 12). Ajuste à profundidade necessária.`
+      : `Crie exatamente ${num_slides} slides.`
+
     const userPrompt = `Tema: ${tema}
 CTA desejado: ${cta_tipo}
-Número de slides: ${num_slides}${instructions ? `\n\nINSTRUÇÕES ADICIONAIS DO USUÁRIO:\n${instructions}` : ''}
+${slidesInstruction}${instructions ? `\n\nINSTRUÇÕES ADICIONAIS DO USUÁRIO:\n${instructions}` : ''}
 
 Retorne APENAS um JSON válido, sem markdown, sem explicação, sem código fence:
 {
@@ -140,7 +187,7 @@ Retorne APENAS um JSON válido, sem markdown, sem explicação, sem código fenc
     }
 
     // ── Custo estimado ────────────────────────────────────────────────
-    const inputTokens = claudeData.usage?.input_tokens ?? 0
+    const inputTokens  = claudeData.usage?.input_tokens ?? 0
     const outputTokens = claudeData.usage?.output_tokens ?? 0
     const costUsd = (inputTokens * 3 + outputTokens * 15) / 1_000_000
     const costBrl = costUsd * 5.8
@@ -154,11 +201,12 @@ Retorne APENAS um JSON válido, sem markdown, sem explicação, sem código fenc
         user_id: userId,
         tema,
         tom,
-        num_slides: parsed.slides.length,
-        slides_json: parsed.slides,
-        legenda: parsed.legenda,
-        has_watermark: hasWatermark,
-        status: 'draft',
+        num_slides:     parsed.slides.length,
+        slides_json:    parsed.slides,
+        legenda:        parsed.legenda,
+        has_watermark:  hasWatermark,
+        template_style: tplId,
+        status:         'draft',
       })
       .select('id, preview_token')
       .single()
@@ -184,13 +232,13 @@ Retorne APENAS um JSON válido, sem markdown, sem explicação, sem código fenc
       accent_color:         kitCor,
       text_color:           isClaro ? '#111111' : '#F5F5F5',
       body_color:           isClaro ? '#222222' : '#F5F5F5',
-      overlay_opacity:      isClaro ? 30 : 50,
-      title_uppercase:      true,
-      font_size_title:      80,
-      font_size_body:       28,
+      overlay_opacity:      isClaro ? 30 : tplCfg.overlay_opacity,
+      title_uppercase:      tplCfg.title_uppercase,
+      font_size_title:      adaptiveTitleFontSize(s.titulo, tplId),
+      font_size_body:       tplCfg.font_size_body,
       title_line_height:    1.1,
-      title_letter_spacing: 2,
-      text_position:        'bottom',
+      title_letter_spacing: tplCfg.title_letter_spacing,
+      text_position:        tplCfg.text_position,
       padding_x:            20,
       block_spacing:        16,
     }))
@@ -204,7 +252,7 @@ Retorne APENAS um JSON válido, sem markdown, sem explicação, sem código fenc
     // ── Log de uso ────────────────────────────────────────────────────
     await supabase.from('usage_logs').insert({
       user_id: userId,
-      action: 'generate_carousel',
+      action:  'generate_carousel',
       tokens_used: tokensUsed,
       cost_brl: costBrl,
     })
@@ -216,10 +264,10 @@ Retorne APENAS um JSON válido, sem markdown, sem explicação, sem código fenc
       .eq('user_id', userId)
 
     return json({
-      carousel_id: carousel.id,
+      carousel_id:   carousel.id,
       preview_token: carousel.preview_token,
-      slides: parsed.slides,
-      legenda: parsed.legenda,
+      slides:        parsed.slides,
+      legenda:       parsed.legenda,
       has_watermark: hasWatermark,
     })
 

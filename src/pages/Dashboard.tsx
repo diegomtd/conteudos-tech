@@ -34,14 +34,14 @@ const CARD_BG = S
 
 // ─── Plan config ──────────────────────────────────────────────────
 const PLAN_LABELS: Record<string, string> = {
-  free: 'FREE', criador: 'CRIADOR', profissional: 'PROFISSIONAL', agencia: 'AGÊNCIA',
+  free: 'FREE', construtor: 'CONSTRUTOR', escala: 'ESCALA', agencia: 'AGÊNCIA',
 }
 const PLAN_COLOR: Record<string, string> = {
-  free: M, criador: '#00B4D8', profissional: A, agencia: '#A855F7',
+  free: M, construtor: '#00B4D8', escala: A, agencia: '#A855F7',
 }
 const PLAN_BORDER_SIDEBAR: Record<string, string> = {
-  free: 'rgba(255,255,255,0.3)', criador: '#00B4D8',
-  profissional: T, agencia: '#F59E0B',
+  free: 'rgba(255,255,255,0.3)', construtor: '#00B4D8',
+  escala: T, agencia: '#F59E0B',
 }
 
 const STATUS_COLOR: Record<string, string> = {
@@ -290,7 +290,7 @@ function Sidebar({
                 <div style={{ height: '100%', width: `${pct}%`, background: barColor, borderRadius: 2, transition: 'width 0.4s ease' }} />
               </div>
               <span style={{ fontFamily: ff, fontSize: 11, color: M }}>
-                {plan === 'profissional' || plan === 'agencia' ? 'Ilimitadas' : `${profile.exports_used_this_month} / ${profile.exports_limit}`}
+                {plan === 'escala' || plan === 'agencia' ? 'Ilimitadas' : `${profile.exports_used_this_month} / ${profile.exports_limit}`}
               </span>
             </div>
 
@@ -557,15 +557,15 @@ export default function Dashboard() {
               </span>
               {loading ? <Skeleton w={80} h={52} r={4} /> : (
                 <span style={{ fontFamily: ffd, fontSize: 56, color: barColor, lineHeight: 1, letterSpacing: 1 }}>
-                  {plan === 'profissional' || plan === 'agencia' ? '∞' : countExports}
+                  {plan === 'escala' || plan === 'agencia' ? '∞' : countExports}
                 </span>
               )}
               <span style={{ fontFamily: ff, fontSize: 12, color: M }}>
-                {plan === 'profissional' || plan === 'agencia'
+                {plan === 'escala' || plan === 'agencia'
                   ? 'ilimitadas'
                   : `de ${exportsLimit} este mês`}
               </span>
-              {!loading && plan !== 'profissional' && plan !== 'agencia' && (
+              {!loading && plan !== 'escala' && plan !== 'agencia' && (
                 <GlowBar pct={exportPct} color={barColor} />
               )}
             </GradCard>

@@ -57,15 +57,15 @@ const FONTS = [
 ]
 
 const PLAN_LABELS: Record<Plan, string> = {
-  free: 'FREE', criador: 'CRIADOR', profissional: 'PROFISSIONAL', agencia: 'AGÊNCIA',
+  free: 'FREE', construtor: 'CONSTRUTOR', escala: 'ESCALA', agencia: 'AGÊNCIA',
 }
 const PLAN_COLORS: Record<Plan, string> = {
-  free: M, criador: A, profissional: T, agencia: '#F59E0B',
+  free: M, construtor: A, escala: T, agencia: '#F59E0B',
 }
 const PLAN_UPGRADES = [
-  { plan: 'criador' as Plan,      label: 'Criador',      price: 'R$47/mês',  features: ['20 exportações/mês','20 imagens IA'],                              url: 'https://pay.cakto.com.br/vzjyawh_859532' },
-  { plan: 'profissional' as Plan, label: 'Profissional', price: 'R$97/mês',  features: ['Exportações ilimitadas','60 imagens IA','Calendário','Telegram'],  url: 'https://pay.cakto.com.br/v5utxm4_859534' },
-  { plan: 'agencia' as Plan,      label: 'Agência',      price: 'R$197/mês', features: ['Ilimitado','200 imagens IA','5 subcontas'],                         url: 'https://pay.cakto.com.br/3fyfktb_859537' },
+  { plan: 'construtor' as Plan, label: 'Construtor', price: 'R$47/mês',  features: ['Exportações ilimitadas','20 imagens IA','30 carrosseis/mês'],           url: 'https://pay.cakto.com.br/vzjyawh_859532' },
+  { plan: 'escala' as Plan,     label: 'Escala',     price: 'R$97/mês',  features: ['Exportações ilimitadas','60 imagens IA','Calendário','Telegram'],       url: 'https://pay.cakto.com.br/v5utxm4_859534' },
+  { plan: 'agencia' as Plan,    label: 'Agência',    price: 'R$197/mês', features: ['Ilimitado','200 imagens IA','3 workspaces'],                              url: 'https://pay.cakto.com.br/3fyfktb_859537' },
 ]
 
 // ─── Shared input style ───────────────────────────────────────
@@ -457,12 +457,12 @@ function TabPlano({ profile }: { profile: Profile }) {
   const aiLim       = profile.ai_images_limit ?? 0
   const aiPct       = aiLim > 0 ? Math.min(100, (aiUsed / aiLim) * 100) : 0
   const aiColor     = aiPct >= 90 ? '#EF4444' : aiPct >= 70 ? '#F59E0B' : '#00B4D8'
-  const isUnlimited = plan === 'profissional' || plan === 'agencia'
+  const isUnlimited = plan === 'escala' || plan === 'agencia'
 
   const visibleUpgrades = PLAN_UPGRADES.filter((u) => {
-    if (plan === 'free')         return true
-    if (plan === 'criador')      return u.plan === 'profissional' || u.plan === 'agencia'
-    if (plan === 'profissional') return u.plan === 'agencia'
+    if (plan === 'free')       return true
+    if (plan === 'construtor') return u.plan === 'escala' || u.plan === 'agencia'
+    if (plan === 'escala')     return u.plan === 'agencia'
     return false
   })
 

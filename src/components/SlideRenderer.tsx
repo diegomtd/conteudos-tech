@@ -7,12 +7,8 @@ export type CarouselTemplate =
   | 'editorial'
   | 'lista'
   | 'citacao'
-  | 'comparacao'
   | 'storytelling'
-  | 'editorial_foto'
-  | 'texto_imagem'
-  | 'split_visual'
-  | 'citacao_bold'
+  | 'dados'
 
 export interface SlideData {
   titulo: string
@@ -211,12 +207,7 @@ export function getSlideContainerStyle(
     paddingRight: (slide.paddingX !== undefined ? slide.paddingX * scale : 20 * scale),
   }
 
-  if (template === 'split_visual') {
-    return { ...base, background: '#0a0a0a', padding: 0 }
-  }
-
-  if (template === 'editorial' || template === 'lista' || template === 'comparacao' ||
-      template === 'texto_imagem' || template === 'citacao_bold') {
+  if (template === 'editorial' || template === 'lista') {
     return {
       ...base,
       background: '#0a0a0a',
@@ -226,7 +217,7 @@ export function getSlideContainerStyle(
     }
   }
 
-  if (template === 'editorial_foto') {
+  if (false) {
     const bg = hasImg ? {} : { background: IA_BG[imageStyle] ?? 'linear-gradient(160deg, #060d14, #0d1f30)' }
     return {
       ...base, ...bg,
@@ -496,6 +487,93 @@ function Impacto({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown
   </>
 }
 
+// ─── Template: STORYTELLING ───────────────────────────────────
+
+function Storytelling({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown, onBodyWordClick, onTitleWordClick, scale: s = 1 }: SlideRenderProps & { scale: number }) {
+  const isLast = index === total - 1
+  const isCapa = index === 0
+  const color  = slide.textColor ?? _T
+  const fw     = slide.fontWeightTitle === 'bold' ? 900 : 700
+
+  return <>
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: Z_OVERLAY,
+      background: `rgba(0,0,0,${(slide.overlayOpacity ?? 62) / 100})`,
+      boxShadow: slide.borderVignette ? `inset 0 0 ${(slide.vignetteIntensity ?? 60) * 1.5}px rgba(0,0,0,0.8)` : 'none',
+    }} />
+
+    {isCapa ? <>
+      {renderTitleWithHighlights(slide.titulo, slide, {
+        onClick: () => onSelectEl?.('titulo'),
+        onMouseDown: onTitleMouseDown,
+        style: {
+          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`,
+          fontWeight: fw, color, margin: 0, zIndex: Z_CONTENT,
+          transform: slide.titlePos ? `translate(${slide.titlePos.x * s}px,${slide.titlePos.y * s}px)` : undefined,
+          cursor: onSelectEl ? (selectedEl === 'titulo' ? 'grab' : 'pointer') : 'default',
+          ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
+        },
+      }, onTitleWordClick)}
+      {renderSubtitle(slide, s)}
+      {renderBodyWithHighlights(slide.corpo, slide, {
+        onClick: () => onSelectEl?.('corpo'),
+        style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: `${blockGap(slide, s)} 0 0`, zIndex: Z_CONTENT, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+      }, onBodyWordClick)}
+    </> : isLast ? (
+      <div style={{ display: 'flex', flexDirection: 'column', zIndex: Z_CONTENT, gap: `${8 * s}px` }}>
+        {renderTitleWithHighlights(slide.titulo, slide, {
+          onClick: () => onSelectEl?.('titulo'),
+          style: {
+            fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
+            color, margin: 0,
+            cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
+          },
+        }, onTitleWordClick)}
+        {renderSubtitle(slide, s)}
+        {renderBodyWithHighlights(slide.corpo, slide, {
+          onClick: () => onSelectEl?.('corpo'),
+          style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+        }, onBodyWordClick)}
+        <p style={{ fontSize: `${10 * s}px`, color: slide.textColor ?? A, fontFamily: ff, fontWeight: 600, margin: 0 }}>
+          {slide.ctaText ?? 'Se isso te tocou, compartilha'}
+        </p>
+      </div>
+    ) : <>
+      {renderBodyWithHighlights(slide.corpo, slide, {
+        onClick: () => onSelectEl?.('corpo'),
+        style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: `0 0 ${blockGap(slide, s)}`, zIndex: Z_CONTENT, textAlign: slide.textAlign ?? 'left', width: '100%', cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+      }, onBodyWordClick)}
+      {renderTitleWithHighlights(slide.titulo, slide, {
+        onClick: () => onSelectEl?.('titulo'),
+        style: {
+          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
+          color, margin: 0, zIndex: Z_CONTENT,
+          textAlign: slide.textAlign ?? 'left', width: '100%',
+          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
+        },
+      }, onTitleWordClick)}
+      {renderSubtitle(slide, s)}
+      <p style={{
+        position: 'absolute', bottom: `${10 * s}px`, left: 0, right: 0,
+        textAlign: 'center', fontSize: `${14 * s}px`, color: 'rgba(255,255,255,0.25)',
+        margin: 0, letterSpacing: `${4 * s}px`, zIndex: Z_CONTENT,
+      }}>...</p>
+      <p style={{
+        position: 'absolute', top: `${8 * s}px`, right: `${12 * s}px`,
+        fontSize: `${8 * s}px`, color: 'rgba(255,255,255,0.2)', fontFamily: ff, margin: 0, zIndex: Z_CONTENT,
+      }}>{index + 1}</p>
+    </>}
+  </>
+}
+
+// ─── Template: DADO CHOCANTE ──────────────────────────────────
+function Dados(props: SlideRenderProps & { scale: number }) {
+  const { slide } = props
+  const accentColor = slide.accentColor ?? '#C8FF00'
+  const overrideSlide = { ...slide, textColor: accentColor }
+  return <Impacto {...props} slide={overrideSlide} />
+}
+
 // ─── Template: EDITORIAL ──────────────────────────────────────
 
 function Editorial({ slide, index, total, selectedEl, onSelectEl, onBodyWordClick, onTitleWordClick, scale: s = 1 }: SlideRenderProps & { scale: number }) {
@@ -740,441 +818,9 @@ function Citacao({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown
   </>
 }
 
-// ─── Template: COMPARAÇÃO ─────────────────────────────────────
-
-function Comparacao({ slide, index, total, selectedEl, onSelectEl, onBodyWordClick, onTitleWordClick, scale: s = 1 }: SlideRenderProps & { scale: number }) {
-  const isLast  = index === total - 1
-  const isCapa  = index === 0
-  const color   = slide.textColor ?? _T
-  const fw      = slide.fontWeightTitle === 'bold' ? 900 : 700
-
-  const parts      = slide.corpo.split('|').map((p) => p.trim())
-  const antesText  = slide.beforeText ?? parts[0] ?? slide.corpo
-  const depoisText = slide.afterText  ?? parts[1] ?? ''
-
-  if (isCapa) return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: `${10 * s}px`, zIndex: Z_CONTENT }}>
-      {renderTitleWithHighlights(slide.titulo, slide, {
-        onClick: () => onSelectEl?.('titulo'),
-        style: {
-          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
-          color, textAlign: 'center', margin: 0,
-          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
-        },
-      }, onTitleWordClick)}
-      <div style={{ display: 'flex', alignItems: 'center', gap: `${8 * s}px` }}>
-        <span style={{ color: '#ff4444', fontFamily: bn, fontSize: `${12 * s}px`, letterSpacing: 1 }}>ANTES</span>
-        <span style={{ fontSize: `${14 * s}px`, opacity: 0.5 }}>→</span>
-        <span style={{ color: A, fontFamily: bn, fontSize: `${12 * s}px`, letterSpacing: 1 }}>DEPOIS</span>
-      </div>
-      {renderBodyWithHighlights(slide.corpo, slide, {
-        onClick: () => onSelectEl?.('corpo'),
-        style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
-      }, onBodyWordClick)}
-    </div>
-  )
-
-  if (isLast) return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: `${8 * s}px`, zIndex: Z_CONTENT }}>
-      {renderTitleWithHighlights(slide.titulo, slide, {
-        onClick: () => onSelectEl?.('titulo'),
-        style: {
-          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
-          color, textAlign: 'center', margin: 0,
-          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
-        },
-      }, onTitleWordClick)}
-      {renderBodyWithHighlights(slide.corpo, slide, {
-        onClick: () => onSelectEl?.('corpo'),
-        style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
-      }, onBodyWordClick)}
-    </div>
-  )
-
-  return (
-    <div style={{ display: 'flex', flex: 1, marginTop: `${-20 * s}px`, marginLeft: `${-20 * s}px`, marginRight: `${-20 * s}px`, zIndex: Z_CONTENT }}>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: `${16 * s}px ${14 * s}px`, gap: `${6 * s}px` }}>
-        <span style={{ fontFamily: bn, fontSize: `${10 * s}px`, color: '#ff4444', letterSpacing: 1 }}>ANTES</span>
-        {renderBodyWithHighlights(antesText, slide, {
-          style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: 0, ...bodyX(slide, s) },
-        }, onBodyWordClick)}
-      </div>
-      <div style={{ width: 1, backgroundColor: 'rgba(255,255,255,0.15)', alignSelf: 'stretch' }} />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: `${16 * s}px ${14 * s}px`, gap: `${6 * s}px` }}>
-        <span style={{ fontFamily: bn, fontSize: `${10 * s}px`, color: A, letterSpacing: 1 }}>DEPOIS</span>
-        {renderBodyWithHighlights(depoisText, slide, {
-          style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: 0, ...bodyX(slide, s) },
-        }, onBodyWordClick)}
-      </div>
-    </div>
-  )
-}
-
-// ─── Template: STORYTELLING ───────────────────────────────────
-
-function Storytelling({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown, onBodyWordClick, onTitleWordClick, scale: s = 1 }: SlideRenderProps & { scale: number }) {
-  const isLast = index === total - 1
-  const isCapa = index === 0
-  const color  = slide.textColor ?? _T
-  const fw     = slide.fontWeightTitle === 'bold' ? 900 : 700
-
-  return <>
-    {/* Overlay — z-index: 1, above image */}
-    <div style={{
-      position: 'absolute', inset: 0, zIndex: Z_OVERLAY,
-      background: `rgba(0,0,0,${(slide.overlayOpacity ?? 62) / 100})`,
-      boxShadow: slide.borderVignette ? `inset 0 0 ${(slide.vignetteIntensity ?? 60) * 1.5}px rgba(0,0,0,0.8)` : 'none',
-    }} />
-
-    {isCapa ? <>
-      {renderTitleWithHighlights(slide.titulo, slide, {
-        onClick: () => onSelectEl?.('titulo'),
-        onMouseDown: onTitleMouseDown,
-        style: {
-          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`,
-          fontWeight: fw, color, margin: 0, zIndex: Z_CONTENT,
-          transform: slide.titlePos ? `translate(${slide.titlePos.x * s}px,${slide.titlePos.y * s}px)` : undefined,
-          cursor: onSelectEl ? (selectedEl === 'titulo' ? 'grab' : 'pointer') : 'default',
-          ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
-        },
-      }, onTitleWordClick)}
-      {renderSubtitle(slide, s)}
-      {renderBodyWithHighlights(slide.corpo, slide, {
-        onClick: () => onSelectEl?.('corpo'),
-        style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: `${blockGap(slide, s)} 0 0`, zIndex: Z_CONTENT, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
-      }, onBodyWordClick)}
-    </> : isLast ? (
-      <div style={{ display: 'flex', flexDirection: 'column', zIndex: Z_CONTENT, gap: `${8 * s}px` }}>
-        {renderTitleWithHighlights(slide.titulo, slide, {
-          onClick: () => onSelectEl?.('titulo'),
-          style: {
-            fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
-            color, margin: 0,
-            cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
-          },
-        }, onTitleWordClick)}
-        {renderSubtitle(slide, s)}
-        {renderBodyWithHighlights(slide.corpo, slide, {
-          onClick: () => onSelectEl?.('corpo'),
-          style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
-        }, onBodyWordClick)}
-        <p style={{ fontSize: `${10 * s}px`, color: slide.textColor ?? A, fontFamily: ff, fontWeight: 600, margin: 0 }}>
-          {slide.ctaText ?? 'Se isso te tocou, compartilha'}
-        </p>
-      </div>
-    ) : <>
-      {renderBodyWithHighlights(slide.corpo, slide, {
-        onClick: () => onSelectEl?.('corpo'),
-        style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: `0 0 ${blockGap(slide, s)}`, zIndex: Z_CONTENT, textAlign: slide.textAlign ?? 'left', width: '100%', cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
-      }, onBodyWordClick)}
-      {renderTitleWithHighlights(slide.titulo, slide, {
-        onClick: () => onSelectEl?.('titulo'),
-        style: {
-          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
-          color, margin: 0, zIndex: Z_CONTENT,
-          textAlign: slide.textAlign ?? 'left', width: '100%',
-          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
-        },
-      }, onTitleWordClick)}
-      {renderSubtitle(slide, s)}
-      <p style={{
-        position: 'absolute', bottom: `${10 * s}px`, left: 0, right: 0,
-        textAlign: 'center', fontSize: `${14 * s}px`, color: 'rgba(255,255,255,0.25)',
-        margin: 0, letterSpacing: `${4 * s}px`, zIndex: Z_CONTENT,
-      }}>...</p>
-      <p style={{
-        position: 'absolute', top: `${8 * s}px`, right: `${12 * s}px`,
-        fontSize: `${8 * s}px`, color: 'rgba(255,255,255,0.2)', fontFamily: ff, margin: 0, zIndex: Z_CONTENT,
-      }}>{index + 1}</p>
-    </>}
-  </>
-}
-
-// ─── Template: EDITORIAL FOTO ─────────────────────────────────
-
-function EditorialFoto({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown, onBodyWordClick, onTitleWordClick, scale: s = 1 }: SlideRenderProps & { scale: number }) {
-  const isLast = index === total - 1
-  const isCapa = index === 0
-  const fw = slide.fontWeightTitle === 'bold' ? 900 : 700
-
-  return <>
-    <div style={{
-      position: 'absolute', inset: 0, zIndex: Z_OVERLAY,
-      background: `linear-gradient(to top, rgba(0,0,0,${(slide.overlayOpacity ?? 92) / 100}) 0%, rgba(0,0,0,0.3) 55%, rgba(0,0,0,0.05) 100%)`,
-      boxShadow: slide.borderVignette ? `inset 0 0 ${(slide.vignetteIntensity ?? 60) * 1.5}px rgba(0,0,0,0.8)` : 'none',
-    }} />
-
-    {!isCapa && !isLast && (
-      <span style={{
-        position: 'absolute', top: `${8 * s}px`, right: `${10 * s}px`,
-        fontFamily: bn, fontSize: `${11 * s}px`, color: 'rgba(255,255,255,0.35)',
-        zIndex: Z_CONTENT, userSelect: 'none',
-      }}>{index}/{total - 2}</span>
-    )}
-
-    {isCapa && !slide.profileBadgeEnabled && slide.profileHandle && (
-      <span style={{
-        position: 'absolute', top: `${12 * s}px`, left: `${14 * s}px`,
-        fontFamily: ff, fontSize: `${10 * s}px`, color: 'rgba(255,255,255,0.55)',
-        zIndex: Z_CONTENT, letterSpacing: `${0.3 * s}px`,
-      }}>@{(slide.profileHandle ?? '').replace('@', '')}</span>
-    )}
-
-    {isCapa ? (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: `${8 * s}px`, zIndex: Z_CONTENT }}>
-        {renderTitleWithHighlights(slide.titulo, slide, {
-          onClick: () => onSelectEl?.('titulo'),
-          onMouseDown: onTitleMouseDown,
-          style: {
-            fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: 900,
-            color: _T, margin: 0,
-            transform: slide.titlePos ? `translate(${slide.titlePos.x * s}px,${slide.titlePos.y * s}px)` : undefined,
-            cursor: onSelectEl ? (selectedEl === 'titulo' ? 'grab' : 'pointer') : 'default',
-            ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
-          },
-        }, onTitleWordClick)}
-        {renderSubtitle(slide, s)}
-        {renderBodyWithHighlights(slide.corpo, slide, {
-          onClick: () => onSelectEl?.('corpo'),
-          style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
-        }, onBodyWordClick)}
-      </div>
-    ) : isLast ? (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: `${8 * s}px`, zIndex: Z_CONTENT, width: '100%' }}>
-        {renderTitleWithHighlights(slide.titulo, slide, {
-          onClick: () => onSelectEl?.('titulo'),
-          style: {
-            fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
-            color: _T, textAlign: 'center', margin: 0,
-            cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
-          },
-        }, onTitleWordClick)}
-        {renderSubtitle(slide, s)}
-        {renderBodyWithHighlights(slide.corpo, slide, {
-          onClick: () => onSelectEl?.('corpo'),
-          style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
-        }, onBodyWordClick)}
-      </div>
-    ) : (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: `${8 * s}px`, zIndex: Z_CONTENT, width: '100%' }}>
-        {renderTitleWithHighlights(slide.titulo, slide, {
-          onClick: () => onSelectEl?.('titulo'),
-          style: {
-            fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: 900,
-            color: _T, margin: 0,
-            textAlign: slide.textAlign ?? 'left', width: '100%',
-            cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
-          },
-        }, onTitleWordClick)}
-        {renderSubtitle(slide, s)}
-        {renderBodyWithHighlights(slide.corpo, slide, {
-          onClick: () => onSelectEl?.('corpo'),
-          style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: 0, textAlign: slide.textAlign ?? 'left', width: '100%', cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
-        }, onBodyWordClick)}
-      </div>
-    )}
-  </>
-}
-
-// ─── Template: TEXTO + IMAGEM ─────────────────────────────────
-
-function TextoImagem({ slide, index, total, selectedEl, onSelectEl, onBodyWordClick, onTitleWordClick, scale: s = 1 }: SlideRenderProps & { scale: number }) {
-  const isLast = index === total - 1
-  const color = slide.textColor ?? _T
-  const fw = slide.fontWeightTitle === 'bold' ? 900 : 700
-  const hasImg = !!(slide.bgImageUrl && slide.bgImageUrl.trim() !== '')
-
-  if (isLast) return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: `${8 * s}px`, zIndex: Z_CONTENT }}>
-      {renderTitleWithHighlights(slide.titulo, slide, {
-        onClick: () => onSelectEl?.('titulo'),
-        style: {
-          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
-          color, textAlign: 'center', margin: 0,
-          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
-        },
-      }, onTitleWordClick)}
-      {renderBodyWithHighlights(slide.corpo, slide, {
-        onClick: () => onSelectEl?.('corpo'),
-        style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
-      }, onBodyWordClick)}
-    </div>
-  )
-
-  if (!hasImg) return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', zIndex: Z_CONTENT }}>
-      <div style={{ paddingBottom: `${12 * s}px` }}>
-        {renderTitleWithHighlights(slide.titulo, slide, {
-          onClick: () => onSelectEl?.('titulo'),
-          style: {
-            fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
-            color, margin: `0 0 ${blockGap(slide, s)}`,
-            cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
-          },
-        }, onTitleWordClick)}
-        {renderBodyWithHighlights(slide.corpo, slide, {
-          onClick: () => onSelectEl?.('corpo'),
-          style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
-        }, onBodyWordClick)}
-      </div>
-      <div style={{
-        flex: 1, borderRadius: `${12 * s}px`,
-        background: 'rgba(255,255,255,0.04)',
-        border: `1px dashed rgba(255,255,255,0.15)`,
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        gap: `${6 * s}px`,
-      }}>
-        <svg width={`${22 * s}`} height={`${22 * s}`} viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1.5">
-          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-          <circle cx="12" cy="13" r="4"/>
-        </svg>
-        <span style={{ fontSize: `${10 * s}px`, color: 'rgba(255,255,255,0.2)', fontFamily: ff }}>Adicione uma imagem</span>
-      </div>
-    </div>
-  )
-
-  return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', zIndex: Z_CONTENT }}>
-      <div style={{ paddingBottom: `${12 * s}px` }}>
-        {renderTitleWithHighlights(slide.titulo, slide, {
-          onClick: () => onSelectEl?.('titulo'),
-          style: {
-            fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
-            color, margin: `0 0 ${blockGap(slide, s)}`,
-            cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
-          },
-        }, onTitleWordClick)}
-        {renderBodyWithHighlights(slide.corpo, slide, {
-          onClick: () => onSelectEl?.('corpo'),
-          style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
-        }, onBodyWordClick)}
-      </div>
-      <div style={{
-        flex: 1, borderRadius: `${12 * s}px`, overflow: 'hidden',
-        ...(slide.bgImageUrl && slide.bgImageUrl.trim() !== '' ? {
-          backgroundImage: `url("${slide.bgImageUrl}")`,
-          backgroundSize: (slide.bgZoom ?? 100) === 100 ? 'cover' : `${slide.bgZoom ?? 100}%`,
-          backgroundPosition: `${slide.bgPositionX ?? 50}% ${slide.bgPositionY ?? 50}%`,
-          filter: slide.bgFilter ?? 'none',
-          opacity: (slide.imageOpacity ?? 100) / 100,
-        } : { backgroundColor: slide.bgSolidColor ?? '#111111' }),
-      }} />
-    </div>
-  )
-}
-
-// ─── Template: SPLIT VISUAL ───────────────────────────────────
-
-function SplitVisual({ slide, index, total, selectedEl, onSelectEl, onBodyWordClick, onTitleWordClick, scale: s = 1 }: SlideRenderProps & { scale: number }) {
-  const isLast = index === total - 1
-  const isCapa = index === 0
-  const color = slide.textColor ?? _T
-  const fw = slide.fontWeightTitle === 'bold' ? 900 : 700
-
-  if (isCapa || isLast) return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: `${8 * s}px`, zIndex: Z_CONTENT, padding: `${20 * s}px` }}>
-      {renderTitleWithHighlights(slide.titulo, slide, {
-        onClick: () => onSelectEl?.('titulo'),
-        style: {
-          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
-          color, textAlign: 'center', margin: 0,
-          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
-        },
-      }, onTitleWordClick)}
-      {renderBodyWithHighlights(slide.corpo, slide, {
-        onClick: () => onSelectEl?.('corpo'),
-        style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
-      }, onBodyWordClick)}
-    </div>
-  )
-
-  const topImg = slide.bgImageUrl
-  const botImg = slide.afterImageUrl ?? ''
-  const topIsUrl = !!topImg && topImg.startsWith('http')
-  const botIsUrl = !!botImg && botImg.startsWith('http')
-
-  return (
-    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
-      <div style={{
-        flex: 1, position: 'relative', overflow: 'hidden',
-        backgroundImage: topIsUrl ? `url("${topImg}")` : 'linear-gradient(160deg, #060d14, #1a2a3a)',
-        backgroundSize: 'cover', backgroundPosition: 'center',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)' }} />
-        {renderTitleWithHighlights(slide.titulo, slide, {
-          onClick: () => onSelectEl?.('titulo'),
-          style: {
-            position: 'relative', fontFamily: titleFont(slide),
-            fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
-            color, textAlign: 'center', margin: 0, padding: `0 ${16 * s}px`, zIndex: 1,
-            cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
-          },
-        }, onTitleWordClick)}
-      </div>
-      <div style={{ height: `${2 * s}px`, backgroundColor: A, flexShrink: 0 }} />
-      <div style={{
-        flex: 1, position: 'relative', overflow: 'hidden',
-        backgroundImage: botIsUrl ? `url("${botImg}")` : 'linear-gradient(160deg, #0a0a14, #14140a)',
-        backgroundSize: 'cover', backgroundPosition: 'center',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)' }} />
-        {renderBodyWithHighlights(slide.corpo, slide, {
-          onClick: () => onSelectEl?.('corpo'),
-          style: { position: 'relative', fontFamily: ff, fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, textAlign: 'center', margin: 0, padding: `0 ${16 * s}px`, zIndex: 1, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
-        }, onBodyWordClick)}
-      </div>
-    </div>
-  )
-}
-
-// ─── Template: CITAÇÃO BOLD ───────────────────────────────────
-
-function CitacaoBold({ slide, index, total, selectedEl, onSelectEl, onBodyWordClick, onTitleWordClick, scale: s = 1 }: SlideRenderProps & { scale: number }) {
-  const isLast = index === total - 1
-  const isCapa = index === 0
-  const color = slide.textColor ?? _T
-  const isMid = !isCapa && !isLast
-
-  return <>
-    {isMid && (
-      <span style={{
-        position: 'absolute', top: '-10%', left: `${-6 * s}px`,
-        fontFamily: bn, fontSize: `${200 * s}px`, color: A, opacity: 0.12,
-        lineHeight: 1, zIndex: Z_CONTENT, userSelect: 'none',
-        pointerEvents: 'none',
-      }}>"</span>
-    )}
-    <div style={{
-      flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-      justifyContent: 'center', gap: `${12 * s}px`, zIndex: Z_CONTENT,
-    }}>
-      {renderTitleWithHighlights(slide.titulo, slide, {
-        onClick: () => onSelectEl?.('titulo'),
-        style: {
-          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`,
-          fontWeight: 900, color, textAlign: 'center', margin: 0,
-          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
-        },
-      }, onTitleWordClick)}
-      <div style={{ width: `${40 * s}px`, height: `${2 * s}px`, backgroundColor: A }} />
-      {renderBodyWithHighlights(slide.corpo, slide, {
-        onClick: () => onSelectEl?.('corpo'),
-        style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
-      }, onBodyWordClick)}
-      {isLast && (
-        <p style={{ fontSize: `${10 * s}px`, color: slide.textColor ?? A, fontFamily: ff, fontWeight: 600, margin: `${4 * s}px 0 0` }}>
-          {slide.ctaText ?? 'Salve esse carrossel'}
-        </p>
-      )}
-    </div>
-  </>
-}
-
 // ─── Main export ──────────────────────────────────────────────
 
-const NO_BG_WALLPAPER: CarouselTemplate[] = ['texto_imagem', 'split_visual', 'citacao_bold']
+const NO_BG_WALLPAPER: CarouselTemplate[] = []
 
 export function SlideRenderer(props: SlideRenderProps): React.ReactElement {
   const s = props.scale ?? 1
@@ -1185,12 +831,8 @@ export function SlideRenderer(props: SlideRenderProps): React.ReactElement {
       case 'editorial':     return <Editorial     {...props} scale={s} />
       case 'lista':         return <Lista         {...props} scale={s} />
       case 'citacao':       return <Citacao       {...props} scale={s} />
-      case 'comparacao':    return <Comparacao    {...props} scale={s} />
       case 'storytelling':  return <Storytelling  {...props} scale={s} />
-      case 'editorial_foto':return <EditorialFoto {...props} scale={s} />
-      case 'texto_imagem':  return <TextoImagem   {...props} scale={s} />
-      case 'split_visual':  return <SplitVisual   {...props} scale={s} />
-      case 'citacao_bold':  return <CitacaoBold   {...props} scale={s} />
+      case 'dados':         return <Dados         {...props} scale={s} />
       default:              return <Impacto       {...props} scale={s} />
     }
   })()

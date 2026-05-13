@@ -24,16 +24,16 @@ const ERR = '#FF4444'
 type Section = 'overview' | 'users' | 'financial' | 'config' | 'system'
 
 const PLAN_COLOR: Record<string, string> = {
-  free:          M,
-  criador:       '#00B4D8',
-  profissional:  A,
-  agencia:       '#A855F7',
+  free:       M,
+  construtor: '#00B4D8',
+  escala:     A,
+  agencia:    '#A855F7',
 }
 const PLAN_PRICE: Record<string, number> = {
-  free: 0, criador: 47, profissional: 97, agencia: 197,
+  free: 0, construtor: 47, escala: 97, agencia: 197,
 }
 const PLAN_LABEL: Record<string, string> = {
-  free: 'Free', criador: 'Criador', profissional: 'Profissional', agencia: 'Agência',
+  free: 'Grátis', construtor: 'Construtor', escala: 'Escala', agencia: 'Agência',
 }
 
 // ─── Types ────────────────────────────────────────────────────────
@@ -214,7 +214,7 @@ function OverviewSection() {
       <div style={{ background: S, border: `1px solid ${B}`, borderRadius: 12, padding: '20px 24px' }}>
         <p style={{ fontFamily: ffd, fontSize: 16, color: T, letterSpacing: 1, margin: '0 0 16px' }}>USUÁRIOS POR PLANO</p>
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-          {(['free', 'criador', 'profissional', 'agencia'] as const).map(plan => (
+          {(['free', 'construtor', 'escala', 'agencia'] as const).map(plan => (
             <div key={plan} style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 100 }}>
               <span style={{ fontFamily: ffd, fontSize: 28, color: PLAN_COLOR[plan], letterSpacing: 1 }}>
                 {kpis.planCounts[plan] ?? 0}
@@ -337,7 +337,7 @@ function UserModal({ profile, onClose, onSaved }: {
               padding: '10px 12px', color: T, fontFamily: ff, fontSize: 14,
             }}
           >
-            {['free', 'criador', 'profissional', 'agencia'].map(p => (
+            {['free', 'construtor', 'escala', 'agencia'].map(p => (
               <option key={p} value={p}>{PLAN_LABEL[p]}</option>
             ))}
           </select>
@@ -528,7 +528,7 @@ function UsersSection() {
           }}
         >
           <option value="">Todos os planos</option>
-          {['free', 'criador', 'profissional', 'agencia'].map(p => (
+          {['free', 'construtor', 'escala', 'agencia'].map(p => (
             <option key={p} value={p}>{PLAN_LABEL[p]}</option>
           ))}
         </select>
@@ -692,7 +692,7 @@ function FinancialSection() {
       <div style={{ background: S, border: `1px solid ${B}`, borderRadius: 12, padding: '20px 24px' }}>
         <p style={{ fontFamily: ffd, fontSize: 16, color: T, letterSpacing: 1, margin: '0 0 16px' }}>MRR POR PLANO</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {(['criador', 'profissional', 'agencia'] as const).map(plan => {
+          {(['construtor', 'escala', 'agencia'] as const).map(plan => {
             const count = planCounts[plan] ?? 0
             const revenue = count * PLAN_PRICE[plan]
             return (
@@ -744,7 +744,7 @@ function FinancialSection() {
 
 // ─── Section: Configurações ───────────────────────────────────────
 const CONFIG_LABELS: Record<string, Record<string, string>> = {
-  cakto:    { url_criador: 'URL Criador', url_profissional: 'URL Profissional', url_agencia: 'URL Agência' },
+  cakto:    { url_construtor: 'URL Construtor', url_escala: 'URL Escala', url_agencia: 'URL Agência' },
   telegram: { bot_token: 'Bot Token', admin_chat_id: 'Chat ID Admin' },
   ia:       { text_model: 'Modelo de Texto', image_model: 'Modelo de Imagem', cost_per_1k_tokens: 'Custo por 1k tokens (R$)' },
   geral:    { maintenance_mode: 'Modo manutenção (true/false)', site_url: 'URL do site' },
