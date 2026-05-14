@@ -17,22 +17,22 @@ const CREATORS = [
 const PLANS = [
   {
     name: 'Free', price: 'R$0', period: '', pop: false,
-    features: ['3 carrosseis/mês', 'Copy IA básica', '3 imagens IA/mês', '1 workspace', 'Export PNG'],
+    features: ['3 carrosseis com copy/mês', '3 imagens IA/mês', '7 slides máx.', 'Exportação com marca d\'água'],
     cta: 'Começar grátis',
   },
   {
     name: 'Construtor', price: 'R$47', period: '/mês', pop: false,
-    features: ['30 carrosseis/mês', 'Copy IA avançada', '20 imagens IA/mês', 'Calendário editorial', 'Export PNG + PDF'],
+    features: ['50 carrosseis com copy/mês', '100 exportações/mês', '20 imagens IA/mês', '10 slides máx.', 'Sem marca d\'água', 'Suba suas próprias imagens'],
     cta: 'Assinar agora',
   },
   {
     name: 'Escala', price: 'R$97', period: '/mês', pop: true,
-    features: ['100 carrosseis/mês', 'Copy estratégica premium', '60 imagens IA/mês', 'Múltiplos workspaces', 'Calendário + agendamento'],
+    features: ['150 carrosseis com copy/mês', 'Exportação ilimitada', '60 imagens IA/mês', '15 slides máx.', 'Voice profile da sua marca', 'Todos os templates'],
     cta: 'Escolher Escala',
   },
   {
     name: 'Agência', price: 'R$197', period: '/mês', pop: false,
-    features: ['Carrosseis ilimitados', 'Copy white-label', '200 imagens IA/mês', 'Até 10 clientes', 'Suporte prioritário'],
+    features: ['300 carrosseis com copy/mês', 'Exportação ilimitada', '150 imagens IA/mês', '15 slides máx.', '3 perfis de cliente separados', 'Tudo do Escala incluído'],
     cta: 'Falar com time',
   },
 ]
@@ -77,8 +77,8 @@ const TESTIMONIALS = [
 
 const FAQ_ITEMS = [
   { q: 'Como a IA gera o conteúdo?',          a: 'Você descreve o tema do carrossel. O Claude (Anthropic) analisa e gera copy para cada slide: título, subtítulo e corpo com narrativa estratégica. A imagem IA (fal.ai Flux 2 Pro) usa esse contexto para gerar um visual cinematográfico.' },
-  { q: 'Quantos carrosseis posso criar?',      a: 'Depende do plano: Free (3/mês), Construtor (30/mês), Escala (100/mês), Agência (ilimitado). O contador reseta todo mês.' },
-  { q: 'A imagem IA tem limite?',              a: 'Sim. Free: 3/mês. Construtor: 20. Escala: 60. Agência: 200. A geração de copy é sempre ilimitada dentro da cota de carrosseis do plano.' },
+  { q: 'Quantos carrosseis posso criar?',      a: 'Depende do plano: Free (3/mês), Construtor (50/mês), Escala (150/mês), Agência (300/mês). O contador reseta todo mês.' },
+  { q: 'A imagem IA tem limite?',              a: 'Sim. Free: 3/mês. Construtor: 20. Escala: 60. Agência: 150. A geração de copy é o produto principal e está inclusa na cota de carrosseis. Você pode usar suas próprias imagens sem limite em todos os planos.' },
   { q: 'Posso cancelar a qualquer momento?',   a: 'Sim. Sem fidelidade, sem multa. Cancele pelo painel e o plano segue ativo até o fim do período pago.' },
   { q: 'Funciona para qualquer nicho?',        a: 'Sim. A IA foi calibrada para criadores de conteúdo, coaches, nutricionistas, designers, agências, e-commerce e qualquer perfil que queira crescer no Instagram.' },
   { q: 'O que é o Studio?',                   a: 'É o editor visual do ConteúdOS. Depois que a IA gera os slides, você pode ajustar fonte, cor, tamanho de texto, imagem de fundo, opacidade de overlay e posição — tudo sem sair da plataforma.' },
@@ -466,6 +466,10 @@ export default function Landing() {
               </div>
             ))}
           </div>
+          <p style={{ textAlign: 'center', color: 'var(--muted)', maxWidth: '680px', margin: '32px auto 0', fontSize: '14px', lineHeight: 1.7 }}>
+            Copy gerada por IA é o produto principal — ilimitada dentro da sua cota mensal.<br />
+            Imagem IA tem limite porque gera custo real de geração. Você pode usar suas próprias imagens sem limite em todos os planos.
+          </p>
         </section>
 
         {/* verdade brutal */}
@@ -614,12 +618,12 @@ export default function Landing() {
             <div className="transp-card">
               <div className="transp-card-icon">∞</div>
               <h3>Copy ilimitada</h3>
-              <p>∞ carrosseis com texto em todos os planos</p>
+              <p>Copy IA incluída em cada carrossel — sem cobrança extra por texto gerado</p>
             </div>
             <div className="transp-card">
               <div className="transp-card-icon" style={{ fontSize: '32px' }}>IA</div>
               <h3>Imagem IA com limite</h3>
-              <p>Free 3 · Construtor 20 · Escala 60 · Agência 200</p>
+              <p>Free 3 · Construtor 20 · Escala 60 · Agência 150</p>
             </div>
           </div>
         </section>
@@ -645,6 +649,10 @@ export default function Landing() {
               </div>
             ))}
           </div>
+          <p style={{ textAlign: 'center', color: 'var(--muted)', maxWidth: '680px', margin: '32px auto 0', fontSize: '14px', lineHeight: 1.7 }}>
+            Copy gerada por IA é o produto principal — ilimitada dentro da sua cota mensal.<br />
+            Imagem IA tem limite porque gera custo real de geração. Você pode usar suas próprias imagens sem limite em todos os planos.
+          </p>
         </section>
 
         {/* testimonials */}
