@@ -1,521 +1,763 @@
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { TabuleiroBg } from '@/components/TabuleiroBg'
-import { Accordion } from '@/components/ui/Accordion'
-
-// ─── DADOS ───────────────────────────────────────────────────────────────────
 
 const CREATORS = [
-  { handle: '@marina.mkt', initials: 'MM', color: '#00D4FF' },
+  { handle: '@marina.mkt',   initials: 'MM', color: '#00D4FF' },
   { handle: '@joao.criador', initials: 'JC', color: '#6366F1' },
-  { handle: '@bia.social', initials: 'BS', color: '#C8FF00' },
-  { handle: '@pedro.ads', initials: 'PA', color: '#00D4FF' },
-  { handle: '@carol.brand', initials: 'CB', color: '#6366F1' },
+  { handle: '@bia.social',   initials: 'BS', color: '#C8FF00' },
+  { handle: '@pedro.ads',    initials: 'PA', color: '#00D4FF' },
+  { handle: '@carol.brand',  initials: 'CB', color: '#6366F1' },
   { handle: '@rafa.content', initials: 'RC', color: '#C8FF00' },
-  { handle: '@lucas.mkt', initials: 'LM', color: '#00D4FF' },
-  { handle: '@ana.viral', initials: 'AV', color: '#6366F1' },
-  { handle: '@diego.ia', initials: 'DI', color: '#C8FF00' },
-  { handle: '@julia.posts', initials: 'JP', color: '#00D4FF' },
-]
-
-const FAKE_CAROUSEL_SLIDES = [
-  { title: 'O ERRO QUE TRAVA 90% DOS PERFIS', body: 'Você posta conteúdo técnico. Aprofundado. Cheio de valor.', accent: '#00D4FF' },
-  { title: 'META ADS NÃO ESTÁ MORRENDO', body: 'O custo por mil impressões subiu 47% desde 2022.', accent: '#6366F1' },
-  { title: 'VOCÊ POSTA PRA FANTASMA', body: 'A maioria do seu alcance orgânico caiu para 2%.', accent: '#C8FF00' },
-  { title: 'ALGORITMO NÃO É SEU INIMIGO', body: 'O problema não é o algoritmo. É a consistência.', accent: '#00D4FF' },
-  { title: 'CONTEÚDO SEM ESTRATÉGIA É RUÍDO', body: 'Sem posicionamento claro, você só ocupa espaço.', accent: '#6366F1' },
-  { title: 'VIRALIZAR NÃO É SORTE', body: 'Existe engenharia por trás de todo post que explode.', accent: '#C8FF00' },
-  { title: 'SEU FEED É SUA REPUTAÇÃO', body: 'O que você posta hoje define quem te segue amanhã.', accent: '#00D4FF' },
-  { title: 'O TABULEIRO QUE POUCOS VEEM', body: 'Quem domina o Instagram não posta — joga.', accent: '#6366F1' },
-]
-
-const TESTIMONIALS = [
-  { name: 'Marina Silva', handle: '@marina.mkt', text: 'Gerei 10 carrosseis em uma tarde. Nunca fui tão consistente.', initials: 'MS' },
-  { name: 'João Costa', handle: '@joao.criador', text: 'A copy que a IA gera é melhor do que a minha maioria das vezes.', initials: 'JC' },
-  { name: 'Beatriz Alves', handle: '@bia.social', text: 'Finalmente consigo postar todo dia sem surtar.', initials: 'BA' },
-  { name: 'Pedro Mendes', handle: '@pedro.ads', text: 'Meu engajamento dobrou em 3 semanas usando o ConteúdOS.', initials: 'PM' },
-  { name: 'Carolina Brand', handle: '@carol.brand', text: 'A melhor ferramenta que já usei para criar carrosseis.', initials: 'CB' },
+  { handle: '@lucas.mkt',    initials: 'LM', color: '#00D4FF' },
+  { handle: '@ana.viral',    initials: 'AV', color: '#6366F1' },
+  { handle: '@diego.ia',     initials: 'DI', color: '#C8FF00' },
+  { handle: '@julia.posts',  initials: 'JP', color: '#00D4FF' },
 ]
 
 const PLANS = [
   {
-    name: 'Free', price: 'R$0', period: '',
-    desc: 'Para experimentar o tabuleiro.',
-    features: ['3 carrosseis/mês', '3 imagens IA/mês', '7 slides máx.', 'Copy com IA', "Exportação c/ marca d'água"],
-    cta: 'Começar grátis', pop: false, badge: '',
+    name: 'Free', price: 'R$0', period: '', pop: false,
+    features: ['3 carrosseis/mês', 'Copy IA básica', '3 imagens IA/mês', '1 workspace', 'Export PNG'],
+    cta: 'Começar grátis',
   },
   {
-    name: 'Construtor', price: 'R$47', period: '/mês',
-    desc: 'Para criadores que querem consistência.',
-    features: ['30 carrosseis/mês', '20 imagens IA/mês', '10 slides máx.', 'Exportação ilimitada', "Sem marca d'água", '6 templates visuais'],
-    cta: 'Assinar Construtor', pop: false, badge: '',
+    name: 'Construtor', price: 'R$47', period: '/mês', pop: false,
+    features: ['30 carrosseis/mês', 'Copy IA avançada', '20 imagens IA/mês', 'Calendário editorial', 'Export PNG + PDF'],
+    cta: 'Assinar agora',
   },
   {
-    name: 'Escala', price: 'R$97', period: '/mês',
-    desc: 'Para quem quer volume e qualidade.',
-    features: ['100 carrosseis/mês', '60 imagens IA/mês', '15 slides máx.', 'Exportação ilimitada', 'Voice profile da marca', 'Todos os templates', 'Calendário de conteúdo'],
-    cta: 'Assinar Escala', pop: true, badge: 'Mais escolhido',
+    name: 'Escala', price: 'R$97', period: '/mês', pop: true,
+    features: ['100 carrosseis/mês', 'Copy estratégica premium', '60 imagens IA/mês', 'Múltiplos workspaces', 'Calendário + agendamento'],
+    cta: 'Escolher Escala',
   },
   {
-    name: 'Agência', price: 'R$197', period: '/mês',
-    desc: 'Para agências e times com múltiplos clientes.',
-    features: ['Carrosseis ilimitados', '200 imagens IA/mês', '15 slides máx.', '3 workspaces de cliente', 'Tudo do Escala', 'Suporte prioritário'],
-    cta: 'Assinar Agência', pop: false, badge: '',
+    name: 'Agência', price: 'R$197', period: '/mês', pop: false,
+    features: ['Carrosseis ilimitados', 'Copy white-label', '200 imagens IA/mês', 'Até 10 clientes', 'Suporte prioritário'],
+    cta: 'Falar com time',
   },
+]
+
+const STEPS = [
+  { num: '01', title: 'Descreva o tema', body: 'Digite o assunto do carrossel. A IA entende contexto, tom e objetivo — não precisa de prompt técnico.' },
+  { num: '02', title: 'IA gera tudo', body: 'Copy estratégica, título de cada slide, corpo e imagem cinematográfica gerados em segundos.' },
+  { num: '03', title: 'Publique', body: 'Ajuste o que quiser no Studio, exporte em PNG e poste direto no Instagram.' },
+]
+
+const FEATURES = [
+  { id: 'copy',      label: 'Copy IA',    title: 'Copy que para o scroll',       body: 'Cada slide recebe título, subtítulo e corpo calibrados para engajamento. A IA lê o tema e gera narrativa com gancho, desenvolvimento e CTA — sem você precisar saber de copywriting.' },
+  { id: 'image',     label: 'Imagem IA',  title: 'Visual cinematográfico',       body: 'fal.ai Flux 2 Pro gera imagens de fundo para cada slide com base no conteúdo real. O resultado é um carrossel que parece produção de estúdio.' },
+  { id: 'studio',    label: 'Studio',     title: 'Editor visual completo',       body: 'Ajuste fonte, cor, tamanho, imagem, sobreposição e posição de cada slide. O que a IA gera é ponto de partida — você finaliza como quiser.' },
+  { id: 'calendar',  label: 'Calendário', title: 'Seu tabuleiro de conteúdo',    body: 'Visualize todos os carrosseis no calendário e organize sua presença digital por semana ou mês. Nunca mais posta no improviso.' },
+  { id: 'export',    label: 'Export',     title: 'Pronto pra postar',            body: 'Exporte cada slide como PNG em alta resolução (1080×1350). Ideal para Stories e Feed. Sem marca d\'água nos planos pagos.' },
+  { id: 'workspace', label: 'Workspace',  title: 'Para times e agências',        body: 'Crie múltiplos workspaces para clientes diferentes. Cada workspace tem seu próprio calendário, carrosseis e configurações.' },
+]
+
+const FAKE_SLIDES = [
+  { num: '01', title: 'O ERRO QUE TRAVA 90% DOS PERFIS', accent: '#00D4FF' },
+  { num: '02', title: 'VOCÊ POSTA PRA FANTASMA',          accent: '#6366F1' },
+  { num: '03', title: 'META ADS NÃO ESTÁ MORRENDO',       accent: '#C8FF00' },
+  { num: '04', title: 'A DECISÃO QUE QUEBROU 3 NEGÓCIOS', accent: '#00D4FF' },
+  { num: '05', title: 'ALGORITMO NÃO É SEU INIMIGO',      accent: '#6366F1' },
+  { num: '06', title: 'CONTEÚDO SEM ESTRATÉGIA É RUÍDO',  accent: '#C8FF00' },
+  { num: '07', title: 'QUEM DOMINA O JOGO NÃO POSTA',     accent: '#00D4FF' },
+  { num: '08', title: 'VIRALIZAR NÃO É SORTE',            accent: '#6366F1' },
+]
+
+const TESTIMONIALS = [
+  { text: 'Criei 12 carrosseis em uma tarde. Antes levava uma semana no Canva.',                          handle: '@marina.mkt',   initials: 'MM', color: '#00D4FF' },
+  { text: 'A copy que a IA gera é melhor do que o que eu escrevia depois de horas pensando.',             handle: '@joao.criador', initials: 'JC', color: '#6366F1' },
+  { text: 'Meu engagement dobrou no primeiro mês. Finalmente tenho consistência.',                         handle: '@bia.social',   initials: 'BS', color: '#C8FF00' },
+  { text: 'Uso o ConteúdOS para meus 5 clientes. Economizo 3 dias de trabalho por semana.',               handle: '@pedro.ads',    initials: 'PA', color: '#00D4FF' },
+  { text: 'O Studio é incrível. Consigo personalizar cada detalhe sem sair do app.',                      handle: '@carol.brand',  initials: 'CB', color: '#6366F1' },
+  { text: 'A imagem IA transformou o visual dos meus posts. Parece trabalho de designer.',                 handle: '@rafa.content', initials: 'RC', color: '#C8FF00' },
+  { text: 'Nunca mais tive ansiedade de "o que eu posto hoje". O calendário resolve tudo.',               handle: '@lucas.mkt',    initials: 'LM', color: '#00D4FF' },
+  { text: 'Em 3 minutos tenho um carrossel completo. Isso mudou minha relação com conteúdo.',             handle: '@ana.viral',    initials: 'AV', color: '#6366F1' },
+  { text: 'Recomendo para qualquer criador que quer escalar sem contratar equipe.',                        handle: '@diego.ia',     initials: 'DI', color: '#C8FF00' },
 ]
 
 const FAQ_ITEMS = [
-  { id: 'f1', question: 'Quanto tempo leva para gerar um carrossel?', answer: 'Em média 2 a 3 minutos. Você descreve o tema, a IA gera copy, design e imagem em sequência. Depois, é só exportar e publicar.' },
-  { id: 'f2', question: 'Posso personalizar o visual dos slides?', answer: 'Sim. Você escolhe template, cor de fundo, fonte, cor do texto, imagem de fundo e overlay. Tudo pelo Studio, slide a slide.' },
-  { id: 'f3', question: 'As imagens de IA são geradas por qual modelo?', answer: 'Usamos o fal.ai Flux-2-Pro, um dos melhores modelos de geração de imagem do mercado. Cada imagem é única e gerada para o seu nicho.' },
-  { id: 'f4', question: 'Posso cancelar a qualquer momento?', answer: 'Sim. Não há fidelidade. Você cancela pelo painel e a assinatura não renova no próximo ciclo.' },
-  { id: 'f5', question: "Os carrosseis têm marca d'água no plano free?", answer: "Sim. No plano Free, os exports incluem uma marca d'água discreta do ConteúdOS. Nos planos pagos, zero marca d'água." },
-  { id: 'f6', question: 'O que é o Voice Profile?', answer: 'É um perfil de voz da sua marca: nicho, tom, estilo de escrita. A IA usa esse perfil para gerar copy que soa como você — não como um robô genérico.' },
-  { id: 'f7', question: 'Tem suporte em português?', answer: 'Sim. Todo o produto é em PT-BR. A copy gerada, os templates, o suporte — tudo pensado para o criador brasileiro.' },
+  { q: 'Como a IA gera o conteúdo?',          a: 'Você descreve o tema do carrossel. O Claude (Anthropic) analisa e gera copy para cada slide: título, subtítulo e corpo com narrativa estratégica. A imagem IA (fal.ai Flux 2 Pro) usa esse contexto para gerar um visual cinematográfico.' },
+  { q: 'Quantos carrosseis posso criar?',      a: 'Depende do plano: Free (3/mês), Construtor (30/mês), Escala (100/mês), Agência (ilimitado). O contador reseta todo mês.' },
+  { q: 'A imagem IA tem limite?',              a: 'Sim. Free: 3/mês. Construtor: 20. Escala: 60. Agência: 200. A geração de copy é sempre ilimitada dentro da cota de carrosseis do plano.' },
+  { q: 'Posso cancelar a qualquer momento?',   a: 'Sim. Sem fidelidade, sem multa. Cancele pelo painel e o plano segue ativo até o fim do período pago.' },
+  { q: 'Funciona para qualquer nicho?',        a: 'Sim. A IA foi calibrada para criadores de conteúdo, coaches, nutricionistas, designers, agências, e-commerce e qualquer perfil que queira crescer no Instagram.' },
+  { q: 'O que é o Studio?',                   a: 'É o editor visual do ConteúdOS. Depois que a IA gera os slides, você pode ajustar fonte, cor, tamanho de texto, imagem de fundo, opacidade de overlay e posição — tudo sem sair da plataforma.' },
+  { q: 'Preciso instalar algo?',               a: 'Não. ConteúdOS roda 100% no navegador. Acesse de qualquer dispositivo, sem download.' },
+  { q: 'O carrossel sai pronto pra postar?',   a: 'Sim. Exporte cada slide como PNG 1080×1350 — o formato ideal para feed e stories do Instagram. Sem marca d\'água nos planos pagos.' },
 ]
 
-// ─── COMPONENTES INTERNOS ─────────────────────────────────────────────────────
-
-function CreatorAvatar({ c }: { c: typeof CREATORS[0] }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, width: 80, flexShrink: 0 }}>
-      <div style={{ width: 80, height: 80, borderRadius: '50%', padding: 2.5, background: 'conic-gradient(from 0deg, #00D4FF, #6366F1, #00D4FF)' }}>
-        <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: '#060E1F', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Bebas Neue, sans-serif', fontSize: 20, color: c.color }}>
-          {c.initials}
-        </div>
-      </div>
-      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 80 }}>{c.handle}</span>
-    </div>
-  )
-}
-
-function SlideCard({ s }: { s: typeof FAKE_CAROUSEL_SLIDES[0] }) {
-  return (
-    <div style={{ width: 200, height: 250, flexShrink: 0, borderRadius: 12, background: '#060E1F', border: `1px solid ${s.accent}22`, padding: '16px 14px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: `linear-gradient(135deg, ${s.accent}08, transparent 60%)` }} />
-      <div style={{ position: 'relative' }}>
-        <div style={{ fontSize: 10, color: s.accent, fontFamily: 'Bebas Neue, sans-serif', letterSpacing: '0.1em', marginBottom: 8 }}>CONTEÚDOS</div>
-        <div style={{ fontSize: 16, color: '#fff', fontFamily: 'Bebas Neue, sans-serif', lineHeight: 1.15, letterSpacing: '0.03em' }}>{s.title}</div>
-      </div>
-      <div style={{ position: 'relative' }}>
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', lineHeight: 1.5, marginBottom: 10 }}>{s.body}</div>
-        <div style={{ height: 2, background: s.accent, borderRadius: 1, width: '50%' }} />
-      </div>
-    </div>
-  )
-}
-
-function TestimonialCard({ t }: { t: typeof TESTIMONIALS[0] }) {
-  return (
-    <div style={{ width: 260, flexShrink: 0, borderRadius: 16, background: '#0B1528', border: '1px solid rgba(0,212,255,0.1)', padding: '20px 18px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-        <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#00D4FF,#6366F1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Bebas Neue, sans-serif', fontSize: 14, color: '#000', flexShrink: 0 }}>{t.initials}</div>
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 500, color: '#fff' }}>{t.name}</div>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{t.handle}</div>
-        </div>
-      </div>
-      <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 1.6, fontStyle: 'italic', margin: 0 }}>"{t.text}"</p>
-    </div>
-  )
-}
-
-function AppMockupSVG() {
-  return (
-    <svg width="480" height="320" viewBox="0 0 480 320" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ borderRadius: 12, maxWidth: '100%' }}>
-      <rect width="480" height="320" fill="#060E1F" rx="12"/>
-      <rect width="480" height="320" fill="url(#appGrad)" rx="12"/>
-      <rect x="0" y="0" width="140" height="320" fill="#080F20" rx="12"/>
-      <rect x="140" y="0" width="1" height="320" fill="rgba(255,255,255,0.06)"/>
-      <rect x="12" y="20" width="60" height="8" fill="#0F1E3A" rx="2"/>
-      <rect x="12" y="36" width="116" height="22" fill="#0A1626" rx="4" stroke="#00D4FF22" strokeWidth="1"/>
-      <rect x="12" y="68" width="60" height="8" fill="#0F1E3A" rx="2"/>
-      <rect x="12" y="84" width="116" height="22" fill="#0A1626" rx="4" stroke="#0F2840" strokeWidth="1"/>
-      <rect x="12" y="116" width="60" height="8" fill="#0F1E3A" rx="2"/>
-      <rect x="12" y="132" width="116" height="22" fill="#0A1626" rx="4" stroke="#0F2840" strokeWidth="1"/>
-      <rect x="12" y="164" width="60" height="8" fill="#0F1E3A" rx="2"/>
-      <rect x="12" y="180" width="116" height="40" fill="#0A1626" rx="4" stroke="#0F2840" strokeWidth="1"/>
-      <rect x="12" y="238" width="116" height="28" fill="#00D4FF" rx="6"/>
-      <text x="70" y="257" textAnchor="middle" fontFamily="Bebas Neue" fontSize="12" fill="#010816">GERAR CARROSSEL</text>
-      <rect x="156" y="16" width="140" height="188" fill="#060E1F" rx="8" stroke="#00D4FF22" strokeWidth="1"/>
-      <rect x="156" y="16" width="140" height="188" rx="8" fill="url(#s1Grad)"/>
-      <text x="226" y="48" textAnchor="middle" fontFamily="Bebas Neue" fontSize="9" fill="#00D4FF" letterSpacing="2">SLIDE 01</text>
-      <rect x="168" y="56" width="116" height="8" fill="#fff" rx="2" opacity="0.9"/>
-      <rect x="168" y="70" width="90" height="8" fill="#fff" rx="2" opacity="0.9"/>
-      <rect x="168" y="84" width="100" height="6" fill="#ffffff55" rx="2"/>
-      <rect x="168" y="96" width="80" height="6" fill="#ffffff55" rx="2"/>
-      <rect x="168" y="108" width="116" height="6" fill="#ffffff55" rx="2"/>
-      <rect x="168" y="186" width="50" height="2" fill="#00D4FF" rx="1" opacity="0.8"/>
-      <rect x="304" y="16" width="140" height="188" fill="#060E1F" rx="8" stroke="#6366F122" strokeWidth="1"/>
-      <rect x="304" y="16" width="140" height="188" rx="8" fill="url(#s2Grad)"/>
-      <text x="374" y="48" textAnchor="middle" fontFamily="Bebas Neue" fontSize="9" fill="#6366F1" letterSpacing="2">SLIDE 02</text>
-      <rect x="316" y="56" width="116" height="8" fill="#fff" rx="2" opacity="0.9"/>
-      <rect x="316" y="70" width="80" height="8" fill="#fff" rx="2" opacity="0.9"/>
-      <rect x="316" y="84" width="100" height="6" fill="#ffffff55" rx="2"/>
-      <rect x="316" y="96" width="70" height="6" fill="#ffffff55" rx="2"/>
-      <rect x="316" y="186" width="50" height="2" fill="#6366F1" rx="1" opacity="0.8"/>
-      <rect x="140" y="216" width="340" height="50" fill="#080F20"/>
-      <rect x="140" y="216" width="340" height="1" fill="rgba(255,255,255,0.06)"/>
-      <rect x="152" y="228" width="110" height="26" fill="#00D4FF" rx="5"/>
-      <text x="207" y="245" textAnchor="middle" fontFamily="Bebas Neue" fontSize="12" fill="#010816">BAIXAR ZIP</text>
-      <rect x="274" y="228" width="70" height="26" fill="#0F1E3A" rx="5" stroke="#0F2840" strokeWidth="1"/>
-      <text x="309" y="245" textAnchor="middle" fontFamily="Bebas Neue" fontSize="11" fill="#ffffff88">PREVIEW</text>
-      <rect x="140" y="272" width="340" height="48" fill="#060E1F"/>
-      <rect x="140" y="272" width="340" height="1" fill="rgba(255,255,255,0.06)"/>
-      <circle cx="155" cy="297" r="6" fill="#00D4FF"/>
-      <circle cx="172" cy="297" r="6" fill="#6366F1"/>
-      <circle cx="189" cy="297" r="6" fill="#C8FF00"/>
-      <circle cx="206" cy="297" r="6" fill="rgba(255,255,255,0.3)"/>
-      <defs>
-        <linearGradient id="appGrad" x1="0" y1="0" x2="480" y2="320" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#00D4FF" stopOpacity="0.04"/>
-          <stop offset="100%" stopColor="#6366F1" stopOpacity="0.04"/>
-        </linearGradient>
-        <linearGradient id="s1Grad" x1="156" y1="16" x2="296" y2="204" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#00D4FF" stopOpacity="0.1"/>
-          <stop offset="100%" stopColor="#00D4FF" stopOpacity="0"/>
-        </linearGradient>
-        <linearGradient id="s2Grad" x1="304" y1="16" x2="444" y2="204" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#6366F1" stopOpacity="0.1"/>
-          <stop offset="100%" stopColor="#6366F1" stopOpacity="0"/>
-        </linearGradient>
-      </defs>
-    </svg>
-  )
-}
-
-// ─── LANDING PAGE ─────────────────────────────────────────────────────────────
-
+// ─── CSS ──────────────────────────────────────────────────────────────────────
 const CSS = `
-  @keyframes marquee {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
-  }
-  @keyframes marqueeReverse {
-    0% { transform: translateX(-50%); }
-    100% { transform: translateX(0); }
-  }
-  @keyframes topbarGradient {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-  }
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(24px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes orb {
-    0%, 100% { transform: translate(-50%,-50%) scale(1); opacity: 0.5; }
-    50% { transform: translate(-50%,-50%) scale(1.12); opacity: 0.7; }
-  }
-  .lp-plans { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-  .lp-truth { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
-  .lp-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-  @media (max-width: 960px) {
-    .lp-plans { grid-template-columns: 1fr 1fr; }
-    .lp-truth { grid-template-columns: 1fr; }
-    .lp-steps { grid-template-columns: 1fr; }
-  }
-  @media (max-width: 560px) {
-    .lp-plans { grid-template-columns: 1fr; }
-  }
+:root {
+  --ig:   linear-gradient(135deg,#00D4FF 0%,#6366F1 50%,#00D4FF 100%);
+  --c1:   #00D4FF;
+  --c2:   #6366F1;
+  --c3:   #C8FF00;
+  --bg:   #010816;
+  --bg2:  #060E1F;
+  --bg3:  #0B1528;
+  --text: #E8EDF5;
+  --muted:#8899AA;
+  --r:    14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Space Grotesk','DM Sans',sans-serif;-webkit-font-smoothing:antialiased;}
+.lp-wrap{overflow-x:hidden;}
+
+/* topbar */
+.topbar{height:4px;background:linear-gradient(90deg,#00A8CC,#00D4FF,#6366F1,#00D4FF,#C8FF00,#00D4FF,#6366F1,#00A8CC);background-size:300% 100%;animation:topbarFlow 6s linear infinite;}
+@keyframes topbarFlow{0%{background-position:0% 0%}100%{background-position:300% 0%}}
+
+/* nav */
+.nav{position:sticky;top:0;z-index:100;padding:0 5%;height:64px;display:flex;align-items:center;justify-content:space-between;transition:background .3s,backdrop-filter .3s;}
+.nav.scrolled{background:rgba(1,8,22,.82);backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,212,255,.06);}
+.nav-logo{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:.06em;background:var(--ig);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.nav-links{display:flex;gap:32px;list-style:none;}
+.nav-links a{color:var(--muted);text-decoration:none;font-size:14px;font-weight:500;transition:color .2s;}
+.nav-links a:hover{color:var(--text);}
+.nav-cta{padding:9px 22px;border-radius:999px;background:var(--ig);color:#fff;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:opacity .2s,transform .2s;}
+.nav-cta:hover{opacity:.85;transform:translateY(-1px);}
+.nav-burger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:4px;}
+.nav-burger span{display:block;width:22px;height:2px;background:var(--text);border-radius:2px;}
+.mob-menu{display:none;position:fixed;inset:0;z-index:200;background:rgba(1,8,22,.97);flex-direction:column;align-items:center;justify-content:center;gap:32px;}
+.mob-menu.open{display:flex;}
+.mob-menu a{color:var(--text);text-decoration:none;font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:.06em;}
+.mob-close{position:absolute;top:20px;right:24px;font-size:28px;color:var(--muted);cursor:pointer;background:none;border:none;}
+@media(max-width:768px){.nav-links,.nav-cta{display:none;}.nav-burger{display:flex;}}
+
+/* hero */
+.hero{min-height:92vh;display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:64px;padding:80px 5% 60px;}
+.hero-sec-lbl{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.2);color:var(--c1);font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:20px;}
+.hero h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(44px,6vw,76px);line-height:.96;letter-spacing:.02em;margin-bottom:20px;}
+.gt2{background:linear-gradient(135deg,#00D4FF,#6366F1,#C8FF00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hero-sub{color:var(--muted);font-size:17px;line-height:1.65;margin-bottom:36px;max-width:480px;}
+.hero-btns{display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+.btn-primary{padding:14px 30px;border-radius:999px;background:var(--ig);color:#fff;font-size:15px;font-weight:700;cursor:pointer;border:none;transition:opacity .2s,transform .2s,box-shadow .2s;box-shadow:0 8px 30px rgba(0,212,255,.25);}
+.btn-primary:hover{opacity:.9;transform:translateY(-2px);box-shadow:0 12px 40px rgba(0,212,255,.35);}
+.btn-ghost{padding:14px 24px;border-radius:999px;background:transparent;border:1px solid rgba(0,212,255,.25);color:var(--c1);font-size:15px;font-weight:600;cursor:pointer;transition:background .2s,border-color .2s;}
+.btn-ghost:hover{background:rgba(0,212,255,.07);border-color:rgba(0,212,255,.5);}
+.hero-stats{display:flex;gap:28px;margin-top:36px;padding-top:28px;border-top:1px solid rgba(255,255,255,.06);}
+.stat-num{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--c1);letter-spacing:.04em;}
+.stat-lbl{font-size:12px;color:var(--muted);}
+@media(max-width:900px){.hero{grid-template-columns:1fr;gap:40px;text-align:center;padding:60px 5%;}.hero-sub{max-width:none;}.hero-btns,.hero-stats{justify-content:center;}}
+
+/* divider */
+.div{height:1px;background:linear-gradient(90deg,transparent,rgba(0,212,255,.15),transparent);margin:0 5%;}
+
+/* creators */
+.creators{padding:48px 0;overflow:hidden;}
+.creators-lbl{text-align:center;font-size:12px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:28px;}
+.cr-track-wrap{overflow:hidden;position:relative;}
+.cr-track-wrap::before,.cr-track-wrap::after{content:'';position:absolute;top:0;bottom:0;width:100px;z-index:2;}
+.cr-track-wrap::before{left:0;background:linear-gradient(90deg,var(--bg),transparent);}
+.cr-track-wrap::after{right:0;background:linear-gradient(-90deg,var(--bg),transparent);}
+.cr-track{display:flex;gap:16px;width:max-content;animation:creatorScroll 30s linear infinite;}
+.cr-item{display:flex;align-items:center;gap:10px;padding:10px 18px;border-radius:999px;background:var(--bg2);border:1px solid rgba(255,255,255,.06);white-space:nowrap;}
+.cr-ring{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:13px;color:#fff;flex-shrink:0;}
+.cr-handle{font-size:13px;font-weight:500;color:var(--text);}
+@keyframes creatorScroll{0%{transform:translateX(0)}100%{transform:translateX(-33.333%)}}
+
+/* section header */
+.sec-hd{text-align:center;margin-bottom:60px;}
+.sec-lbl{display:inline-block;font-size:12px;color:var(--c1);letter-spacing:.12em;text-transform:uppercase;font-weight:600;margin-bottom:12px;}
+.sec-hd h2{font-family:'Bebas Neue',sans-serif;font-size:clamp(36px,5vw,60px);letter-spacing:.02em;line-height:1;margin-bottom:12px;}
+.sec-hd p{color:var(--muted);font-size:16px;max-width:480px;margin:0 auto;}
+
+/* plans */
+.plans-sec{padding:100px 5%;}
+.plans-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:22px;max-width:1100px;margin:0 auto;}
+.plan{background:var(--bg2);border:1px solid rgba(255,255,255,.06);border-radius:20px;padding:32px 26px;display:flex;flex-direction:column;gap:20px;transition:border-color .3s,transform .3s;position:relative;}
+.plan:hover{border-color:rgba(0,212,255,.2);transform:translateY(-4px);}
+.plan.pop{background:linear-gradient(135deg,rgba(0,212,255,.06),rgba(99,102,241,.1));border-color:rgba(0,212,255,.3);transform:translateY(-8px);}
+.plan.pop:hover{transform:translateY(-12px);}
+.plan-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);padding:4px 14px;border-radius:999px;background:var(--ig);font-size:11px;font-weight:700;color:#fff;letter-spacing:.06em;white-space:nowrap;}
+.plan-name{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.06em;color:var(--text);}
+.plan-price-row{display:flex;align-items:baseline;gap:4px;}
+.plan-price{font-family:'Bebas Neue',sans-serif;font-size:42px;color:var(--c1);letter-spacing:.02em;line-height:1;}
+.plan-period{font-size:14px;color:var(--muted);}
+.plan-features{list-style:none;display:flex;flex-direction:column;gap:10px;flex:1;}
+.plan-features li{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted);}
+.plan-features li::before{content:'✓';width:18px;height:18px;border-radius:50%;background:rgba(0,212,255,.12);color:var(--c1);font-size:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.plan-btn{padding:12px 0;border-radius:999px;font-size:14px;font-weight:700;cursor:pointer;border:none;transition:opacity .2s,transform .2s;width:100%;}
+.plan.pop .plan-btn{background:var(--ig);color:#fff;}
+.plan:not(.pop) .plan-btn{background:transparent;border:1px solid rgba(255,255,255,.15);color:var(--text);}
+.plan-btn:hover{opacity:.85;transform:translateY(-1px);}
+@media(max-width:900px){.plans-grid{grid-template-columns:1fr 1fr;gap:16px;}.plan.pop{transform:none;}.plan.pop:hover{transform:translateY(-4px);}}
+@media(max-width:520px){.plans-grid{grid-template-columns:1fr;}}
+
+/* truth */
+.truth{padding:100px 5%;display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center;}
+.truth-num{font-family:'Bebas Neue',sans-serif;font-size:120px;line-height:1;background:linear-gradient(135deg,rgba(0,212,255,.15),transparent);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:-16px;}
+.truth h2{font-family:'Bebas Neue',sans-serif;font-size:clamp(36px,4vw,52px);letter-spacing:.02em;line-height:1.05;margin-bottom:20px;}
+.truth p{color:var(--muted);line-height:1.7;font-size:16px;margin-bottom:20px;}
+.truth-visual{aspect-ratio:1;max-width:400px;border-radius:20px;background:var(--bg2);border:1px solid rgba(0,212,255,.1);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;}
+.truth-visual-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(0,212,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,.04) 1px,transparent 1px);background-size:32px 32px;}
+@media(max-width:900px){.truth{grid-template-columns:1fr;gap:40px;}}
+
+/* steps */
+.steps-sec{padding:100px 5%;}
+.steps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;max-width:900px;margin:0 auto;}
+.step{background:var(--bg2);border:1px solid rgba(255,255,255,.06);border-radius:20px;padding:32px 28px;transition:border-color .3s,transform .3s;}
+.step:hover{border-color:rgba(0,212,255,.2);transform:translateY(-4px);}
+.step-num{font-family:'Bebas Neue',sans-serif;font-size:60px;line-height:1;background:linear-gradient(135deg,rgba(0,212,255,.3),transparent);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:16px;}
+.step h3{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.04em;margin-bottom:10px;color:var(--text);}
+.step p{color:var(--muted);font-size:14px;line-height:1.65;}
+@media(max-width:768px){.steps-grid{grid-template-columns:1fr;}}
+
+/* slide marquees */
+.slides-sec{padding:80px 0;overflow:hidden;}
+.slides-track-wrap{overflow:hidden;position:relative;margin-bottom:16px;}
+.slides-track-wrap::before,.slides-track-wrap::after{content:'';position:absolute;top:0;bottom:0;width:100px;z-index:2;}
+.slides-track-wrap::before{left:0;background:linear-gradient(90deg,var(--bg),transparent);}
+.slides-track-wrap::after{right:0;background:linear-gradient(-90deg,var(--bg),transparent);}
+.slides-track{display:flex;gap:16px;width:max-content;}
+.slides-track.fwd{animation:marquee 20s linear infinite;}
+.slides-track.rev{animation:marqueeReverse 22s linear infinite;}
+@keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+@keyframes marqueeReverse{0%{transform:translateX(-50%)}100%{transform:translateX(0)}}
+.ws-card{width:180px;height:220px;border-radius:12px;background:var(--bg2);border:1px solid rgba(255,255,255,.06);flex-shrink:0;overflow:hidden;position:relative;display:flex;flex-direction:column;padding:14px;}
+.ws-card-num{font-size:10px;color:var(--c1);font-family:'Bebas Neue',sans-serif;letter-spacing:.1em;margin-bottom:6px;}
+.ws-card-title{font-size:13px;font-family:'Bebas Neue',sans-serif;color:#fff;line-height:1.2;letter-spacing:.03em;}
+.ws-card-bar{position:absolute;bottom:12px;left:14px;right:14px;height:2px;border-radius:1px;opacity:.7;}
+
+/* features */
+.fs-sec{padding:100px 5%;}
+.fs-tabs{display:flex;gap:4px;padding:6px;background:var(--bg2);border-radius:14px;margin-bottom:40px;width:fit-content;margin-left:auto;margin-right:auto;}
+.fs-tab{padding:9px 20px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--muted);transition:background .2s,color .2s;}
+.fs-tab.active{background:rgba(0,212,255,.12);color:var(--c1);}
+.fs-content{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;max-width:960px;margin:0 auto;}
+.fs-content h3{font-family:'Bebas Neue',sans-serif;font-size:40px;letter-spacing:.04em;margin-bottom:16px;}
+.fs-content p{color:var(--muted);font-size:16px;line-height:1.7;}
+.fs-visual{aspect-ratio:4/3;border-radius:16px;background:var(--bg2);border:1px solid rgba(0,212,255,.1);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;}
+.fs-visual-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(0,212,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,.04) 1px,transparent 1px);background-size:32px 32px;}
+.fs-mobile{display:none;flex-direction:column;gap:16px;}
+.fs-card{background:var(--bg2);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:24px;cursor:pointer;transition:border-color .3s;}
+.fs-card.open{border-color:rgba(0,212,255,.25);}
+.fs-card-hd{display:flex;justify-content:space-between;align-items:center;}
+.fs-card-hd h3{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:.04em;}
+.fs-card-body{margin-top:12px;color:var(--muted);font-size:14px;line-height:1.65;}
+@media(max-width:768px){.fs-tabs,.fs-content{display:none;}.fs-mobile{display:flex;}}
+
+/* ia section */
+.ia-sec{padding:100px 5%;background:linear-gradient(135deg,rgba(0,212,255,.04),rgba(99,102,241,.04));border-top:1px solid rgba(0,212,255,.08);border-bottom:1px solid rgba(0,212,255,.08);}
+.ia-grid{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center;max-width:1100px;margin:0 auto;}
+.ia-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:28px;}
+.ia-chip{padding:6px 14px;border-radius:999px;border:1px solid rgba(0,212,255,.2);color:var(--c1);font-size:12px;font-weight:600;}
+@media(max-width:900px){.ia-grid{grid-template-columns:1fr;gap:40px;}}
+
+/* transparency */
+.transp-sec{padding:100px 5%;}
+.transp-cards{display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:700px;margin:40px auto 0;}
+.transp-card{background:var(--bg2);border:1px solid rgba(255,255,255,.06);border-radius:20px;padding:32px 28px;text-align:center;}
+.transp-card-icon{font-family:'Bebas Neue',sans-serif;font-size:48px;color:var(--c1);margin-bottom:12px;}
+.transp-card h3{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.04em;margin-bottom:8px;}
+.transp-card p{color:var(--muted);font-size:14px;line-height:1.6;}
+@media(max-width:520px){.transp-cards{grid-template-columns:1fr;}}
+
+/* testimonials */
+.deps-sec{padding:80px 0;overflow:hidden;}
+.dep-track-wrap{overflow:hidden;position:relative;}
+.dep-track-wrap::before,.dep-track-wrap::after{content:'';position:absolute;top:0;bottom:0;width:140px;z-index:2;}
+.dep-track-wrap::before{left:0;background:linear-gradient(90deg,var(--bg),transparent);}
+.dep-track-wrap::after{right:0;background:linear-gradient(-90deg,var(--bg),transparent);}
+.dep-track{display:flex;gap:20px;width:max-content;animation:depScroll 40s linear infinite;}
+.dep{width:300px;background:var(--bg2);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:24px;flex-shrink:0;}
+.dep-stars{color:var(--c1);font-size:13px;margin-bottom:12px;letter-spacing:2px;}
+.dep-text{font-size:14px;line-height:1.65;color:var(--text);margin-bottom:16px;}
+.dep-author{display:flex;align-items:center;gap:10px;}
+.dep-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:13px;color:#fff;flex-shrink:0;}
+.dep-handle{font-size:13px;font-weight:600;color:var(--muted);}
+@keyframes depScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+/* faq */
+.faq-sec{padding:100px 5%;}
+.faq-list{max-width:700px;margin:0 auto;display:flex;flex-direction:column;gap:12px;}
+.faq-item{background:var(--bg2);border:1px solid rgba(255,255,255,.06);border-radius:14px;overflow:hidden;transition:border-color .3s;}
+.faq-item.open{border-color:rgba(0,212,255,.2);}
+.faq-q{width:100%;background:none;border:none;padding:20px 24px;display:flex;justify-content:space-between;align-items:center;color:var(--text);font-size:15px;font-weight:600;cursor:pointer;text-align:left;gap:16px;}
+.faq-icon{color:var(--c1);font-size:20px;flex-shrink:0;transition:transform .3s;}
+.faq-item.open .faq-icon{transform:rotate(45deg);}
+.faq-a{padding:0 24px 20px;color:var(--muted);font-size:14px;line-height:1.7;}
+
+/* suporte */
+.suporte-sec{padding:80px 5%;}
+.suporte-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:900px;margin:0 auto;}
+.sup-card{background:var(--bg2);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:28px 24px;text-align:center;transition:border-color .3s,transform .3s;cursor:pointer;text-decoration:none;display:block;}
+.sup-card:hover{border-color:rgba(0,212,255,.2);transform:translateY(-4px);}
+.sup-icon{font-size:28px;margin-bottom:12px;}
+.sup-card h4{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.04em;margin-bottom:6px;color:var(--text);}
+.sup-card p{font-size:13px;color:var(--muted);}
+@media(max-width:600px){.suporte-grid{grid-template-columns:1fr;}}
+
+/* cta */
+.cta-sec{padding:100px 5%;text-align:center;background:radial-gradient(ellipse at 50% 0%,rgba(0,212,255,.08),transparent 70%);}
+.cta-sec h2{font-family:'Bebas Neue',sans-serif;font-size:clamp(40px,6vw,72px);letter-spacing:.02em;line-height:1;margin-bottom:20px;}
+.cta-sec p{color:var(--muted);font-size:17px;max-width:440px;margin:0 auto 36px;line-height:1.6;}
+
+/* footer */
+.footer{padding:60px 5% 40px;border-top:1px solid rgba(255,255,255,.06);}
+.footer-top{display:grid;grid-template-columns:1.5fr repeat(3,1fr);gap:40px;margin-bottom:48px;}
+.footer-logo{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:.06em;background:var(--ig);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;display:inline-block;margin-bottom:12px;}
+.footer-brand p{font-size:13px;color:var(--muted);line-height:1.65;max-width:240px;}
+.footer-col h5{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.1em;color:var(--muted);margin-bottom:16px;}
+.footer-col ul{list-style:none;display:flex;flex-direction:column;gap:10px;}
+.footer-col a{font-size:13px;color:var(--muted);text-decoration:none;transition:color .2s;cursor:pointer;}
+.footer-col a:hover{color:var(--text);}
+.footer-bottom{display:flex;justify-content:space-between;align-items:center;padding-top:28px;border-top:1px solid rgba(255,255,255,.06);font-size:12px;color:var(--muted);}
+@media(max-width:768px){.footer-top{grid-template-columns:1fr 1fr;}.footer-bottom{flex-direction:column;gap:8px;text-align:center;}}
+@media(max-width:420px){.footer-top{grid-template-columns:1fr;}}
+
+/* aos */
+.aos{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease;}
+.aos.in{opacity:1;transform:translateY(0);}
+
+/* 21dev placeholder */
+@keyframes gridPan{0%{background-position:0 0}100%{background-position:48px 48px}}
 `
 
+// ─── COMPONENT ────────────────────────────────────────────────────────────────
 export default function Landing() {
   const navigate = useNavigate()
-  const go = () => navigate('/dashboard')
+  const [scrolled,    setScrolled]    = useState(false)
+  const [mobileOpen,  setMobileOpen]  = useState(false)
+  const [openFaq,     setOpenFaq]     = useState<string | null>(null)
+  const [activeTab,   setActiveTab]   = useState('copy')
+  const [openFsCard,  setOpenFsCard]  = useState<string | null>(null)
+
+  useEffect(() => {
+    const fn = () => setScrolled(window.scrollY > 20)
+    window.addEventListener('scroll', fn)
+    return () => window.removeEventListener('scroll', fn)
+  }, [])
+
+  useEffect(() => {
+    const els = document.querySelectorAll('.aos')
+    const io = new IntersectionObserver(
+      entries => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in') }),
+      { threshold: 0.12 }
+    )
+    els.forEach(el => io.observe(el))
+    return () => io.disconnect()
+  }, [])
+
+  const activeFeature = FEATURES.find(f => f.id === activeTab) ?? FEATURES[0]
+  const creators3 = [...CREATORS, ...CREATORS, ...CREATORS]
+  const slides4   = [...FAKE_SLIDES, ...FAKE_SLIDES, ...FAKE_SLIDES, ...FAKE_SLIDES]
+  const deps2     = [...TESTIMONIALS, ...TESTIMONIALS]
 
   return (
-    <div style={{ background: '#010816', minHeight: '100vh', fontFamily: 'DM Sans, sans-serif', color: '#fff', overflowX: 'hidden' }}>
+    <>
       <style>{CSS}</style>
+      <div className="lp-wrap">
 
-      {/* ── TOPBAR ──────────────────────────────────────────────────── */}
-      <div style={{
-        height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'linear-gradient(90deg, #00D4FF, #6366F1, #C8FF00, #6366F1, #00D4FF)',
-        backgroundSize: '300% 300%',
-        animation: 'topbarGradient 6s ease infinite',
-        fontSize: 12, fontWeight: 700, color: '#010816', letterSpacing: '0.05em',
-      }}>
-        ConteúdOS gera Carrosseis Virais com IA em menos de 3 minutos!
-      </div>
+        {/* topbar */}
+        <div className="topbar" />
 
-      {/* ── NAV ─────────────────────────────────────────────────────── */}
-      <nav style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 40px', height: 64,
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
-        position: 'sticky', top: 0, zIndex: 100,
-        background: 'rgba(1,8,22,0.88)',
-        backdropFilter: 'blur(12px)',
-      }}>
-        <div style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 22, color: '#00D4FF', letterSpacing: '0.06em' }}>
-          ConteúdOS
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
-          <a href="#como-funciona" style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', textDecoration: 'none' }}>Como funciona</a>
-          <a href="#precos" style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', textDecoration: 'none' }}>Preços</a>
-          <a href="/auth" style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', textDecoration: 'none' }}>Entrar</a>
-          <button onClick={go} style={{ background: '#00D4FF', color: '#010816', border: 'none', borderRadius: 8, padding: '8px 20px', fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+        {/* nav */}
+        <nav className={`nav${scrolled ? ' scrolled' : ''}`}>
+          <div className="nav-logo">ConteúdOS</div>
+          <ul className="nav-links">
+            <li><a href="#planos">Planos</a></li>
+            <li><a href="#como-funciona">Como funciona</a></li>
+            <li><a href="#recursos">Recursos</a></li>
+            <li><a href="#faq">FAQ</a></li>
+          </ul>
+          <button className="nav-cta" onClick={() => navigate('/dashboard')}>Começar grátis</button>
+          <div className="nav-burger" onClick={() => setMobileOpen(true)}>
+            <span /><span /><span />
+          </div>
+        </nav>
+
+        {/* mobile menu */}
+        <div className={`mob-menu${mobileOpen ? ' open' : ''}`}>
+          <button className="mob-close" onClick={() => setMobileOpen(false)}>✕</button>
+          <a href="#planos"        onClick={() => setMobileOpen(false)}>Planos</a>
+          <a href="#como-funciona" onClick={() => setMobileOpen(false)}>Como funciona</a>
+          <a href="#recursos"      onClick={() => setMobileOpen(false)}>Recursos</a>
+          <a href="#faq"           onClick={() => setMobileOpen(false)}>FAQ</a>
+          <button className="btn-primary" onClick={() => { setMobileOpen(false); navigate('/dashboard') }}>
             Começar grátis
           </button>
         </div>
-      </nav>
 
-      {/* ── HERO ────────────────────────────────────────────────────── */}
-      <section style={{ position: 'relative', minHeight: '88vh', display: 'flex', alignItems: 'center', overflow: 'hidden', padding: '80px 40px' }}>
-        <TabuleiroBg />
-        <div style={{ position: 'relative', zIndex: 1, maxWidth: 580, animation: 'fadeUp 0.8s ease both' }}>
-          <div style={{ display: 'inline-block', background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.25)', borderRadius: 20, padding: '4px 14px', fontSize: 12, color: '#00D4FF', letterSpacing: '0.08em', marginBottom: 24, fontWeight: 600 }}>
-            IA PARA INSTAGRAM · FEITO NO BRASIL
+        {/* hero */}
+        <section className="hero">
+          <div>
+            <div className="hero-sec-lbl"><span>✦</span> Tabuleiro de conteúdo com IA</div>
+            <h1>
+              Não existe post<br />
+              <span className="gt2">aleatório.</span><br />
+              Existe tabuleiro.
+            </h1>
+            <p className="hero-sub">
+              Monte sua estratégia de conteúdo com IA. Gere carrosseis virais para o Instagram
+              em menos de 3 minutos — copy estratégica, design profissional, imagens cinematográficas.
+            </p>
+            <div className="hero-btns">
+              <button className="btn-primary" onClick={() => navigate('/dashboard')}>Montar meu tabuleiro →</button>
+              <button className="btn-ghost"   onClick={() => navigate('/dashboard')}>Ver como funciona</button>
+            </div>
+            <div className="hero-stats">
+              <div><div className="stat-num">3min</div><div className="stat-lbl">por carrossel</div></div>
+              <div><div className="stat-num">10+</div><div className="stat-lbl">slides gerados</div></div>
+              <div><div className="stat-num">100%</div><div className="stat-lbl">no browser</div></div>
+            </div>
           </div>
-          <h1 style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 'clamp(42px, 6vw, 72px)', lineHeight: 1.05, letterSpacing: '0.02em', margin: '0 0 24px', color: '#fff' }}>
-            Não existe post aleatório.{' '}
-            <span style={{ color: '#00D4FF' }}>Existe tabuleiro.</span>{' '}
-            Monte o seu com IA.
-          </h1>
-          <p style={{ fontSize: 17, color: 'rgba(255,255,255,0.6)', lineHeight: 1.65, marginBottom: 36, maxWidth: 480 }}>
-            Quem domina o Instagram não posta — joga. Copy estratégica, design que para o scroll e imagem por IA. Tudo em menos de 3 minutos.
-          </p>
-          <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
-            <button onClick={go} style={{ background: '#00D4FF', color: '#010816', border: 'none', borderRadius: 10, padding: '14px 32px', fontFamily: 'Bebas Neue, sans-serif', fontSize: 18, letterSpacing: '0.06em', cursor: 'pointer' }}>
-              Quero montar meu tabuleiro
-            </button>
-            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>Grátis para começar · Sem cartão</span>
-          </div>
-          <div style={{ display: 'flex', gap: 36, marginTop: 48, flexWrap: 'wrap' }}>
-            {[['3min', 'por carrossel'], ['10×', 'mais rápido'], ['100%', 'IA']].map(([n, l]) => (
-              <div key={n}>
-                <div style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 36, color: '#00D4FF', lineHeight: 1 }}>{n}</div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 3 }}>{l}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── STRIP DE CRIADORES ──────────────────────────────────────── */}
-      <section style={{ padding: '40px 0', borderTop: '1px solid rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden' }}>
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', textAlign: 'center', marginBottom: 20, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
-          Criadores que já montam o tabuleiro
-        </div>
-        <div style={{ overflow: 'hidden' }}>
-          <div style={{ display: 'flex', gap: 32, width: 'max-content', animation: 'marquee 20s linear infinite' }}>
-            {[...CREATORS, ...CREATORS].map((c, i) => <CreatorAvatar key={i} c={c} />)}
-          </div>
-        </div>
-      </section>
-
-      {/* ── PLANOS ──────────────────────────────────────────────────── */}
-      <section id="precos" style={{ padding: '100px 40px' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 60 }}>
-            <div style={{ fontSize: 11, color: '#00D4FF', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>Preços</div>
-            <h2 style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 'clamp(36px, 4vw, 52px)', margin: 0 }}>Monte seu tabuleiro pelo preço certo</h2>
-          </div>
-          <div className="lp-plans">
-            {PLANS.map((plan) => (
-              <div key={plan.name} style={{
-                borderRadius: 16,
-                background: plan.pop ? 'rgba(0,212,255,0.04)' : '#0A1525',
-                border: plan.pop ? '1.5px solid #00D4FF' : '1px solid rgba(255,255,255,0.08)',
-                padding: '28px 22px',
-                position: 'relative',
-                display: 'flex', flexDirection: 'column',
+          <div>
+            {/* EFEITO 21DEV — substituir este bloco quando Diego enviar o código */}
+            <div style={{
+              borderRadius: '20px', overflow: 'hidden', background: 'var(--bg2)',
+              border: '1px solid rgba(0,212,255,0.1)', boxShadow: '0 32px 80px -20px rgba(0,212,255,0.2)',
+              aspectRatio: '16/9', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
+            }}>
+              <div style={{
+                position: 'absolute', inset: 0,
+                backgroundImage: 'linear-gradient(rgba(0,212,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,.04) 1px,transparent 1px)',
+                backgroundSize: '48px 48px', animation: 'gridPan 20s linear infinite',
+              }} />
+              <div style={{
+                position: 'relative', zIndex: 1, textAlign: 'center',
+                fontFamily: '"Bebas Neue",sans-serif', fontSize: '13px',
+                letterSpacing: '0.1em', color: 'rgba(0,212,255,0.35)',
               }}>
-                {plan.pop && plan.badge && (
-                  <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: '#00D4FF', color: '#010816', fontSize: 10, fontWeight: 700, padding: '3px 12px', borderRadius: 20, letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>
-                    {plan.badge}
-                  </div>
-                )}
-                <div style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 20, letterSpacing: '0.04em', color: plan.pop ? '#00D4FF' : '#fff', marginBottom: 4 }}>{plan.name}</div>
-                <div style={{ marginBottom: 8 }}>
-                  <span style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 36, color: '#fff' }}>{plan.price}</span>
-                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>{plan.period}</span>
+                EFEITO 21DEV<br />SERÁ INSERIDO AQUI
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div className="div" />
+
+        {/* creator strip */}
+        <section className="creators">
+          <p className="creators-lbl">criadores que já montam o tabuleiro deles</p>
+          <div className="cr-track-wrap">
+            <div className="cr-track">
+              {creators3.map((c, i) => (
+                <div className="cr-item" key={i}>
+                  <div className="cr-ring" style={{ background: `conic-gradient(${c.color},${c.color}80)` }}>{c.initials}</div>
+                  <span className="cr-handle">{c.handle}</span>
                 </div>
-                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginBottom: 20, lineHeight: 1.4 }}>{plan.desc}</div>
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
-                  {plan.features.map((f) => (
-                    <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>
-                      <span style={{ color: '#00D4FF', flexShrink: 0, marginTop: 1 }}>✓</span> {f}
-                    </div>
-                  ))}
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <div className="div" />
+
+        {/* plans #1 */}
+        <section className="plans-sec" id="planos">
+          <div className="sec-hd aos">
+            <div className="sec-lbl">planos</div>
+            <h2>Escolha seu <span className="gt2">nível</span></h2>
+            <p>Do criador solo à agência digital. Sem contrato, cancele quando quiser.</p>
+          </div>
+          <div className="plans-grid">
+            {PLANS.map(p => (
+              <div className={`plan${p.pop ? ' pop' : ''}`} key={p.name}>
+                {p.pop && <div className="plan-badge">MAIS POPULAR</div>}
+                <div className="plan-name">{p.name}</div>
+                <div className="plan-price-row">
+                  <div className="plan-price">{p.price}</div>
+                  {p.period && <div className="plan-period">{p.period}</div>}
                 </div>
-                <button onClick={go} style={{
-                  width: '100%', padding: '12px 0',
-                  background: plan.pop ? '#00D4FF' : 'transparent',
-                  color: plan.pop ? '#010816' : '#00D4FF',
-                  border: plan.pop ? 'none' : '1px solid rgba(0,212,255,0.35)',
-                  borderRadius: 8, fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer',
-                }}>
-                  {plan.cta}
-                </button>
+                <ul className="plan-features">{p.features.map(f => <li key={f}>{f}</li>)}</ul>
+                <button className="plan-btn" onClick={() => navigate('/dashboard')}>{p.cta}</button>
               </div>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── A VERDADE BRUTAL ────────────────────────────────────────── */}
-      <section style={{ padding: '80px 40px', background: '#060E1F', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-          <div className="lp-truth">
-            <div>
-              <div style={{ fontSize: 11, color: '#00D4FF', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 16 }}>A verdade que ninguém te conta</div>
-              <h2 style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 'clamp(30px, 4vw, 48px)', margin: '0 0 24px', lineHeight: 1.1 }}>
-                Você não tem problema de criatividade.<br />
-                <span style={{ color: '#00D4FF' }}>Tem problema de velocidade.</span>
-              </h2>
-              <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.6)', lineHeight: 1.7, maxWidth: 480, margin: 0 }}>
-                A ideia existe. O tempo de executar não. O ConteúdOS elimina o gap entre pensar e publicar — de 2 horas para 3 minutos. Copy estratégica gerada para o seu nicho, design que para o scroll e imagem de IA, tudo ao mesmo tempo.
-              </p>
-              <button onClick={go} style={{ marginTop: 32, background: 'transparent', border: '1px solid rgba(0,212,255,0.4)', color: '#00D4FF', borderRadius: 8, padding: '12px 28px', fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
-                Ver como funciona →
+        {/* verdade brutal */}
+        <section className="truth">
+          <div>
+            <div className="truth-num">97%</div>
+            <h2>Você posta.<br />Eles <span className="gt2">estrategizam.</span></h2>
+            <p>97% dos criadores de conteúdo postam no improviso — sem tema fixo, sem narrativa, sem sequência. O resultado é feed aleatório que não converte nem fideliza.</p>
+            <p>Os perfis que crescem de verdade têm tabuleiro. Cada post tem propósito. Cada carrossel tem lugar na estratégia. ConteúdOS monta esse tabuleiro pra você.</p>
+            <button className="btn-primary" onClick={() => navigate('/dashboard')}>Montar meu tabuleiro →</button>
+          </div>
+          <div>
+            <div className="truth-visual">
+              <div className="truth-visual-grid" />
+              <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', padding: '40px', fontFamily: '"Bebas Neue",sans-serif' }}>
+                <div style={{ fontSize: '72px', lineHeight: 1, background: 'linear-gradient(135deg,#00D4FF,#6366F1,#C8FF00)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+                  TABULEIRO
+                </div>
+                <div style={{ fontSize: '14px', color: 'rgba(0,212,255,0.4)', letterSpacing: '0.12em', marginTop: '8px' }}>
+                  ESTRATÉGIA · CONSISTÊNCIA · RESULTADO
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* como funciona */}
+        <section className="steps-sec" id="como-funciona">
+          <div className="sec-hd aos">
+            <div className="sec-lbl">como funciona</div>
+            <h2>3 passos do <span className="gt2">zero ao post</span></h2>
+            <p>Sem aprender prompt. Sem contratar designer. Sem perder horas.</p>
+          </div>
+          <div className="steps-grid">
+            {STEPS.map(s => (
+              <div className="step aos" key={s.num}>
+                <div className="step-num">{s.num}</div>
+                <h3>{s.title}</h3>
+                <p>{s.body}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* slide marquees */}
+        <section className="slides-sec">
+          <div className="slides-track-wrap">
+            <div className="slides-track fwd">
+              {slides4.map((s, i) => (
+                <div className="ws-card" key={i} style={{ borderColor: `${s.accent}22` }}>
+                  <div className="ws-card-num">SLIDE {s.num}</div>
+                  <div className="ws-card-title">{s.title}</div>
+                  <div className="ws-card-bar" style={{ background: s.accent }} />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="slides-track-wrap">
+            <div className="slides-track rev">
+              {[...slides4].reverse().map((s, i) => (
+                <div className="ws-card" key={i} style={{ borderColor: `${s.accent}22` }}>
+                  <div className="ws-card-num">SLIDE {s.num}</div>
+                  <div className="ws-card-title">{s.title}</div>
+                  <div className="ws-card-bar" style={{ background: s.accent }} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* recursos */}
+        <section className="fs-sec" id="recursos">
+          <div className="sec-hd aos">
+            <div className="sec-lbl">recursos</div>
+            <h2>Tudo que você precisa <span className="gt2">em um lugar</span></h2>
+          </div>
+          <div className="fs-tabs">
+            {FEATURES.map(f => (
+              <button key={f.id} className={`fs-tab${activeTab === f.id ? ' active' : ''}`} onClick={() => setActiveTab(f.id)}>
+                {f.label}
               </button>
+            ))}
+          </div>
+          <div className="fs-content">
+            <div>
+              <h3>{activeFeature.title}</h3>
+              <p>{activeFeature.body}</p>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <AppMockupSVG />
+            <div className="fs-visual">
+              <div className="fs-visual-grid" />
+              <div style={{ position: 'relative', zIndex: 1, fontFamily: '"Bebas Neue",sans-serif', fontSize: '13px', letterSpacing: '0.1em', color: 'rgba(0,212,255,0.35)', textAlign: 'center' }}>
+                {activeFeature.label.toUpperCase()}<br />PREVIEW
+              </div>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* ── 3 PASSOS ────────────────────────────────────────────────── */}
-      <section id="como-funciona" style={{ padding: '100px 40px' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 60 }}>
-            <div style={{ fontSize: 11, color: '#00D4FF', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>Como funciona</div>
-            <h2 style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 'clamp(32px, 4vw, 48px)', margin: 0 }}>3 passos. 3 minutos.</h2>
-          </div>
-          <div className="lp-steps">
-            {[
-              { n: '01', title: 'Descreva o tema', desc: 'Digite o tema do carrossel, seu nicho e tom de voz. Opcional: deixe o voice profile fazer isso por você.' },
-              { n: '02', title: 'IA gera tudo', desc: 'Copy de cada slide, título, corpo, CTA, imagem de fundo personalizada e design completo — automático.' },
-              { n: '03', title: 'Exporte e publique', desc: 'Baixe o ZIP com todos os slides em alta resolução. Direto para o Instagram, Canva ou onde quiser.' },
-            ].map((step) => (
-              <div key={step.n} style={{ padding: '32px 28px', borderRadius: 16, background: '#0A1525', border: '1px solid rgba(255,255,255,0.07)', position: 'relative' }}>
-                <div style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 52, color: 'rgba(0,212,255,0.1)', position: 'absolute', top: 12, right: 18, lineHeight: 1 }}>{step.n}</div>
-                <div style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 13, color: '#00D4FF', letterSpacing: '0.12em', marginBottom: 14 }}>PASSO {step.n}</div>
-                <h3 style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 26, margin: '0 0 12px', color: '#fff', letterSpacing: '0.02em' }}>{step.title}</h3>
-                <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', lineHeight: 1.65, margin: 0 }}>{step.desc}</p>
+          <div className="fs-mobile">
+            {FEATURES.map(f => (
+              <div key={f.id} className={`fs-card${openFsCard === f.id ? ' open' : ''}`} onClick={() => setOpenFsCard(openFsCard === f.id ? null : f.id)}>
+                <div className="fs-card-hd">
+                  <h3>{f.title}</h3>
+                  <span style={{ color: 'var(--c1)', fontSize: '18px' }}>{openFsCard === f.id ? '−' : '+'}</span>
+                </div>
+                {openFsCard === f.id && <p className="fs-card-body">{f.body}</p>}
               </div>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── MARQUEE DE SLIDES ───────────────────────────────────────── */}
-      <section style={{ padding: '60px 0', overflow: 'hidden', background: '#060E1F', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-        <div style={{ marginBottom: 16, overflow: 'hidden' }}>
-          <div style={{ display: 'flex', gap: 16, width: 'max-content', animation: 'marquee 30s linear infinite' }}>
-            {[...FAKE_CAROUSEL_SLIDES, ...FAKE_CAROUSEL_SLIDES].map((s, i) => <SlideCard key={i} s={s} />)}
-          </div>
-        </div>
-        <div style={{ marginBottom: 16, overflow: 'hidden' }}>
-          <div style={{ display: 'flex', gap: 16, width: 'max-content', animation: 'marqueeReverse 25s linear infinite' }}>
-            {[...FAKE_CAROUSEL_SLIDES, ...FAKE_CAROUSEL_SLIDES].map((s, i) => <SlideCard key={i} s={s} />)}
-          </div>
-        </div>
-        <div style={{ overflow: 'hidden' }}>
-          <div style={{ display: 'flex', gap: 16, width: 'max-content', animation: 'marquee 40s linear infinite' }}>
-            {[...FAKE_CAROUSEL_SLIDES, ...FAKE_CAROUSEL_SLIDES].map((s, i) => <SlideCard key={i} s={s} />)}
-          </div>
-        </div>
-      </section>
-
-      {/* ── DEPOIMENTOS ─────────────────────────────────────────────── */}
-      <section style={{ padding: '80px 0', overflow: 'hidden' }}>
-        <div style={{ textAlign: 'center', padding: '0 40px', marginBottom: 48 }}>
-          <div style={{ fontSize: 11, color: '#00D4FF', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>Depoimentos</div>
-          <h2 style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 'clamp(32px, 4vw, 48px)', margin: 0 }}>Quem já está no tabuleiro</h2>
-        </div>
-        <div style={{ overflow: 'hidden' }}>
-          <div style={{ display: 'flex', gap: 20, width: 'max-content', animation: 'marquee 35s linear infinite' }}>
-            {[...TESTIMONIALS, ...TESTIMONIALS].map((t, i) => <TestimonialCard key={i} t={t} />)}
-          </div>
-        </div>
-      </section>
-
-      {/* ── COMPARATIVO DE PREÇO ────────────────────────────────────── */}
-      <section style={{ padding: '80px 40px', background: '#060E1F', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-        <div style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center' }}>
-          <div style={{ fontSize: 11, color: '#00D4FF', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 16 }}>Quanto custa fazer sem o ConteúdOS</div>
-          <h2 style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 'clamp(28px, 3.5vw, 42px)', margin: '0 0 40px' }}>Você já paga caro demais por isso</h2>
-          <div style={{ background: '#0A1525', borderRadius: 16, border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-            {[
-              { tool: 'Canva Pro', price: 'R$89/mês' },
-              { tool: 'ChatGPT Plus', price: 'R$110/mês' },
-              { tool: 'Designer freelancer (4h/semana)', price: 'R$363/mês' },
-            ].map((row, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid rgba(255,255,255,0.06)', fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>
-                <span>{row.tool}</span>
-                <span style={{ color: '#ff6b6b', fontWeight: 600 }}>{row.price}</span>
+        {/* ia section — mudança 3 */}
+        <section className="ia-sec">
+          <div className="ia-grid">
+            <div className="aos">
+              <div className="sec-lbl">IA contextual</div>
+              <h2 style={{ fontFamily: '"Bebas Neue",sans-serif', fontSize: 'clamp(36px,4vw,52px)', letterSpacing: '.02em', lineHeight: 1.05, marginBottom: '16px' }}>
+                Copy e imagem geradas<br />com <span className="gt2">contexto real</span>
+              </h2>
+              <p style={{ color: 'var(--muted)', fontSize: '16px', lineHeight: 1.7, marginBottom: '28px' }}>
+                A IA lê o conteúdo de cada slide antes de gerar. O resultado é copy estratégica e imagem cinematográfica que complementam exatamente o que o slide precisa comunicar.
+              </p>
+              <div className="ia-chips">
+                <div className="ia-chip">Claude Sonnet</div>
+                <div className="ia-chip">fal.ai Flux 2 Pro</div>
+                <div className="ia-chip">Contexto por slide</div>
+                <div className="ia-chip">Narrativa estratégica</div>
               </div>
-            ))}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: '1px solid rgba(255,255,255,0.08)', fontSize: 15, fontWeight: 700 }}>
-              <span style={{ color: '#fff' }}>Total atual</span>
-              <span style={{ color: '#ff6b6b', fontSize: 20 }}>~R$562/mês</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', background: 'rgba(0,212,255,0.05)', gap: 12, flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                <span style={{ background: '#00D4FF', color: '#010816', fontSize: 11, padding: '3px 10px', borderRadius: 4, fontWeight: 700, flexShrink: 0 }}>ConteúdOS Construtor</span>
-                <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)' }}>Tudo acima, integrado</span>
+            <div className="fs-visual">
+              <div className="fs-visual-grid" />
+              <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', fontFamily: '"Bebas Neue",sans-serif', fontSize: '13px', letterSpacing: '0.1em', color: 'rgba(0,212,255,0.35)' }}>
+                IA CONTEXTUAL<br />PREVIEW
               </div>
-              <span style={{ color: '#00D4FF', fontSize: 24, fontFamily: 'Bebas Neue, sans-serif', letterSpacing: '0.03em' }}>R$47/mês</span>
             </div>
           </div>
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', marginTop: 16 }}>Economia de R$515/mês. Sem perder qualidade.</p>
-        </div>
-      </section>
+        </section>
 
-      {/* ── FAQ ─────────────────────────────────────────────────────── */}
-      <section style={{ padding: '80px 40px' }}>
-        <div style={{ maxWidth: 720, margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: 48 }}>
-            <h2 style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 'clamp(32px, 4vw, 48px)', margin: 0 }}>Perguntas frequentes</h2>
+        {/* transparência — mudança 7 */}
+        <section className="transp-sec">
+          <div className="sec-hd aos">
+            <div className="sec-lbl">limites</div>
+            <h2>Transparência total <span className="gt2">sobre os limites</span></h2>
           </div>
-          <Accordion items={FAQ_ITEMS} />
-        </div>
-      </section>
-
-      {/* ── CTA FINAL ───────────────────────────────────────────────── */}
-      <section style={{ padding: '100px 40px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
-        <div style={{
-          position: 'absolute', top: '50%', left: '50%',
-          width: 600, height: 600, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(0,212,255,0.14) 0%, transparent 70%)',
-          animation: 'orb 6s ease-in-out infinite',
-          pointerEvents: 'none',
-        }} />
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ fontSize: 11, color: '#00D4FF', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 20 }}>Comece agora</div>
-          <h2 style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 'clamp(36px, 5vw, 64px)', margin: '0 0 20px', lineHeight: 1.05 }}>
-            Seu tabuleiro espera por você.<br />
-            <span style={{ color: '#00D4FF' }}>Monte agora.</span>
-          </h2>
-          <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.5)', marginBottom: 40, maxWidth: 460, marginLeft: 'auto', marginRight: 'auto' }}>
-            3 carrosseis grátis. Sem cartão. Sem compromisso. Só resultado.
+          <p style={{ textAlign: 'center', color: 'var(--muted)', maxWidth: '620px', margin: '0 auto', fontSize: '16px', lineHeight: 1.7 }}>
+            A geração de copy é ilimitada em todos os planos — texto, título, subtítulo e estrutura narrativa sem restrição. Imagem IA tem limite por plano porque cada geração tem custo real (usamos fal.ai, não repassamos markup). Você sempre sabe quanto tem disponível antes de gerar.
           </p>
-          <button onClick={go} style={{
-            background: '#00D4FF', color: '#010816', border: 'none', borderRadius: 12,
-            padding: '18px 48px', fontFamily: 'Bebas Neue, sans-serif', fontSize: 22,
-            letterSpacing: '0.06em', cursor: 'pointer',
-          }}>
-            Montar meu primeiro tabuleiro grátis
-          </button>
-          <div style={{ marginTop: 16, fontSize: 13, color: 'rgba(255,255,255,0.25)' }}>Mais de 2.400 criadores já usam</div>
-        </div>
-      </section>
+          <div className="transp-cards">
+            <div className="transp-card">
+              <div className="transp-card-icon">∞</div>
+              <h3>Copy ilimitada</h3>
+              <p>∞ carrosseis com texto em todos os planos</p>
+            </div>
+            <div className="transp-card">
+              <div className="transp-card-icon" style={{ fontSize: '32px' }}>IA</div>
+              <h3>Imagem IA com limite</h3>
+              <p>Free 3 · Construtor 20 · Escala 60 · Agência 200</p>
+            </div>
+          </div>
+        </section>
 
-      {/* ── FOOTER ──────────────────────────────────────────────────── */}
-      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.07)', padding: '32px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
-        <div style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: 20, color: '#00D4FF', letterSpacing: '0.06em' }}>ConteúdOS</div>
-        <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-          {[['Como funciona', '#como-funciona'], ['Preços', '#precos'], ['Entrar', '/auth']].map(([label, href]) => (
-            <a key={label} href={href} style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', textDecoration: 'none' }}>{label}</a>
-          ))}
-        </div>
-        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>© 2026 ConteúdOS. Todos os direitos reservados.</div>
-      </footer>
-    </div>
+        {/* plans #2 */}
+        <section className="plans-sec" style={{ paddingTop: 60 }}>
+          <div className="sec-hd aos">
+            <div className="sec-lbl">preços</div>
+            <h2>Comece hoje, <span className="gt2">escale amanhã</span></h2>
+            <p>Todos os planos incluem Studio, Calendário e Export PNG.</p>
+          </div>
+          <div className="plans-grid">
+            {PLANS.map(p => (
+              <div className={`plan${p.pop ? ' pop' : ''}`} key={p.name + '2'}>
+                {p.pop && <div className="plan-badge">MAIS POPULAR</div>}
+                <div className="plan-name">{p.name}</div>
+                <div className="plan-price-row">
+                  <div className="plan-price">{p.price}</div>
+                  {p.period && <div className="plan-period">{p.period}</div>}
+                </div>
+                <ul className="plan-features">{p.features.map(f => <li key={f}>{f}</li>)}</ul>
+                <button className="plan-btn" onClick={() => navigate('/dashboard')}>{p.cta}</button>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* testimonials */}
+        <section className="deps-sec">
+          <div className="sec-hd aos" style={{ padding: '0 5% 48px' }}>
+            <div className="sec-lbl">depoimentos</div>
+            <h2>Quem já <span className="gt2">monta o tabuleiro</span></h2>
+          </div>
+          <div className="dep-track-wrap">
+            <div className="dep-track">
+              {deps2.map((d, i) => (
+                <div className="dep" key={i}>
+                  <div className="dep-stars">★★★★★</div>
+                  <p className="dep-text">"{d.text}"</p>
+                  <div className="dep-author">
+                    <div className="dep-av" style={{ background: `conic-gradient(${d.color},${d.color}80)` }}>{d.initials}</div>
+                    <span className="dep-handle">{d.handle}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* faq */}
+        <section className="faq-sec" id="faq">
+          <div className="sec-hd aos">
+            <div className="sec-lbl">faq</div>
+            <h2>Perguntas <span className="gt2">frequentes</span></h2>
+          </div>
+          <div className="faq-list">
+            {FAQ_ITEMS.map((item, i) => (
+              <div key={i} className={`faq-item${openFaq === String(i) ? ' open' : ''}`}>
+                <button className="faq-q" onClick={() => setOpenFaq(openFaq === String(i) ? null : String(i))}>
+                  {item.q}
+                  <span className="faq-icon">+</span>
+                </button>
+                {openFaq === String(i) && <p className="faq-a">{item.a}</p>}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* suporte */}
+        <section className="suporte-sec">
+          <div className="sec-hd aos">
+            <div className="sec-lbl">suporte</div>
+            <h2>Sempre que <span className="gt2">precisar</span></h2>
+          </div>
+          <div className="suporte-grid">
+            <a className="sup-card" href="https://wa.me/55SEUNUMERO" target="_blank" rel="noreferrer">
+              <div className="sup-icon">💬</div>
+              <h4>WhatsApp</h4>
+              <p>Resposta rápida em dias úteis</p>
+            </a>
+            <a className="sup-card" href="mailto:contato@conteudos.tech">
+              <div className="sup-icon">✉️</div>
+              <h4>E-mail</h4>
+              <p>contato@conteudos.tech</p>
+            </a>
+            <a className="sup-card" href="https://instagram.com/i_mdiego" target="_blank" rel="noreferrer">
+              <div className="sup-icon">📸</div>
+              <h4>Instagram</h4>
+              <p>@i_mdiego</p>
+            </a>
+          </div>
+        </section>
+
+        {/* cta final */}
+        <section className="cta-sec">
+          <h2 className="aos">Monte seu<br /><span className="gt2">tabuleiro agora.</span></h2>
+          <p className="aos">Crie sua conta grátis e gere seu primeiro carrossel em menos de 3 minutos.</p>
+          <button className="btn-primary" onClick={() => navigate('/dashboard')}>Começar grátis →</button>
+        </section>
+
+        {/* footer */}
+        <footer className="footer">
+          <div className="footer-top">
+            <div className="footer-brand">
+              <div className="footer-logo">ConteúdOS</div>
+              <p>Tabuleiro de conteúdo com IA para criadores que querem crescer de forma estratégica no Instagram.</p>
+            </div>
+            <div className="footer-col">
+              <h5>Produto</h5>
+              <ul>
+                <li><a href="#como-funciona">Como funciona</a></li>
+                <li><a href="#recursos">Recursos</a></li>
+                <li><a href="#planos">Planos</a></li>
+                <li><a onClick={() => navigate('/dashboard')}>Dashboard</a></li>
+              </ul>
+            </div>
+            <div className="footer-col">
+              <h5>Empresa</h5>
+              <ul>
+                <li><a href="mailto:contato@conteudos.tech">Contato</a></li>
+                <li><a href="https://instagram.com/i_mdiego" target="_blank" rel="noreferrer">Instagram</a></li>
+              </ul>
+            </div>
+            <div className="footer-col">
+              <h5>Legal</h5>
+              <ul>
+                <li><a href="#">Termos de uso</a></li>
+                <li><a href="#">Privacidade</a></li>
+              </ul>
+            </div>
+          </div>
+          <div className="footer-bottom">
+            <span>© 2026 ConteúdOS — Todos os direitos reservados</span>
+            <span>conteudos.tech</span>
+          </div>
+        </footer>
+
+      </div>
+    </>
   )
 }
