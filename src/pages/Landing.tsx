@@ -2,16 +2,16 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 const CREATORS = [
-  { handle: '@marina.mkt',   initials: 'MM', color: '#00D4FF' },
-  { handle: '@joao.criador', initials: 'JC', color: '#6366F1' },
-  { handle: '@bia.social',   initials: 'BS', color: '#C8FF00' },
-  { handle: '@pedro.ads',    initials: 'PA', color: '#00D4FF' },
-  { handle: '@carol.brand',  initials: 'CB', color: '#6366F1' },
-  { handle: '@rafa.content', initials: 'RC', color: '#C8FF00' },
-  { handle: '@lucas.mkt',    initials: 'LM', color: '#00D4FF' },
-  { handle: '@ana.viral',    initials: 'AV', color: '#6366F1' },
-  { handle: '@diego.ia',     initials: 'DI', color: '#C8FF00' },
-  { handle: '@julia.posts',  initials: 'JP', color: '#00D4FF' },
+  { handle: '@marinafonseca.mkt',  name: 'Marina Fonseca',  img: '/images/creators/marinafonseca.jpg', nicho: 'Marketing digital' },
+  { handle: '@bealeal.criadora',   name: 'Beatriz Leal',    img: '/images/creators/bealeal.jpg',        nicho: 'Empreendedorismo' },
+  { handle: '@camilarocha.ia',     name: 'Camila Rocha',    img: '/images/creators/camilarocha.jpg',    nicho: 'IA e tecnologia' },
+  { handle: '@analuiza.conteudo',  name: 'Ana Luiza Pires', img: '/images/creators/analuiza.jpg',       nicho: 'Educação online' },
+  { handle: '@fernandavaz.social', name: 'Fernanda Vaz',    img: '/images/creators/fernandavaz.jpg',    nicho: 'Agência de conteúdo' },
+  { handle: '@raquelmatos.brand',  name: 'Raquel Matos',    img: '/images/creators/raquelmatos.jpg',    nicho: 'Personal brand' },
+  { handle: '@pedroalves.ads',     name: 'Pedro Alves',     img: '/images/creators/pedroalves.jpg',     nicho: 'Tráfego pago' },
+  { handle: '@rafacosta.mentor',   name: 'Rafael Costa',    img: '/images/creators/rafacosta.jpg',      nicho: 'Mentoria e vendas' },
+  { handle: '@lucas.drummond',     name: 'Lucas Drummond',  img: '/images/creators/lucas.jpg',          nicho: 'Finanças pessoais' },
+  { handle: '@joaohenrique.mkt',   name: 'João Henrique',   img: '/images/creators/joaohenrique.jpg',   nicho: 'Marketing de conteúdo' },
 ]
 
 const PLANS = [
@@ -153,7 +153,8 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk','DM Sans
 .cr-track-wrap::after{right:0;background:linear-gradient(-90deg,var(--bg),transparent);}
 .cr-track{display:flex;gap:16px;width:max-content;animation:creatorScroll 30s linear infinite;}
 .cr-item{display:flex;align-items:center;gap:10px;padding:10px 18px;border-radius:999px;background:var(--bg2);border:1px solid rgba(255,255,255,.06);white-space:nowrap;}
-.cr-ring{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:13px;color:#fff;flex-shrink:0;}
+.cr-ring{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:13px;color:#fff;flex-shrink:0;overflow:hidden;}
+.cr-ring img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;}
 .cr-handle{font-size:13px;font-weight:500;color:var(--text);}
 @keyframes creatorScroll{0%{transform:translateX(0)}100%{transform:translateX(-33.333%)}}
 
@@ -435,7 +436,9 @@ export default function Landing() {
             <div className="cr-track">
               {creators3.map((c, i) => (
                 <div className="cr-item" key={i}>
-                  <div className="cr-ring" style={{ background: `conic-gradient(${c.color},${c.color}80)` }}>{c.initials}</div>
+                  <div className="cr-ring">
+                    <img src={c.img} alt={c.name} loading="lazy" />
+                  </div>
                   <span className="cr-handle">{c.handle}</span>
                 </div>
               ))}
