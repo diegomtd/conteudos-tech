@@ -84,11 +84,19 @@ serve(async (req) => {
     if (profileError || !profile) return json({ error: 'profile_not_found' }, 404)
 
     // ── Verifica limite de carrosséis ─────────────────────────────────
-    const unlimitedPlans = ['escala', 'agencia']
-    if (!unlimitedPlans.includes(profile.plan)) {
-      if (profile.carousels_used_this_month >= profile.carousels_limit) {
-        return json({ error: 'carousel_limit_reached', limit: profile.carousels_limit }, 403)
-      }
+    const { data: planLimits, error: planLimitsError } = await supabase
+      .from('plan_limits')
+      .select('carousels_per_month')
+      .eq('plan', profile.plan)
+      .single()
+
+    if (planLimitsError || !planLimits) return json({ error: 'plan_limits_not_found' }, 500)
+
+    if (profile.carousels_used_this_month >= planLimits.carousels_per_month) {
+      return new Response(JSON.stringify({
+        error: 'CAROUSEL_LIMIT_REACHED',
+        message: `Limite de ${planLimits.carousels_per_month} carrosseis atingido este mês.`,
+      }), { status: 429, headers: { 'Content-Type': 'application/json' } })
     }
 
     // ── Voice profile context ─────────────────────────────────────────

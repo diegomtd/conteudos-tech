@@ -77,7 +77,7 @@ const TESTIMONIALS = [
 
 const FAQ_ITEMS = [
   { q: 'Como a IA gera o conteúdo?',          a: 'Você descreve o tema do carrossel. O Claude (Anthropic) analisa e gera copy para cada slide: título, subtítulo e corpo com narrativa estratégica. A imagem IA (fal.ai Flux 2 Pro) usa esse contexto para gerar um visual cinematográfico.' },
-  { q: 'Quantos carrosseis posso criar?',      a: 'Depende do plano: Free (3/mês), Construtor (50/mês), Escala (150/mês), Agência (300/mês). O contador reseta todo mês.' },
+  { q: 'Quantos carrosseis posso criar?',      a: 'Depende do plano: Free 3/mês, Construtor 50/mês, Escala 150/mês, Agência 300/mês. A exportação é ilimitada a partir do Escala. O contador reseta todo mês.' },
   { q: 'A imagem IA tem limite?',              a: 'Sim. Free: 3/mês. Construtor: 20. Escala: 60. Agência: 150. A geração de copy é o produto principal e está inclusa na cota de carrosseis. Você pode usar suas próprias imagens sem limite em todos os planos.' },
   { q: 'Posso cancelar a qualquer momento?',   a: 'Sim. Sem fidelidade, sem multa. Cancele pelo painel e o plano segue ativo até o fim do período pago.' },
   { q: 'Funciona para qualquer nicho?',        a: 'Sim. A IA foi calibrada para criadores de conteúdo, coaches, nutricionistas, designers, agências, e-commerce e qualquer perfil que queira crescer no Instagram.' },
@@ -467,8 +467,8 @@ export default function Landing() {
             ))}
           </div>
           <p style={{ textAlign: 'center', color: 'var(--muted)', maxWidth: '680px', margin: '32px auto 0', fontSize: '14px', lineHeight: 1.7 }}>
-            Copy gerada por IA é o produto principal — ilimitada dentro da sua cota mensal.<br />
-            Imagem IA tem limite porque gera custo real de geração. Você pode usar suas próprias imagens sem limite em todos os planos.
+            Copy inclusa em cada carrossel gerado — o limite é de carrosseis por mês, não de texto.<br />
+            Imagem IA tem cota separada porque gera custo real de processamento. Você pode subir suas próprias imagens sem limite em todos os planos.
           </p>
         </section>
 
@@ -612,18 +612,19 @@ export default function Landing() {
             <h2>Transparência total <span className="gt2">sobre os limites</span></h2>
           </div>
           <p style={{ textAlign: 'center', color: 'var(--muted)', maxWidth: '620px', margin: '0 auto', fontSize: '16px', lineHeight: 1.7 }}>
-            A geração de copy é ilimitada em todos os planos — texto, título, subtítulo e estrutura narrativa sem restrição. Imagem IA tem limite por plano porque cada geração tem custo real (usamos fal.ai, não repassamos markup). Você sempre sabe quanto tem disponível antes de gerar.
+            Cada plano tem um número de carrosseis que você pode gerar por mês — copy inclusa em cada um. Imagem IA tem cota separada porque gera custo real de processamento. Você sempre sabe o quanto usou e o quanto tem disponível antes de gerar.
           </p>
           <div className="transp-cards">
             <div className="transp-card">
-              <div className="transp-card-icon">∞</div>
-              <h3>Copy ilimitada</h3>
-              <p>Copy IA incluída em cada carrossel — sem cobrança extra por texto gerado</p>
+              <div className="transp-card-icon" style={{ fontSize: '36px' }}>📄</div>
+              <h3>COPY POR CARROSSEL</h3>
+              <p>Cada carrossel gerado inclui copy completa — título, corpo e legenda. O limite é de carrosseis por mês, não de caracteres ou tokens.</p>
             </div>
             <div className="transp-card">
               <div className="transp-card-icon" style={{ fontSize: '32px' }}>IA</div>
-              <h3>Imagem IA com limite</h3>
+              <h3>IMAGEM IA COM LIMITE</h3>
               <p>Free 3 · Construtor 20 · Escala 60 · Agência 150</p>
+              <p style={{ marginTop: '8px', fontSize: '13px' }}>Você pode subir suas próprias imagens sem limite em todos os planos.</p>
             </div>
           </div>
         </section>
@@ -650,8 +651,8 @@ export default function Landing() {
             ))}
           </div>
           <p style={{ textAlign: 'center', color: 'var(--muted)', maxWidth: '680px', margin: '32px auto 0', fontSize: '14px', lineHeight: 1.7 }}>
-            Copy gerada por IA é o produto principal — ilimitada dentro da sua cota mensal.<br />
-            Imagem IA tem limite porque gera custo real de geração. Você pode usar suas próprias imagens sem limite em todos os planos.
+            Copy inclusa em cada carrossel gerado — o limite é de carrosseis por mês, não de texto.<br />
+            Imagem IA tem cota separada porque gera custo real de processamento. Você pode subir suas próprias imagens sem limite em todos os planos.
           </p>
         </section>
 
