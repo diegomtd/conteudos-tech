@@ -64,15 +64,13 @@ const FAKE_SLIDES = [
 ]
 
 const TESTIMONIALS = [
-  { text: 'Criei 12 carrosseis em uma tarde. Antes levava uma semana no Canva.',                          handle: '@marina.mkt',   initials: 'MM', color: '#00D4FF' },
-  { text: 'A copy que a IA gera é melhor do que o que eu escrevia depois de horas pensando.',             handle: '@joao.criador', initials: 'JC', color: '#6366F1' },
-  { text: 'Meu engagement dobrou no primeiro mês. Finalmente tenho consistência.',                         handle: '@bia.social',   initials: 'BS', color: '#C8FF00' },
-  { text: 'Uso o ConteúdOS para meus 5 clientes. Economizo 3 dias de trabalho por semana.',               handle: '@pedro.ads',    initials: 'PA', color: '#00D4FF' },
-  { text: 'O Studio é incrível. Consigo personalizar cada detalhe sem sair do app.',                      handle: '@carol.brand',  initials: 'CB', color: '#6366F1' },
-  { text: 'A imagem IA transformou o visual dos meus posts. Parece trabalho de designer.',                 handle: '@rafa.content', initials: 'RC', color: '#C8FF00' },
-  { text: 'Nunca mais tive ansiedade de "o que eu posto hoje". O calendário resolve tudo.',               handle: '@lucas.mkt',    initials: 'LM', color: '#00D4FF' },
-  { text: 'Em 3 minutos tenho um carrossel completo. Isso mudou minha relação com conteúdo.',             handle: '@ana.viral',    initials: 'AV', color: '#6366F1' },
-  { text: 'Recomendo para qualquer criador que quer escalar sem contratar equipe.',                        handle: '@diego.ia',     initials: 'DI', color: '#C8FF00' },
+  { name: 'Ana Luiza Pires',  handle: '@analuiza.conteudo',  img: '/images/creators/analuiza.jpg',      stars: 5, text: 'Em 3 minutos tenho um carrossel completo. Isso mudou minha relação com conteúdo.' },
+  { name: 'Pedro Alves',      handle: '@pedroalves.ads',     img: '/images/creators/pedroalves.jpg',    stars: 5, text: 'Recomendo para qualquer criador que quer escalar sem contratar equipe.' },
+  { name: 'Marina Fonseca',   handle: '@marinafonseca.mkt',  img: '/images/creators/marinafonseca.jpg', stars: 5, text: 'Criei 12 carrosseis em uma tarde. Antes levava uma semana no Canva.' },
+  { name: 'João Henrique',    handle: '@joaohenrique.mkt',   img: '/images/creators/joaohenrique.jpg',  stars: 5, text: 'A copy que a IA gera já vem no meu tom. Para de parecer IA genérica.' },
+  { name: 'Beatriz Leal',     handle: '@bealeal.criadora',   img: '/images/creators/bealeal.jpg',       stars: 5, text: 'Finalmente consigo postar todo dia sem travar na hora de criar.' },
+  { name: 'Rafael Costa',     handle: '@rafacosta.mentor',   img: '/images/creators/rafacosta.jpg',     stars: 5, text: 'Uso para meus clientes também. A identidade visual de cada um fica separada.' },
+  { name: 'Camila Rocha',     handle: '@camilarocha.ia',     img: '/images/creators/camilarocha.jpg',   stars: 5, text: 'A imagem IA realmente entende o que o slide precisa. Não é imagem genérica.' },
 ]
 
 const FAQ_ITEMS = [
@@ -266,7 +264,8 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk','DM Sans
 .dep-stars{color:var(--c1);font-size:13px;margin-bottom:12px;letter-spacing:2px;}
 .dep-text{font-size:14px;line-height:1.65;color:var(--text);margin-bottom:16px;}
 .dep-author{display:flex;align-items:center;gap:10px;}
-.dep-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:13px;color:#fff;flex-shrink:0;}
+.dep-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:13px;color:#fff;flex-shrink:0;overflow:hidden;}
+.dep-av img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;}
 .dep-handle{font-size:13px;font-weight:600;color:var(--muted);}
 @keyframes depScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 
@@ -672,7 +671,9 @@ export default function Landing() {
                   <div className="dep-stars">★★★★★</div>
                   <p className="dep-text">"{d.text}"</p>
                   <div className="dep-author">
-                    <div className="dep-av" style={{ background: `conic-gradient(${d.color},${d.color}80)` }}>{d.initials}</div>
+                    <div className="dep-av">
+                      <img src={d.img} alt={d.name} loading="lazy" />
+                    </div>
                     <span className="dep-handle">{d.handle}</span>
                   </div>
                 </div>
