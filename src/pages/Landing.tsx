@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { CyberneticGridShader } from '@/components/CyberneticGridShader'
 
 const CREATORS = [
   { handle: '@marinafonseca.mkt',  name: 'Marina Fonseca',  img: '/images/creators/marinafonseca.jpg', nicho: 'Marketing digital' },
@@ -52,15 +53,15 @@ const FEATURES = [
   { id: 'workspace', label: 'Workspace',  title: 'Para times e agências',        body: 'Crie múltiplos workspaces para clientes diferentes. Cada workspace tem seu próprio calendário, carrosseis e configurações.' },
 ]
 
-const FAKE_SLIDES = [
-  { num: '01', title: 'O ERRO QUE TRAVA 90% DOS PERFIS', accent: '#00D4FF' },
-  { num: '02', title: 'VOCÊ POSTA PRA FANTASMA',          accent: '#6366F1' },
-  { num: '03', title: 'META ADS NÃO ESTÁ MORRENDO',       accent: '#C8FF00' },
-  { num: '04', title: 'A DECISÃO QUE QUEBROU 3 NEGÓCIOS', accent: '#00D4FF' },
-  { num: '05', title: 'ALGORITMO NÃO É SEU INIMIGO',      accent: '#6366F1' },
-  { num: '06', title: 'CONTEÚDO SEM ESTRATÉGIA É RUÍDO',  accent: '#C8FF00' },
-  { num: '07', title: 'QUEM DOMINA O JOGO NÃO POSTA',     accent: '#00D4FF' },
-  { num: '08', title: 'VIRALIZAR NÃO É SORTE',            accent: '#6366F1' },
+const SLIDE_IMAGES = [
+  '/images/slides-virais/viral-1.jpg',
+  '/images/slides-virais/viral-2.jpg',
+  '/images/slides-virais/viral-3.jpg',
+  '/images/slides-virais/viral-4.jpg',
+  '/images/slides-virais/viral-5.jpg',
+  '/images/slides-virais/viral-6.jpg',
+  '/images/slides-virais/viral-7.jpg',
+  '/images/slides-virais/viral-8.jpg',
 ]
 
 const TESTIMONIALS = [
@@ -342,7 +343,7 @@ export default function Landing() {
 
   const activeFeature = FEATURES.find(f => f.id === activeTab) ?? FEATURES[0]
   const creators3 = [...CREATORS, ...CREATORS, ...CREATORS]
-  const slides4   = [...FAKE_SLIDES, ...FAKE_SLIDES, ...FAKE_SLIDES, ...FAKE_SLIDES]
+  const slides4   = [...SLIDE_IMAGES, ...SLIDE_IMAGES, ...SLIDE_IMAGES, ...SLIDE_IMAGES]
   const deps2     = [...TESTIMONIALS, ...TESTIMONIALS]
 
   return (
@@ -403,26 +404,17 @@ export default function Landing() {
               <div><div className="stat-num">100%</div><div className="stat-lbl">no browser</div></div>
             </div>
           </div>
-          <div>
-            {/* EFEITO 21DEV — substituir este bloco quando Diego enviar o código */}
-            <div style={{
-              borderRadius: '20px', overflow: 'hidden', background: 'var(--bg2)',
-              border: '1px solid rgba(0,212,255,0.1)', boxShadow: '0 32px 80px -20px rgba(0,212,255,0.2)',
-              aspectRatio: '16/9', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
-            }}>
-              <div style={{
-                position: 'absolute', inset: 0,
-                backgroundImage: 'linear-gradient(rgba(0,212,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,.04) 1px,transparent 1px)',
-                backgroundSize: '48px 48px', animation: 'gridPan 20s linear infinite',
-              }} />
-              <div style={{
-                position: 'relative', zIndex: 1, textAlign: 'center',
-                fontFamily: '"Bebas Neue",sans-serif', fontSize: '13px',
-                letterSpacing: '0.1em', color: 'rgba(0,212,255,0.35)',
-              }}>
-                EFEITO 21DEV<br />SERÁ INSERIDO AQUI
-              </div>
-            </div>
+          <div style={{
+            width: '100%',
+            maxWidth: '520px',
+            height: '360px',
+            borderRadius: '20px',
+            overflow: 'hidden',
+            border: '1px solid rgba(0,212,255,0.15)',
+            boxShadow: '0 32px 80px -20px rgba(0,212,255,0.25)',
+            flexShrink: 0,
+          }}>
+            <CyberneticGridShader />
           </div>
         </section>
 
@@ -520,22 +512,18 @@ export default function Landing() {
         <section className="slides-sec">
           <div className="slides-track-wrap">
             <div className="slides-track fwd">
-              {slides4.map((s, i) => (
-                <div className="ws-card" key={i} style={{ borderColor: `${s.accent}22` }}>
-                  <div className="ws-card-num">SLIDE {s.num}</div>
-                  <div className="ws-card-title">{s.title}</div>
-                  <div className="ws-card-bar" style={{ background: s.accent }} />
+              {slides4.map((src, i) => (
+                <div className="ws-card" key={i} style={{ padding: 0, overflow: 'hidden', borderColor: 'transparent' }}>
+                  <img src={src} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                 </div>
               ))}
             </div>
           </div>
           <div className="slides-track-wrap">
             <div className="slides-track rev">
-              {[...slides4].reverse().map((s, i) => (
-                <div className="ws-card" key={i} style={{ borderColor: `${s.accent}22` }}>
-                  <div className="ws-card-num">SLIDE {s.num}</div>
-                  <div className="ws-card-title">{s.title}</div>
-                  <div className="ws-card-bar" style={{ background: s.accent }} />
+              {[...slides4].reverse().map((src, i) => (
+                <div className="ws-card" key={i} style={{ padding: 0, overflow: 'hidden', borderColor: 'transparent' }}>
+                  <img src={src} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                 </div>
               ))}
             </div>
@@ -560,11 +548,9 @@ export default function Landing() {
               <h3>{activeFeature.title}</h3>
               <p>{activeFeature.body}</p>
             </div>
-            <div className="fs-visual">
-              <div className="fs-visual-grid" />
-              <div style={{ position: 'relative', zIndex: 1, fontFamily: '"Bebas Neue",sans-serif', fontSize: '13px', letterSpacing: '0.1em', color: 'rgba(0,212,255,0.35)', textAlign: 'center' }}>
-                {activeFeature.label.toUpperCase()}<br />PREVIEW
-              </div>
+            <div className="fs-visual" style={{ padding: 0, overflow: 'hidden' }}>
+              <img src="/images/recursos/dashboard.jpg" alt="Preview"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             </div>
           </div>
           <div className="fs-mobile">
@@ -598,11 +584,9 @@ export default function Landing() {
                 <div className="ia-chip">Narrativa estratégica</div>
               </div>
             </div>
-            <div className="fs-visual">
-              <div className="fs-visual-grid" />
-              <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', fontFamily: '"Bebas Neue",sans-serif', fontSize: '13px', letterSpacing: '0.1em', color: 'rgba(0,212,255,0.35)' }}>
-                IA CONTEXTUAL<br />PREVIEW
-              </div>
+            <div className="fs-visual" style={{ padding: 0, overflow: 'hidden' }}>
+              <img src="/images/recursos/imagem-ia.jpg" alt="IA Contextual"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             </div>
           </div>
         </section>
