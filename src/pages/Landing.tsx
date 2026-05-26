@@ -138,7 +138,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk','DM Sans
 .hero-stats{display:flex;gap:28px;margin-top:36px;padding-top:28px;border-top:1px solid rgba(255,255,255,.06);}
 .stat-num{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--c1);letter-spacing:.04em;}
 .stat-lbl{font-size:12px;color:var(--muted);}
-@media(max-width:900px){.hero{grid-template-columns:1fr;gap:40px;text-align:center;padding:60px 5%;}.hero-sub{max-width:none;}.hero-btns,.hero-stats{justify-content:center;}}
+@media(max-width:900px){.hero{grid-template-columns:1fr;gap:40px;text-align:center;padding:60px 5%;}.hero-sub{max-width:none;}.hero-btns,.hero-stats{justify-content:center;}.hero-visual{display:none;}}
 
 /* divider */
 .div{height:1px;background:linear-gradient(90deg,transparent,rgba(0,212,255,.15),transparent);margin:0 5%;}
@@ -314,6 +314,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk','DM Sans
 
 /* 21dev placeholder */
 @keyframes gridPan{0%{background-position:0 0}100%{background-position:48px 48px}}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 8px #00D4FF}50%{opacity:.5;box-shadow:0 0 16px #00D4FF}}
 `
 
 // ─── COMPONENT ────────────────────────────────────────────────────────────────
@@ -404,17 +405,168 @@ export default function Landing() {
               <div><div className="stat-num">100%</div><div className="stat-lbl">no browser</div></div>
             </div>
           </div>
-          <div style={{
+          {/* ── HERO DIREITA: Shader + mockup do app ── */}
+          <div className="hero-visual" style={{
+            position: 'relative',
             width: '100%',
-            maxWidth: '520px',
-            height: '360px',
-            borderRadius: '20px',
-            overflow: 'hidden',
-            border: '1px solid rgba(0,212,255,0.15)',
-            boxShadow: '0 32px 80px -20px rgba(0,212,255,0.25)',
+            maxWidth: '480px',
+            height: '420px',
             flexShrink: 0,
           }}>
-            <CyberneticGridShader />
+            {/* Shader como fundo atmosférico */}
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              borderRadius: '20px',
+              overflow: 'hidden',
+              zIndex: 0,
+            }}>
+              <CyberneticGridShader />
+            </div>
+
+            {/* Vinheta nas bordas para fundir com o fundo da página */}
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              borderRadius: '20px',
+              background: 'radial-gradient(ellipse at center, transparent 40%, rgba(1,8,22,0.7) 100%)',
+              zIndex: 1,
+              pointerEvents: 'none',
+            }} />
+
+            {/* Mockup do app — card central */}
+            <div style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '280px',
+              background: 'rgba(6,14,31,0.92)',
+              border: '1px solid rgba(0,212,255,0.25)',
+              borderRadius: '14px',
+              padding: '0',
+              backdropFilter: 'blur(12px)',
+              boxShadow: '0 24px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04)',
+              zIndex: 2,
+              overflow: 'hidden',
+            }}>
+              {/* Barra do app */}
+              <div style={{
+                height: '36px',
+                background: 'rgba(0,212,255,0.06)',
+                borderBottom: '1px solid rgba(0,212,255,0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0 12px',
+              }}>
+                <div style={{ display: 'flex', gap: '5px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)' }} />
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)' }} />
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)' }} />
+                </div>
+                <span style={{ fontSize: '9px', color: 'rgba(0,212,255,0.6)', fontFamily: 'Bebas Neue, sans-serif', letterSpacing: '0.1em' }}>CONTEÚDOS · STUDIO</span>
+                <div style={{ width: '8px' }} />
+              </div>
+
+              {/* Grid de 2 slides */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', padding: '10px' }}>
+                {/* Slide 1 */}
+                <div style={{
+                  aspectRatio: '4/5',
+                  borderRadius: '8px',
+                  background: 'linear-gradient(135deg, #0D1F3C, #060E1F)',
+                  border: '1px solid rgba(0,212,255,0.3)',
+                  padding: '8px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'flex-end',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}>
+                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(0,212,255,0.08), transparent)' }} />
+                  <div style={{ fontSize: '7px', color: 'rgba(255,255,255,0.35)', marginBottom: '3px' }}>SLIDE 01</div>
+                  <div style={{ fontSize: '10px', color: '#fff', fontFamily: 'Bebas Neue, sans-serif', lineHeight: 1.1 }}>O ERRO QUE TRAVA 90%</div>
+                  <div style={{ width: '40%', height: '1.5px', background: '#00D4FF', marginTop: '5px', borderRadius: '1px' }} />
+                </div>
+                {/* Slide 2 */}
+                <div style={{
+                  aspectRatio: '4/5',
+                  borderRadius: '8px',
+                  background: 'linear-gradient(135deg, #0D1F3C, #060E1F)',
+                  border: '1px solid rgba(99,102,241,0.25)',
+                  padding: '8px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'flex-end',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}>
+                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(99,102,241,0.08), transparent)' }} />
+                  <div style={{ fontSize: '7px', color: 'rgba(255,255,255,0.35)', marginBottom: '3px' }}>SLIDE 02</div>
+                  <div style={{ fontSize: '10px', color: '#fff', fontFamily: 'Bebas Neue, sans-serif', lineHeight: 1.1 }}>VOCÊ POSTA PRA FANTASMA</div>
+                  <div style={{ width: '40%', height: '1.5px', background: '#6366F1', marginTop: '5px', borderRadius: '1px' }} />
+                </div>
+              </div>
+
+              {/* Barra de ação */}
+              <div style={{
+                margin: '0 10px 10px',
+                background: 'linear-gradient(135deg, #00D4FF, #6366F1)',
+                borderRadius: '6px',
+                padding: '7px',
+                textAlign: 'center',
+                fontSize: '9px',
+                fontFamily: 'Bebas Neue, sans-serif',
+                letterSpacing: '0.08em',
+                color: '#000',
+                fontWeight: 700,
+              }}>
+                ✦ BAIXAR ZIP
+              </div>
+            </div>
+
+            {/* Badge flutuante esquerda — tempo de geração */}
+            <div style={{
+              position: 'absolute',
+              top: '30px',
+              left: '-10px',
+              background: 'rgba(6,14,31,0.92)',
+              border: '1px solid rgba(0,212,255,0.3)',
+              borderRadius: '10px',
+              padding: '7px 11px',
+              backdropFilter: 'blur(10px)',
+              zIndex: 3,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}>
+              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#00D4FF', boxShadow: '0 0 8px #00D4FF', animation: 'pulse 2s infinite' }} />
+              <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.85)', fontWeight: 500 }}>Gerado em 2:47</span>
+            </div>
+
+            {/* Badge flutuante direita — slides */}
+            <div style={{
+              position: 'absolute',
+              bottom: '35px',
+              right: '-10px',
+              background: 'rgba(6,14,31,0.92)',
+              border: '1px solid rgba(99,102,241,0.3)',
+              borderRadius: '10px',
+              padding: '7px 11px',
+              backdropFilter: 'blur(10px)',
+              zIndex: 3,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#6366F1" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.85)', fontWeight: 500 }}>10 slides prontos</span>
+            </div>
           </div>
         </section>
 
