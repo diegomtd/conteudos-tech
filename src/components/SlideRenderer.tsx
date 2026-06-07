@@ -265,20 +265,6 @@ function BgPattern({ slide, s }: { slide: SlideData; s: number }): React.ReactEl
 
 // ─── Word highlight renderer ──────────────────────────────────
 
-// Converte hex (#RRGGBB ou #RGB) pra rgba com a opacidade pedida.
-// Sem isso, o fundo do destaque ficava fixo em verde-lima mesmo quando
-// o usuário escolhia outra accentColor (ex: roxo) — o texto saía na cor
-// certa, mas o fundo "vazava" lima tanto no preview quanto no export.
-function hexToRgba(hex: string, alpha: number): string {
-  const clean = hex.replace('#', '')
-  const full = clean.length === 3 ? clean.split('').map(c => c + c).join('') : clean
-  const r = parseInt(full.substring(0, 2), 16)
-  const g = parseInt(full.substring(2, 4), 16)
-  const b = parseInt(full.substring(4, 6), 16)
-  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return `rgba(200,255,0,${alpha})`
-  return `rgba(${r},${g},${b},${alpha})`
-}
-
 function renderBodyWithHighlights(
   text: string,
   slide: SlideData,
@@ -288,13 +274,18 @@ function renderBodyWithHighlights(
   const highlighted = slide.highlightedWords ?? []
   const accentClr   = slide.accentColor ?? '#C8FF00'
   const words       = text.split(' ')
+  // Prefixo "BODY:" isola o destaque do corpo do destaque do título.
+  // Antes os dois liam o mesmo highlightedWords por correspondência de string,
+  // então marcar "MAIS" no título também acendia qualquer "mais" no corpo
+  // (e vice-versa) — agora cada lado guarda sua própria entrada no array.
+  const bodyKey = (w: string) => `BODY:${w.replace(/[.,!?;:"""'«»\-]/g, '').toUpperCase()}`
 
   if (!onWordClick) {
     return (
       <p {...pProps}>
         {words.map((word, i) => {
           return (
-            <span key={i} style={highlighted.includes(word.replace(/[.,!?;:"""'«»\-]/g, '').toUpperCase()) ? { color: accentClr, fontWeight: 'bold' } : undefined}>
+            <span key={i} style={highlighted.includes(bodyKey(word)) ? { color: accentClr, fontWeight: 'bold' } : undefined}>
               {word}{i < words.length - 1 ? ' ' : ''}
             </span>
           )
@@ -307,14 +298,14 @@ function renderBodyWithHighlights(
   return (
     <p {...restProps} style={{ ...baseStyle, userSelect: 'none' }}>
       {words.map((word, i) => {
-        const isHighlighted = highlighted.includes(word.replace(/[.,!?;:"""'«»\-]/g, '').toUpperCase())
+        const isHighlighted = highlighted.includes(bodyKey(word))
         return (
           <span
             key={i}
             onClick={(e) => {
               e.stopPropagation()
               ;(pOnClick as unknown as (() => void) | undefined)?.()
-              onWordClick(word.replace(/[.,!?;:"""'«»\-]/g, '').toUpperCase())
+              onWordClick(bodyKey(word))
             }}
             style={{
               color: isHighlighted ? accentClr : 'inherit',
@@ -350,7 +341,7 @@ function renderTitleWithHighlights(
       <p {...pProps}>
         {words.map((word, i) => {
           return (
-            <span key={i} style={highlighted.includes(word.replace(/[.,!?;:"""'«»\-]/g, '').toUpperCase()) ? { color: accentClr, fontWeight: 'bold', backgroundColor: hexToRgba(accentClr, 0.3) } : undefined}>
+            <span key={i} style={highlighted.includes(word.replace(/[.,!?;:"""'«»\-]/g, '').toUpperCase()) ? { color: accentClr, fontWeight: 'bold' } : undefined}>
               {word}{i < words.length - 1 ? ' ' : ''}
             </span>
           )

@@ -2920,19 +2920,45 @@ function StatePreview({
             <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '14px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
               <span style={{ fontSize: 10, color: M, fontFamily: ff, fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase' }}>Destaque de palavras</span>
               {(() => {
-                const allText = (current.titulo ?? '') + ' ' + (current.corpo ?? '')
-                const chips = [...new Set(
-                  allText.split(/\s+/)
+                const splitWords = (txt: string) => [...new Set(
+                  txt.split(/\s+/)
                     .map(w => w.replace(/[.,!?;:"""''«»\-]/g, '').toUpperCase())
                     .filter(w => w.length >= 3)
                 )]
+                // Listas separadas: destacar uma palavra do título não pode
+                // acender a mesma palavra no corpo (e vice-versa). O array
+                // highlightedWords guarda os dois juntos, então as entradas
+                // do corpo levam o prefixo "BODY:" pra não colidir com as do título.
+                const titleWords = splitWords(current.titulo ?? '')
+                const bodyWords  = splitWords(current.corpo ?? '')
                 const highlighted: string[] = Array.isArray(current.highlightedWords)
                   ? current.highlightedWords
                   : typeof current.highlightedWords === 'string' && (current.highlightedWords as unknown as string).trim()
                   ? (() => { try { return JSON.parse(current.highlightedWords as unknown as string) } catch { return [] } })()
                   : []
                 const accentClr = current.accentColor ?? '#C8FF00'
-                if (chips.length === 0) return (
+                const toggle = (key: string) => {
+                  const newH = highlighted.includes(key) ? highlighted.filter(h => h !== key) : [...highlighted, key]
+                  updateTitleStyle(current.id, { highlightedWords: newH, accentColor: current.accentColor ?? '#C8FF00' })
+                }
+                const renderChips = (words: string[], makeKey: (w: string) => string) => (
+                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                    {words.map((w) => {
+                      const key = makeKey(w)
+                      const isActive = highlighted.includes(key)
+                      return (
+                        <button key={key} onClick={() => toggle(key)} style={{
+                          padding: '3px 9px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                          fontFamily: ff, fontSize: 10, fontWeight: isActive ? 700 : 400,
+                          background: isActive ? accentClr : 'rgba(255,255,255,0.07)',
+                          color: isActive ? '#000' : 'rgba(255,255,255,0.65)',
+                          transition: 'all 0.15s',
+                        }}>{w}</button>
+                      )
+                    })}
+                  </div>
+                )
+                if (titleWords.length === 0 && bodyWords.length === 0) return (
                   <p style={{ fontSize: 11, color: M, fontFamily: ff, margin: 0 }}>Adicione texto para destacar palavras</p>
                 )
                 return (
@@ -2942,23 +2968,18 @@ function StatePreview({
                         ↑ Clique nas palavras do slide para destacar
                       </p>
                     )}
-                    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                      {chips.map((w) => {
-                        const isActive = highlighted.includes(w)
-                        return (
-                          <button key={w} onClick={() => {
-                            const newH = isActive ? highlighted.filter(h => h !== w) : [...highlighted, w]
-                            updateTitleStyle(current.id, { highlightedWords: newH, accentColor: current.accentColor ?? '#C8FF00' })
-                          }} style={{
-                            padding: '3px 9px', borderRadius: 20, border: 'none', cursor: 'pointer',
-                            fontFamily: ff, fontSize: 10, fontWeight: isActive ? 700 : 400,
-                            background: isActive ? accentClr : 'rgba(255,255,255,0.07)',
-                            color: isActive ? '#000' : 'rgba(255,255,255,0.65)',
-                            transition: 'all 0.15s',
-                          }}>{w}</button>
-                        )
-                      })}
-                    </div>
+                    {titleWords.length > 0 && (
+                      <>
+                        <span style={{ fontSize: 9, color: M, fontFamily: ff, opacity: 0.6, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Título</span>
+                        {renderChips(titleWords, w => w)}
+                      </>
+                    )}
+                    {bodyWords.length > 0 && (
+                      <>
+                        <span style={{ fontSize: 9, color: M, fontFamily: ff, opacity: 0.6, textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: 4 }}>Texto</span>
+                        {renderChips(bodyWords, w => `BODY:${w}`)}
+                      </>
+                    )}
                     {highlighted.length > 0 && (
                       <>
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginTop: 4 }}>
