@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Copy, Download, Grid, Image, Link, Maximize2, Plus, Share2, Sparkles, Trash2, X, Zap } from 'lucide-react'
 import { toast } from 'sonner'
-import { toPng } from 'html-to-image'
+import { toPng, getFontEmbedCSS } from 'html-to-image'
 import JSZip from 'jszip'
 import { usePlan } from '@/hooks/usePlan'
 import { useAuth } from '@/hooks/useAuth'
@@ -1390,9 +1390,14 @@ function StatePreview({
   const saveFormatTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const saveFormatToDb = (slideId: string, dbUpdates: Record<string, unknown>) => {
-    setSaveStatus('saving')
     console.log('[saveFormatToDb] carouselId:', carouselId, 'updates:', Object.keys(dbUpdates))
-    if (!carouselId || Object.keys(dbUpdates).length === 0) return
+    if (!carouselId || Object.keys(dbUpdates).length === 0) {
+      // Sem carouselId ainda (ex: logo após geração) — não há onde salvar.
+      // Não entra em 'saving' pra não travar o indicador de status.
+      setSaveStatus('idle')
+      return
+    }
+    setSaveStatus('saving')
     const capturedSlideId = slideId
     const capturedUpdates = { ...dbUpdates }
     if (saveFormatTimeout.current) clearTimeout(saveFormatTimeout.current)
@@ -1837,6 +1842,18 @@ function StatePreview({
     navigator.clipboard.writeText(legenda).then(() => toast.success('Legenda copiada'))
   }
 
+  // Embute @font-face (Bebas Neue, DM Sans etc.) como CSS inline antes da captura.
+  // Sem isso, o html-to-image pode cair pra fonte fallback do sistema no PNG final
+  // (export "diferente" do preview). Se falhar (ex: rede lenta), exporta sem travar.
+  const getFontEmbedCSSSafe = async (el: HTMLElement): Promise<string> => {
+    try {
+      return await getFontEmbedCSS(el)
+    } catch (err) {
+      console.warn('[export] fontEmbedCSS falhou, exportando sem fontes embutidas:', err)
+      return ''
+    }
+  }
+
   const handleExport = async () => {
     console.log('Export check — plan:', plan, 'exportsRemaining:', exportsRemaining, 'canExport:', canExport)
     if (!canExport) { setShowUpgrade(true); return }
@@ -1857,6 +1874,9 @@ function StatePreview({
           pixelRatio: 2,
           quality: 0.95,
           cacheBust: true,
+          skipFonts: false,
+          fontEmbedCSS: await getFontEmbedCSSSafe(el),
+          fetchRequestInit: { mode: 'cors', cache: 'no-cache' },
           style: { display: 'flex' },
         })
 
@@ -1906,6 +1926,9 @@ function StatePreview({
         pixelRatio: 2,
         quality: 0.95,
         cacheBust: true,
+        skipFonts: false,
+        fontEmbedCSS: await getFontEmbedCSSSafe(el),
+        fetchRequestInit: { mode: 'cors', cache: 'no-cache' },
         style: { display: 'flex' },
       })
       const a = document.createElement('a')
