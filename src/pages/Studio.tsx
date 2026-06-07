@@ -1545,8 +1545,17 @@ function StatePreview({
   const resetBgPosition = (id: string) =>
     setSlides(p => p.map(s => s.id === id ? { ...s, bgZoom: 100, bgPositionX: 50, bgPositionY: 50 } : s))
 
-  const applyBadgeToAll = (updates: Partial<Pick<Slide, 'profileBadgeEnabled' | 'profileHandle' | 'profileAvatarUrl' | 'profileBadgePosition'>>) =>
+  // Propaga o badge (@handle, foto, posição) pra todos os slides E persiste no banco.
+  // Antes só fazia setSlides local — ao trocar de slide ou recarregar, o @ e a foto
+  // "somiam" porque nunca tinham sido salvos (diferente de updateTitleStyle/updateSlideFormat,
+  // que sempre chamam saveFormatToDb).
+  const applyBadgeToAll = (updates: Partial<Pick<Slide, 'profileBadgeEnabled' | 'profileHandle' | 'profileAvatarUrl' | 'profileBadgePosition'>>) => {
     setSlides(p => p.map(s => ({ ...s, ...updates })))
+    const db = buildDbPayload(updates)
+    if (Object.keys(db).length > 0) {
+      slides.forEach(s => saveFormatToDb(s.id, db))
+    }
+  }
 
   const handleAvatarUpload = async (file: File) => {
     setUploadingAvatar(true)

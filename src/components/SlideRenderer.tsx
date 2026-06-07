@@ -265,6 +265,20 @@ function BgPattern({ slide, s }: { slide: SlideData; s: number }): React.ReactEl
 
 // ─── Word highlight renderer ──────────────────────────────────
 
+// Converte hex (#RRGGBB ou #RGB) pra rgba com a opacidade pedida.
+// Sem isso, o fundo do destaque ficava fixo em verde-lima mesmo quando
+// o usuário escolhia outra accentColor (ex: roxo) — o texto saía na cor
+// certa, mas o fundo "vazava" lima tanto no preview quanto no export.
+function hexToRgba(hex: string, alpha: number): string {
+  const clean = hex.replace('#', '')
+  const full = clean.length === 3 ? clean.split('').map(c => c + c).join('') : clean
+  const r = parseInt(full.substring(0, 2), 16)
+  const g = parseInt(full.substring(2, 4), 16)
+  const b = parseInt(full.substring(4, 6), 16)
+  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return `rgba(200,255,0,${alpha})`
+  return `rgba(${r},${g},${b},${alpha})`
+}
+
 function renderBodyWithHighlights(
   text: string,
   slide: SlideData,
@@ -336,7 +350,7 @@ function renderTitleWithHighlights(
       <p {...pProps}>
         {words.map((word, i) => {
           return (
-            <span key={i} style={highlighted.includes(word.replace(/[.,!?;:"""'«»\-]/g, '').toUpperCase()) ? { color: accentClr, fontWeight: 'bold', backgroundColor: 'rgba(200,255,0,0.3)' } : undefined}>
+            <span key={i} style={highlighted.includes(word.replace(/[.,!?;:"""'«»\-]/g, '').toUpperCase()) ? { color: accentClr, fontWeight: 'bold', backgroundColor: hexToRgba(accentClr, 0.3) } : undefined}>
               {word}{i < words.length - 1 ? ' ' : ''}
             </span>
           )

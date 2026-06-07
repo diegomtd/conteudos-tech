@@ -14,25 +14,54 @@ function json(data: unknown, status = 200) {
   })
 }
 
+// Vocabulário de direção de arte/fotografia profissional — adjetivos genéricos
+// como "dark moody" produziam imagens de banco de imagens. Termos técnicos
+// específicos (lente, luz, textura, referência de estilo) guiam o modelo
+// pra resultados com cara de capa de carrossel viral, não de stock photo.
 const STYLE_MODIFIERS: Record<string, string> = {
-  cinematic:    'cinematic photography, dramatic lighting, dark moody atmosphere, film noir aesthetic',
-  illustration: 'graphic design illustration, bold shapes, editorial style, dark background',
-  abstract:     'abstract art, flowing shapes, deep blue tones, artistic',
-  minimal:      'minimalist photography, dark tones, clean composition',
-  gradient:     'smooth dark gradient, luxury texture, premium aesthetic',
+  cinematic:    'cinematic photography, anamorphic lens flare, deep directional shadows, fine film grain, Kodak Portra color science',
+  illustration: 'modern editorial illustration, bold flat color blocking, geometric shapes, high-contrast vector art, trending Behance aesthetic',
+  abstract:     'abstract fluid art, organic gradient blends, soft bokeh light leaks, painterly texture, generative-art aesthetic',
+  minimal:      'minimalist studio photography, single-source soft light, clean geometric subject, generous negative space',
+  gradient:     'smooth gradient mesh, holographic sheen, glassmorphism texture, premium tech-brand aesthetic',
 }
 
-const NO_TEXT_PREFIX = 'Abstract cinematic background only. NO TEXT, NO WORDS, NO LETTERS, NO NUMBERS, NO TYPOGRAPHY anywhere in the image. Pure visual atmosphere. '
-const NO_TEXT_SUFFIX = ', wide cinematic atmospheric background, ultra detailed, no text, no people, no writing, no words, no labels visible anywhere'
+const NO_TEXT_PREFIX = 'Abstract cinematic background only. NO TEXT, NO WORDS, NO LETTERS, NO NUMBERS, NO TYPOGRAPHY, NO WATERMARKS anywhere in the image. Pure visual atmosphere. '
+const NO_TEXT_SUFFIX = ', wide cinematic atmospheric background, ultra detailed, professional color grading, no text, no people, no faces, no writing, no words, no labels, no logos visible anywhere'
+
+// Técnica nº1 que separa carrossel amador de profissional: deixar uma área
+// limpa (negative space) onde o texto vai ser sobreposto depois. Capa precisa
+// parar o scroll (alto impacto); slides internos precisam "sustentar" o texto
+// sem competir com ele.
+const COVER_COMPOSITION = 'bold scroll-stopping composition for a social media cover: striking focal subject placed off-center using rule-of-thirds, large clean negative-space area in the upper half reserved for a bold headline overlay, high visual impact, magazine-cover energy'
+const SLIDE_COMPOSITION = 'calm supportive composition for a content slide: subject pushed toward one edge of the frame, large clean low-detail negative-space area across the center reserved for body-text overlay, minimal visual noise so overlaid text stays legible'
+
+// Lê o tom emocional do conteúdo (PT-BR) pra dar direção de luz/cor coerente
+// com a mensagem do slide, em vez de aplicar sempre o mesmo clima genérico.
+function inferMood(text: string): string {
+  const t = text.toLowerCase()
+  if (/\berro|medo|perigo|risco|problema|fracass|perd[ae]|\bdor\b|trava|armadilha|cuidado/.test(t))
+    return 'tense, cautionary mood, cool desaturated shadows, a sense of unease'
+  if (/resultado|sucesso|crescimento|conquist|transform|vit[óo]ria|lucro|escala|liberdade/.test(t))
+    return 'aspirational, triumphant mood, warm golden rim light, a sense of forward momentum'
+  if (/segredo|verdade|revela[çc]|descobert|ningu[ée]m.*conta|por tr[áa]s/.test(t))
+    return 'mysterious, intriguing mood, a single dramatic light source carving the subject out of darkness'
+  return 'focused, confident mood, balanced high-contrast lighting'
+}
 
 function buildPrompt(tema: string, style: string): string {
   const modifier = STYLE_MODIFIERS[style] ?? STYLE_MODIFIERS['cinematic']
-  return `${NO_TEXT_PREFIX}${tema}, ${modifier}${NO_TEXT_SUFFIX}`
+  return `${NO_TEXT_PREFIX}Visual metaphor representing the theme "${tema}". ${SLIDE_COMPOSITION}, ${modifier}${NO_TEXT_SUFFIX}`
 }
 
-function buildContextualPrompt(titulo: string, corpo: string, style: string): string {
+function buildContextualPrompt(titulo: string, corpo: string, style: string, isFirstSlide: boolean): string {
   const modifier = STYLE_MODIFIERS[style] ?? STYLE_MODIFIERS['cinematic']
-  return `${NO_TEXT_PREFIX}Visual representation of: "${titulo}". Context: ${corpo}. ${modifier}${NO_TEXT_SUFFIX}`
+  const mood = inferMood(`${titulo} ${corpo ?? ''}`)
+  const composition = isFirstSlide ? COVER_COMPOSITION : SLIDE_COMPOSITION
+  const subject = corpo
+    ? `Visual metaphor for the idea: "${titulo}" — ${corpo.substring(0, 140)}`
+    : `Visual metaphor for the idea: "${titulo}"`
+  return `${NO_TEXT_PREFIX}${subject}. Composition: ${composition}. Mood: ${mood}, ${modifier}${NO_TEXT_SUFFIX}`
 }
 
 serve(async (req) => {
@@ -57,12 +86,13 @@ serve(async (req) => {
     if (!userId) return json({ error: 'unauthorized' }, 401)
 
     // ── Parse body ────────────────────────────────────────────────────
-    const { carousel_id, style, slide_id, titulo, corpo } = await req.json() as {
+    const { carousel_id, style, slide_id, titulo, corpo, is_first_slide } = await req.json() as {
       carousel_id: string
       style: string
       slide_id?: string
       titulo?: string
       corpo?: string
+      is_first_slide?: boolean
     }
 
     if (!carousel_id) return json({ error: 'missing_fields' }, 400)
@@ -92,14 +122,12 @@ serve(async (req) => {
         .eq('id', slide_id)
         .single()
 
-      const slideContext = slideData
-        ? `Slide de Instagram. Título: "${slideData.titulo}".${slideData.corpo ? ` Contexto: "${slideData.corpo.substring(0, 120)}"` : ''}`
-        : (titulo ? `Slide de Instagram. Título: "${titulo}".${corpo ? ` Contexto: "${corpo.substring(0, 120)}"` : ''}` : '')
+      const finalTitulo = slideData?.titulo ?? titulo ?? ''
+      const finalCorpo = slideData?.corpo ?? corpo ?? ''
 
-      const modifier = STYLE_MODIFIERS[styleKey] ?? STYLE_MODIFIERS['cinematic']
-      fullPrompt = slideContext
-        ? `Fotografia cinematográfica para ${slideContext} Estilo: dark moody, contraste alto, iluminação dramática. Sem texto, sem pessoas, sem rostos. Composição: regra dos terços, profundidade de campo. ${modifier}${NO_TEXT_SUFFIX}`
-        : buildPrompt(titulo ?? '', styleKey)
+      fullPrompt = finalTitulo
+        ? buildContextualPrompt(finalTitulo, finalCorpo, styleKey, !!is_first_slide)
+        : buildPrompt(finalTitulo, styleKey)
     } else {
       // Prompt genérico baseado no tema do carrossel
       const { data: carousel, error: carouselError } = await supabase
