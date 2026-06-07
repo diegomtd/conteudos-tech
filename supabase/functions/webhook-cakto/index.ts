@@ -1,11 +1,11 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-// Limites por plano — espelho do que está no banco
+// Limites por plano — espelho do que está no banco (migration 20260513)
 const PLAN_LIMITS: Record<string, { exports_limit: number; ai_images_limit: number }> = {
-  criador:      { exports_limit: 20,     ai_images_limit: 20  },
-  profissional: { exports_limit: 999999, ai_images_limit: 60  },
-  agencia:      { exports_limit: 999999, ai_images_limit: 200 },
+  construtor: { exports_limit: 999999, ai_images_limit: 20  },
+  escala:     { exports_limit: 999999, ai_images_limit: 60  },
+  agencia:    { exports_limit: 999999, ai_images_limit: 200 },
 }
 
 serve(async (req) => {
@@ -46,14 +46,18 @@ serve(async (req) => {
     }
 
     // ── Mapeia product_id → plano ─────────────────────────────────────
-    const productCriador      = Deno.env.get('CAKTO_PRODUCT_CRIADOR')      ?? ''
-    const productProfissional = Deno.env.get('CAKTO_PRODUCT_PROFISSIONAL') ?? ''
+    const productConstrutor   = Deno.env.get('CAKTO_PRODUCT_CONSTRUTOR')   ?? ''
+    const productEscala       = Deno.env.get('CAKTO_PRODUCT_ESCALA')       ?? ''
     const productAgencia      = Deno.env.get('CAKTO_PRODUCT_AGENCIA')      ?? ''
 
+    // Retrocompat: aceitar env vars antigas também
+    const productCriadorLegacy      = Deno.env.get('CAKTO_PRODUCT_CRIADOR')      ?? ''
+    const productProfissionalLegacy = Deno.env.get('CAKTO_PRODUCT_PROFISSIONAL') ?? ''
+
     let plan: string | null = null
-    if (productId === productCriador)      plan = 'criador'
-    if (productId === productProfissional) plan = 'profissional'
-    if (productId === productAgencia)      plan = 'agencia'
+    if (productId === productConstrutor || productId === productCriadorLegacy)        plan = 'construtor'
+    if (productId === productEscala     || productId === productProfissionalLegacy)   plan = 'escala'
+    if (productId === productAgencia)                                                  plan = 'agencia'
 
     if (!plan) {
       console.error('[webhook-cakto] product_id não mapeado:', productId)
@@ -86,9 +90,10 @@ serve(async (req) => {
     const { error: updateError } = await supabase
       .from('profiles')
       .update({
-        plan:             plan,
-        exports_limit:    limits.exports_limit,
-        ai_images_limit:  limits.ai_images_limit,
+        plan:                plan,
+        exports_limit:       limits.exports_limit,
+        ai_images_limit:     limits.ai_images_limit,
+        subscription_source: 'webhook',
       })
       .eq('user_id', user.id)
 

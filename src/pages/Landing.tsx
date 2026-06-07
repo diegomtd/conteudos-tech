@@ -1,6 +1,64 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { motion, useSpring, useMotionValue, AnimatePresence } from 'framer-motion'
+import Lenis from 'lenis'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { CyberneticGridShader } from '@/components/CyberneticGridShader'
+import { LiveCarouselDemo } from '@/components/LiveCarouselDemo'
+
+gsap.registerPlugin(ScrollTrigger)
+
+// ─── reveal helpers (Framer Motion) — substituem o IntersectionObserver .aos ─
+const fadeUp = {
+  hidden: { opacity: 0, y: 36 },
+  show:   { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] as const } },
+}
+const stagger = (gap = 0.1) => ({
+  hidden: {},
+  show: { transition: { staggerChildren: gap } },
+})
+const Reveal = ({ children, delay = 0, ...rest }: any) => (
+  <motion.div
+    variants={fadeUp}
+    initial="hidden"
+    whileInView="show"
+    viewport={{ once: true, amount: 0.2 }}
+    transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay }}
+    {...rest}
+  >
+    {children}
+  </motion.div>
+)
+const RevealGroup = ({ children, gap = 0.1, ...rest }: any) => (
+  <motion.div variants={stagger(gap)} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.15 }} {...rest}>
+    {children}
+  </motion.div>
+)
+
+// ─── botão magnético — segue o cursor levemente, solta com spring ────────────
+function Magnetic({ children, strength = 18 }: { children: React.ReactNode; strength?: number }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const x = useMotionValue(0)
+  const y = useMotionValue(0)
+  const sx = useSpring(x, { stiffness: 220, damping: 18, mass: 0.4 })
+  const sy = useSpring(y, { stiffness: 220, damping: 18, mass: 0.4 })
+  return (
+    <motion.div
+      ref={ref}
+      style={{ x: sx, y: sy, display: 'inline-block' }}
+      onMouseMove={(e) => {
+        const r = ref.current?.getBoundingClientRect()
+        if (!r) return
+        x.set((e.clientX - r.left - r.width / 2) / strength)
+        y.set((e.clientY - r.top - r.height / 2) / strength)
+      }}
+      onMouseLeave={() => { x.set(0); y.set(0) }}
+    >
+      {children}
+    </motion.div>
+  )
+}
 
 const CREATORS = [
   { handle: '@marinafonseca.mkt',  name: 'Marina Fonseca',  img: '/images/creators/marinafonseca.jpg', nicho: 'Marketing digital' },
@@ -39,9 +97,9 @@ const PLANS = [
 ]
 
 const STEPS = [
-  { num: '01', title: 'Descreva o tema', body: 'Digite o assunto do carrossel. A IA entende contexto, tom e objetivo — não precisa de prompt técnico.' },
-  { num: '02', title: 'IA gera tudo', body: 'Copy estratégica, título de cada slide, corpo e imagem cinematográfica gerados em segundos.' },
-  { num: '03', title: 'Publique', body: 'Ajuste o que quiser no Studio, exporte em PNG e poste direto no Instagram.' },
+  { num: '01', title: 'Diga o que quer falar', body: 'Sem fórmula, sem prompt técnico — escreva o tema como você falaria com um amigo. A IA lê contexto, tom e objetivo sozinha.' },
+  { num: '02', title: 'Veja o carrossel nascer', body: 'Copy, título, corpo e imagem cinematográfica aparecem slide a slide, em tempo real — exatamente como você viu na demonstração acima.' },
+  { num: '03', title: 'Ajuste, exporte, publique', body: 'Refine no Studio se quiser tocar em algo, baixe o ZIP em PNG 1080×1350 e poste direto — sem abrir mais nenhum app.' },
 ]
 
 const FEATURES = [
@@ -312,6 +370,17 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk','DM Sans
 .aos{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease;}
 .aos.in{opacity:1;transform:translateY(0);}
 
+/* live demo — keyframes usados pelo LiveCarouselDemo */
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes shimmerMove{0%{background-position:0% 0%}100%{background-position:200% 0%}}
+
+/* magnetic / glow on cta */
+.glow-orbit{position:relative;}
+.glow-orbit::before{content:'';position:absolute;inset:-1px;border-radius:inherit;padding:1px;background:conic-gradient(from var(--ang,0deg),#00D4FF,#6366F1,#C8FF00,#00D4FF);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:0;transition:opacity .3s;}
+.glow-orbit:hover::before{opacity:1;animation:rotateAng 2.4s linear infinite;}
+@keyframes rotateAng{to{--ang:360deg}}
+
 /* 21dev placeholder */
 @keyframes gridPan{0%{background-position:0 0}100%{background-position:48px 48px}}
 @keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 8px #00D4FF}50%{opacity:.5;box-shadow:0 0 16px #00D4FF}}
@@ -340,6 +409,42 @@ export default function Landing() {
     )
     els.forEach(el => io.observe(el))
     return () => io.disconnect()
+  }, [])
+
+  // ── Lenis (scroll suave) acoplado ao ticker do GSAP/ScrollTrigger ──────────
+  // Dá a sensação de "rolagem com peso" e mantém os ScrollTriggers sincronizados
+  // com o scroll virtual do Lenis (sem isso, pin/scrub ficam dessincronizados).
+  useEffect(() => {
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reduceMotion) return
+
+    const lenis = new Lenis({
+      duration: 1.05,
+      easing: (t) => Math.min(1, 1 - Math.pow(2, -10 * t)),
+      smoothWheel: true,
+    })
+    lenis.on('scroll', ScrollTrigger.update)
+    gsap.ticker.add((time) => lenis.raf(time * 1000))
+    gsap.ticker.lagSmoothing(0)
+
+    return () => {
+      lenis.destroy()
+      gsap.ticker.remove((time) => lenis.raf(time * 1000))
+    }
+  }, [])
+
+  // ── Parallax sutil no visual do hero — acompanha o scroll com profundidade ─
+  const heroVisualRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!heroVisualRef.current) return
+    const ctx = gsap.context(() => {
+      gsap.to(heroVisualRef.current, {
+        yPercent: 14,
+        ease: 'none',
+        scrollTrigger: { trigger: heroVisualRef.current, start: 'top top', end: 'bottom top', scrub: 0.6 },
+      })
+    })
+    return () => ctx.revert()
   }, [])
 
   const activeFeature = FEATURES.find(f => f.id === activeTab) ?? FEATURES[0]
@@ -384,188 +489,49 @@ export default function Landing() {
 
         {/* hero */}
         <section className="hero">
-          <div>
-            <div className="hero-sec-lbl"><span>✦</span> Tabuleiro de conteúdo com IA</div>
+          <motion.div initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}>
+            <div className="hero-sec-lbl"><span>✦</span> Veja a IA montar um carrossel — ao vivo, agora</div>
             <h1>
-              Não existe post<br />
-              <span className="gt2">aleatório.</span><br />
-              Existe tabuleiro.
+              Você descreve.<br />
+              <span className="gt2">Ela constrói.</span><br />
+              Em tempo real.
             </h1>
             <p className="hero-sub">
-              Monte sua estratégia de conteúdo com IA. Gere carrosseis virais para o Instagram
-              em menos de 3 minutos — copy estratégica, design profissional, imagens cinematográficas.
+              Olhe pro card ao lado: é o ConteúdOS rodando de verdade — tema entra, a IA escreve a copy,
+              gera a imagem e monta o slide na sua frente. Sem Canva, sem prompt técnico, sem trava criativa.
             </p>
             <div className="hero-btns">
-              <button className="btn-primary" onClick={() => navigate('/dashboard')}>Montar meu tabuleiro →</button>
-              <button className="btn-ghost"   onClick={() => navigate('/dashboard')}>Ver como funciona</button>
+              <Magnetic>
+                <button className="btn-primary glow-orbit" onClick={() => navigate('/dashboard')}>Montar meu primeiro carrossel →</button>
+              </Magnetic>
+              <button className="btn-ghost" onClick={() => document.getElementById('como-funciona')?.scrollIntoView({ behavior: 'smooth' })}>Ver como funciona</button>
             </div>
             <div className="hero-stats">
-              <div><div className="stat-num">3min</div><div className="stat-lbl">por carrossel</div></div>
-              <div><div className="stat-num">10+</div><div className="stat-lbl">slides gerados</div></div>
-              <div><div className="stat-num">100%</div><div className="stat-lbl">no browser</div></div>
+              <div><div className="stat-num">3min</div><div className="stat-lbl">do tema ao slide pronto</div></div>
+              <div><div className="stat-num">10+</div><div className="stat-lbl">slides por carrossel</div></div>
+              <div><div className="stat-num">0</div><div className="stat-lbl">apps extras pra abrir</div></div>
             </div>
-          </div>
-          {/* ── HERO DIREITA: Shader + mockup do app ── */}
-          <div className="hero-visual" style={{
+          </motion.div>
+          {/* ── HERO DIREITA: Shader + demo viva do produto rodando ── */}
+          <div ref={heroVisualRef} className="hero-visual" style={{
             position: 'relative',
             width: '100%',
             maxWidth: '480px',
-            height: '420px',
             flexShrink: 0,
           }}>
             {/* Shader como fundo atmosférico */}
-            <div style={{
-              position: 'absolute',
-              inset: 0,
-              borderRadius: '20px',
-              overflow: 'hidden',
-              zIndex: 0,
-            }}>
+            <div style={{ position: 'absolute', inset: 0, borderRadius: '20px', overflow: 'hidden', zIndex: 0, opacity: 0.5 }}>
               <CyberneticGridShader />
             </div>
-
-            {/* Vinheta nas bordas para fundir com o fundo da página */}
+            {/* Vinheta para fundir com o fundo da página */}
             <div style={{
-              position: 'absolute',
-              inset: 0,
-              borderRadius: '20px',
-              background: 'radial-gradient(ellipse at center, transparent 40%, rgba(1,8,22,0.7) 100%)',
-              zIndex: 1,
-              pointerEvents: 'none',
+              position: 'absolute', inset: 0, borderRadius: '20px',
+              background: 'radial-gradient(ellipse at center, transparent 35%, rgba(1,8,22,0.65) 100%)',
+              zIndex: 1, pointerEvents: 'none',
             }} />
-
-            {/* Mockup do app — card central */}
-            <div style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: '280px',
-              background: 'rgba(6,14,31,0.92)',
-              border: '1px solid rgba(0,212,255,0.25)',
-              borderRadius: '14px',
-              padding: '0',
-              backdropFilter: 'blur(12px)',
-              boxShadow: '0 24px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04)',
-              zIndex: 2,
-              overflow: 'hidden',
-            }}>
-              {/* Barra do app */}
-              <div style={{
-                height: '36px',
-                background: 'rgba(0,212,255,0.06)',
-                borderBottom: '1px solid rgba(0,212,255,0.1)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '0 12px',
-              }}>
-                <div style={{ display: 'flex', gap: '5px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)' }} />
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)' }} />
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)' }} />
-                </div>
-                <span style={{ fontSize: '9px', color: 'rgba(0,212,255,0.6)', fontFamily: 'Bebas Neue, sans-serif', letterSpacing: '0.1em' }}>CONTEÚDOS · STUDIO</span>
-                <div style={{ width: '8px' }} />
-              </div>
-
-              {/* Grid de 2 slides */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', padding: '10px' }}>
-                {/* Slide 1 */}
-                <div style={{
-                  aspectRatio: '4/5',
-                  borderRadius: '8px',
-                  background: 'linear-gradient(135deg, #0D1F3C, #060E1F)',
-                  border: '1px solid rgba(0,212,255,0.3)',
-                  padding: '8px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'flex-end',
-                  position: 'relative',
-                  overflow: 'hidden',
-                }}>
-                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(0,212,255,0.08), transparent)' }} />
-                  <div style={{ fontSize: '7px', color: 'rgba(255,255,255,0.35)', marginBottom: '3px' }}>SLIDE 01</div>
-                  <div style={{ fontSize: '10px', color: '#fff', fontFamily: 'Bebas Neue, sans-serif', lineHeight: 1.1 }}>O ERRO QUE TRAVA 90%</div>
-                  <div style={{ width: '40%', height: '1.5px', background: '#00D4FF', marginTop: '5px', borderRadius: '1px' }} />
-                </div>
-                {/* Slide 2 */}
-                <div style={{
-                  aspectRatio: '4/5',
-                  borderRadius: '8px',
-                  background: 'linear-gradient(135deg, #0D1F3C, #060E1F)',
-                  border: '1px solid rgba(99,102,241,0.25)',
-                  padding: '8px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'flex-end',
-                  position: 'relative',
-                  overflow: 'hidden',
-                }}>
-                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(99,102,241,0.08), transparent)' }} />
-                  <div style={{ fontSize: '7px', color: 'rgba(255,255,255,0.35)', marginBottom: '3px' }}>SLIDE 02</div>
-                  <div style={{ fontSize: '10px', color: '#fff', fontFamily: 'Bebas Neue, sans-serif', lineHeight: 1.1 }}>VOCÊ POSTA PRA FANTASMA</div>
-                  <div style={{ width: '40%', height: '1.5px', background: '#6366F1', marginTop: '5px', borderRadius: '1px' }} />
-                </div>
-              </div>
-
-              {/* Barra de ação */}
-              <div style={{
-                margin: '0 10px 10px',
-                background: 'linear-gradient(135deg, #00D4FF, #6366F1)',
-                borderRadius: '6px',
-                padding: '7px',
-                textAlign: 'center',
-                fontSize: '9px',
-                fontFamily: 'Bebas Neue, sans-serif',
-                letterSpacing: '0.08em',
-                color: '#000',
-                fontWeight: 700,
-              }}>
-                ✦ BAIXAR ZIP
-              </div>
-            </div>
-
-            {/* Badge flutuante esquerda — tempo de geração */}
-            <div style={{
-              position: 'absolute',
-              top: '30px',
-              left: '-10px',
-              background: 'rgba(6,14,31,0.92)',
-              border: '1px solid rgba(0,212,255,0.3)',
-              borderRadius: '10px',
-              padding: '7px 11px',
-              backdropFilter: 'blur(10px)',
-              zIndex: 3,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}>
-              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#00D4FF', boxShadow: '0 0 8px #00D4FF', animation: 'pulse 2s infinite' }} />
-              <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.85)', fontWeight: 500 }}>Gerado em 2:47</span>
-            </div>
-
-            {/* Badge flutuante direita — slides */}
-            <div style={{
-              position: 'absolute',
-              bottom: '35px',
-              right: '-10px',
-              background: 'rgba(6,14,31,0.92)',
-              border: '1px solid rgba(99,102,241,0.3)',
-              borderRadius: '10px',
-              padding: '7px 11px',
-              backdropFilter: 'blur(10px)',
-              zIndex: 3,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#6366F1" strokeWidth="2.5" strokeLinecap="round">
-                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/>
-                <line x1="12" y1="15" x2="12" y2="3"/>
-              </svg>
-              <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.85)', fontWeight: 500 }}>10 slides prontos</span>
+            {/* Demo viva — o produto rodando de verdade, em loop */}
+            <div style={{ position: 'relative', zIndex: 2 }}>
+              <LiveCarouselDemo />
             </div>
           </div>
         </section>
@@ -593,14 +559,14 @@ export default function Landing() {
 
         {/* plans #1 */}
         <section className="plans-sec" id="planos">
-          <div className="sec-hd aos">
+          <Reveal className="sec-hd">
             <div className="sec-lbl">planos</div>
             <h2>Escolha seu <span className="gt2">nível</span></h2>
             <p>Do criador solo à agência digital. Sem contrato, cancele quando quiser.</p>
-          </div>
-          <div className="plans-grid">
+          </Reveal>
+          <RevealGroup className="plans-grid" gap={0.1}>
             {PLANS.map(p => (
-              <div className={`plan${p.pop ? ' pop' : ''}`} key={p.name}>
+              <motion.div className={`plan${p.pop ? ' pop' : ''}`} key={p.name} variants={fadeUp} whileHover={{ y: -6 }}>
                 {p.pop && <div className="plan-badge">MAIS POPULAR</div>}
                 <div className="plan-name">{p.name}</div>
                 <div className="plan-price-row">
@@ -608,56 +574,66 @@ export default function Landing() {
                   {p.period && <div className="plan-period">{p.period}</div>}
                 </div>
                 <ul className="plan-features">{p.features.map(f => <li key={f}>{f}</li>)}</ul>
-                <button className="plan-btn" onClick={() => navigate('/dashboard')}>{p.cta}</button>
-              </div>
+                <Magnetic strength={26}>
+                  <button className="plan-btn" onClick={() => navigate('/dashboard')}>{p.cta}</button>
+                </Magnetic>
+              </motion.div>
             ))}
-          </div>
-          <p style={{ textAlign: 'center', color: 'var(--muted)', maxWidth: '680px', margin: '32px auto 0', fontSize: '14px', lineHeight: 1.7 }}>
-            Copy inclusa em cada carrossel gerado — o limite é de carrosseis por mês, não de texto.<br />
-            Imagem IA tem cota separada porque gera custo real de processamento. Você pode subir suas próprias imagens sem limite em todos os planos.
-          </p>
+          </RevealGroup>
+          <Reveal delay={0.15}>
+            <p style={{ textAlign: 'center', color: 'var(--muted)', maxWidth: '680px', margin: '32px auto 0', fontSize: '14px', lineHeight: 1.7 }}>
+              Copy completa inclusa em cada carrossel gerado — o limite é de carrosseis por mês, nunca de texto.<br />
+              Imagem IA tem cota separada porque gera custo real de processamento. Suba suas próprias imagens sem limite, em qualquer plano.
+            </p>
+          </Reveal>
         </section>
 
         {/* verdade brutal */}
         <section className="truth">
-          <div>
+          <Reveal>
             <div className="truth-num">97%</div>
-            <h2>Você posta.<br />Eles <span className="gt2">estrategizam.</span></h2>
-            <p>97% dos criadores de conteúdo postam no improviso — sem tema fixo, sem narrativa, sem sequência. O resultado é feed aleatório que não converte nem fideliza.</p>
-            <p>Os perfis que crescem de verdade têm tabuleiro. Cada post tem propósito. Cada carrossel tem lugar na estratégia. ConteúdOS monta esse tabuleiro pra você.</p>
-            <button className="btn-primary" onClick={() => navigate('/dashboard')}>Montar meu tabuleiro →</button>
-          </div>
-          <div>
+            <h2>Você posta.<br />Eles <span className="gt2">jogam outro jogo.</span></h2>
+            <p>97% dos perfis publicam no escuro — sem tema fixo, sem narrativa, sem sequência. O algoritmo nota essa falta de padrão e empurra esse conteúdo pra baixo. Não é falta de talento: é falta de tabuleiro.</p>
+            <p>Os perfis que crescem de verdade pensam em peças que se conectam — cada carrossel ocupa um lugar, puxa o próximo, constrói autoridade post a post. O ConteúdOS monta esse tabuleiro com você, com IA, em minutos.</p>
+            <Magnetic><button className="btn-primary glow-orbit" onClick={() => navigate('/dashboard')}>Montar meu tabuleiro →</button></Magnetic>
+          </Reveal>
+          <Reveal delay={0.15}>
             <div className="truth-visual">
               <div className="truth-visual-grid" />
-              <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', padding: '40px', fontFamily: '"Bebas Neue",sans-serif' }}>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.92 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true, amount: 0.4 }}
+                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+                style={{ position: 'relative', zIndex: 1, textAlign: 'center', padding: '40px', fontFamily: '"Bebas Neue",sans-serif' }}
+              >
                 <div style={{ fontSize: '72px', lineHeight: 1, background: 'linear-gradient(135deg,#00D4FF,#6366F1,#C8FF00)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
                   TABULEIRO
                 </div>
                 <div style={{ fontSize: '14px', color: 'rgba(0,212,255,0.4)', letterSpacing: '0.12em', marginTop: '8px' }}>
                   ESTRATÉGIA · CONSISTÊNCIA · RESULTADO
                 </div>
-              </div>
+              </motion.div>
             </div>
-          </div>
+          </Reveal>
         </section>
 
         {/* como funciona */}
         <section className="steps-sec" id="como-funciona">
-          <div className="sec-hd aos">
+          <Reveal className="sec-hd">
             <div className="sec-lbl">como funciona</div>
-            <h2>3 passos do <span className="gt2">zero ao post</span></h2>
-            <p>Sem aprender prompt. Sem contratar designer. Sem perder horas.</p>
-          </div>
-          <div className="steps-grid">
+            <h2>O mesmo processo que você <span className="gt2">acabou de ver</span></h2>
+            <p>3 passos. Sem aprender prompt, sem contratar designer, sem perder a tarde inteira numa ferramenta de design.</p>
+          </Reveal>
+          <RevealGroup className="steps-grid" gap={0.12}>
             {STEPS.map(s => (
-              <div className="step aos" key={s.num}>
+              <motion.div className="step" key={s.num} variants={fadeUp} whileHover={{ y: -6, borderColor: 'rgba(0,212,255,.35)' }} transition={{ duration: 0.3 }}>
                 <div className="step-num">{s.num}</div>
                 <h3>{s.title}</h3>
                 <p>{s.body}</p>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </RevealGroup>
         </section>
 
         {/* slide marquees */}
@@ -684,10 +660,11 @@ export default function Landing() {
 
         {/* recursos */}
         <section className="fs-sec" id="recursos">
-          <div className="sec-hd aos">
+          <Reveal className="sec-hd">
             <div className="sec-lbl">recursos</div>
-            <h2>Tudo que você precisa <span className="gt2">em um lugar</span></h2>
-          </div>
+            <h2>Tudo que o carrossel precisa, <span className="gt2">num lugar só</span></h2>
+            <p>Da ideia ao arquivo pronto pra postar — sem trocar de ferramenta no meio do caminho.</p>
+          </Reveal>
           <div className="fs-tabs">
             {FEATURES.map(f => (
               <button key={f.id} className={`fs-tab${activeTab === f.id ? ' active' : ''}`} onClick={() => setActiveTab(f.id)}>
@@ -696,14 +673,17 @@ export default function Landing() {
             ))}
           </div>
           <div className="fs-content">
-            <div>
+            <motion.div key={activeFeature.id} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}>
               <h3>{activeFeature.title}</h3>
               <p>{activeFeature.body}</p>
-            </div>
-            <div className="fs-visual" style={{ padding: 0, overflow: 'hidden' }}>
+            </motion.div>
+            <motion.div className="fs-visual" style={{ padding: 0, overflow: 'hidden' }}
+              initial={{ opacity: 0, scale: 0.94 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true, amount: 0.4 }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            >
               <img src="/images/recursos/dashboard.jpg" alt="Preview"
                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-            </div>
+            </motion.div>
           </div>
           <div className="fs-mobile">
             {FEATURES.map(f => (
@@ -721,13 +701,13 @@ export default function Landing() {
         {/* ia section — mudança 3 */}
         <section className="ia-sec">
           <div className="ia-grid">
-            <div className="aos">
+            <Reveal>
               <div className="sec-lbl">IA contextual</div>
               <h2 style={{ fontFamily: '"Bebas Neue",sans-serif', fontSize: 'clamp(36px,4vw,52px)', letterSpacing: '.02em', lineHeight: 1.05, marginBottom: '16px' }}>
-                Copy e imagem geradas<br />com <span className="gt2">contexto real</span>
+                Ela não improvisa.<br />Ela <span className="gt2">lê antes de gerar</span>
               </h2>
               <p style={{ color: 'var(--muted)', fontSize: '16px', lineHeight: 1.7, marginBottom: '28px' }}>
-                A IA lê o conteúdo de cada slide antes de gerar. O resultado é copy estratégica e imagem cinematográfica que complementam exatamente o que o slide precisa comunicar.
+                Antes de escrever uma linha ou desenhar um pixel, a IA lê o conteúdo real daquele slide específico — o título, o corpo, a intenção por trás. É por isso que a copy não soa genérica e a imagem realmente conversa com o texto, em vez de competir com ele.
               </p>
               <div className="ia-chips">
                 <div className="ia-chip">Claude Sonnet</div>
@@ -735,48 +715,53 @@ export default function Landing() {
                 <div className="ia-chip">Contexto por slide</div>
                 <div className="ia-chip">Narrativa estratégica</div>
               </div>
-            </div>
-            <div className="fs-visual" style={{ padding: 0, overflow: 'hidden' }}>
+            </Reveal>
+            <motion.div className="fs-visual" style={{ padding: 0, overflow: 'hidden' }}
+              initial={{ opacity: 0, scale: 0.94 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true, amount: 0.4 }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+            >
               <img src="/images/recursos/imagem-ia.jpg" alt="IA Contextual"
                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-            </div>
+            </motion.div>
           </div>
         </section>
 
         {/* transparência — mudança 7 */}
         <section className="transp-sec">
-          <div className="sec-hd aos">
+          <Reveal className="sec-hd">
             <div className="sec-lbl">limites</div>
-            <h2>Transparência total <span className="gt2">sobre os limites</span></h2>
-          </div>
-          <p style={{ textAlign: 'center', color: 'var(--muted)', maxWidth: '620px', margin: '0 auto', fontSize: '16px', lineHeight: 1.7 }}>
-            Cada plano tem um número de carrosseis que você pode gerar por mês — copy inclusa em cada um. Imagem IA tem cota separada porque gera custo real de processamento. Você sempre sabe o quanto usou e o quanto tem disponível antes de gerar.
-          </p>
-          <div className="transp-cards">
-            <div className="transp-card">
+            <h2>Sem letra miúda. <span className="gt2">Sem pegadinha.</span></h2>
+          </Reveal>
+          <Reveal delay={0.08}>
+            <p style={{ textAlign: 'center', color: 'var(--muted)', maxWidth: '620px', margin: '0 auto', fontSize: '16px', lineHeight: 1.7 }}>
+              Cada plano tem um número de carrosseis por mês — copy completa inclusa em cada um. Imagem IA tem cota separada porque gera custo real de processamento (não é frescura: é GPU rodando de verdade). Você sempre vê quanto usou e quanto resta, antes de gerar.
+            </p>
+          </Reveal>
+          <RevealGroup className="transp-cards" gap={0.12}>
+            <motion.div className="transp-card" variants={fadeUp} whileHover={{ y: -4 }}>
               <div className="transp-card-icon" style={{ fontSize: '36px' }}>📄</div>
               <h3>COPY POR CARROSSEL</h3>
               <p>Cada carrossel gerado inclui copy completa — título, corpo e legenda. O limite é de carrosseis por mês, não de caracteres ou tokens.</p>
-            </div>
-            <div className="transp-card">
+            </motion.div>
+            <motion.div className="transp-card" variants={fadeUp} whileHover={{ y: -4 }}>
               <div className="transp-card-icon" style={{ fontSize: '32px' }}>IA</div>
               <h3>IMAGEM IA COM LIMITE</h3>
               <p>Free 3 · Construtor 20 · Escala 60 · Agência 150</p>
-              <p style={{ marginTop: '8px', fontSize: '13px' }}>Você pode subir suas próprias imagens sem limite em todos os planos.</p>
-            </div>
-          </div>
+              <p style={{ marginTop: '8px', fontSize: '13px' }}>Suba suas próprias imagens sem limite, em qualquer plano — sempre que quiser.</p>
+            </motion.div>
+          </RevealGroup>
         </section>
 
         {/* plans #2 */}
         <section className="plans-sec" style={{ paddingTop: 60 }}>
-          <div className="sec-hd aos">
+          <Reveal className="sec-hd">
             <div className="sec-lbl">preços</div>
-            <h2>Comece hoje, <span className="gt2">escale amanhã</span></h2>
-            <p>Todos os planos incluem Studio, Calendário e Export PNG.</p>
-          </div>
-          <div className="plans-grid">
+            <h2>Sem letra miúda. <span className="gt2">Comece grátis hoje.</span></h2>
+            <p>Todos os planos incluem Studio, Calendário e Export PNG. Cancele quando quiser, sem perguntas.</p>
+          </Reveal>
+          <RevealGroup className="plans-grid" gap={0.1}>
             {PLANS.map(p => (
-              <div className={`plan${p.pop ? ' pop' : ''}`} key={p.name + '2'}>
+              <motion.div className={`plan${p.pop ? ' pop' : ''}`} key={p.name + '2'} variants={fadeUp} whileHover={{ y: -6 }}>
                 {p.pop && <div className="plan-badge">MAIS POPULAR</div>}
                 <div className="plan-name">{p.name}</div>
                 <div className="plan-price-row">
@@ -784,26 +769,31 @@ export default function Landing() {
                   {p.period && <div className="plan-period">{p.period}</div>}
                 </div>
                 <ul className="plan-features">{p.features.map(f => <li key={f}>{f}</li>)}</ul>
-                <button className="plan-btn" onClick={() => navigate('/dashboard')}>{p.cta}</button>
-              </div>
+                <Magnetic strength={26}>
+                  <button className="plan-btn" onClick={() => navigate('/dashboard')}>{p.cta}</button>
+                </Magnetic>
+              </motion.div>
             ))}
-          </div>
-          <p style={{ textAlign: 'center', color: 'var(--muted)', maxWidth: '680px', margin: '32px auto 0', fontSize: '14px', lineHeight: 1.7 }}>
-            Copy inclusa em cada carrossel gerado — o limite é de carrosseis por mês, não de texto.<br />
-            Imagem IA tem cota separada porque gera custo real de processamento. Você pode subir suas próprias imagens sem limite em todos os planos.
-          </p>
+          </RevealGroup>
+          <Reveal delay={0.15}>
+            <p style={{ textAlign: 'center', color: 'var(--muted)', maxWidth: '680px', margin: '32px auto 0', fontSize: '14px', lineHeight: 1.7 }}>
+              Copy completa inclusa em cada carrossel gerado — o limite é de carrosseis por mês, nunca de texto.<br />
+              Imagem IA tem cota separada porque gera custo real de processamento (GPU rodando de verdade). Suba suas próprias imagens sem limite, em qualquer plano.
+            </p>
+          </Reveal>
         </section>
 
         {/* testimonials */}
         <section className="deps-sec">
-          <div className="sec-hd aos" style={{ padding: '0 5% 48px' }}>
+          <Reveal className="sec-hd" style={{ padding: '0 5% 48px' }}>
             <div className="sec-lbl">depoimentos</div>
-            <h2>Quem já <span className="gt2">monta o tabuleiro</span></h2>
-          </div>
+            <h2>Gente real, <span className="gt2">resultado real</span></h2>
+          </Reveal>
           <div className="dep-track-wrap">
             <div className="dep-track">
               {deps2.map((d, i) => (
-                <div className="dep" key={i}>
+                <motion.div className="dep" key={i} initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.3 }} transition={{ duration: 0.6, delay: (i % 6) * 0.06, ease: [0.16, 1, 0.3, 1] }}>
                   <div className="dep-stars">★★★★★</div>
                   <p className="dep-text">"{d.text}"</p>
                   <div className="dep-author">
@@ -812,7 +802,7 @@ export default function Landing() {
                     </div>
                     <span className="dep-handle">{d.handle}</span>
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           </div>
@@ -820,53 +810,74 @@ export default function Landing() {
 
         {/* faq */}
         <section className="faq-sec" id="faq">
-          <div className="sec-hd aos">
+          <Reveal className="sec-hd">
             <div className="sec-lbl">faq</div>
-            <h2>Perguntas <span className="gt2">frequentes</span></h2>
-          </div>
-          <div className="faq-list">
+            <h2>Antes de você <span className="gt2">perguntar</span></h2>
+          </Reveal>
+          <RevealGroup className="faq-list" gap={0.06}>
             {FAQ_ITEMS.map((item, i) => (
-              <div key={i} className={`faq-item${openFaq === String(i) ? ' open' : ''}`}>
+              <motion.div key={i} variants={fadeUp} className={`faq-item${openFaq === String(i) ? ' open' : ''}`}>
                 <button className="faq-q" onClick={() => setOpenFaq(openFaq === String(i) ? null : String(i))}>
                   {item.q}
-                  <span className="faq-icon">+</span>
+                  <motion.span className="faq-icon" animate={{ rotate: openFaq === String(i) ? 45 : 0 }} transition={{ duration: 0.25 }}>+</motion.span>
                 </button>
-                {openFaq === String(i) && <p className="faq-a">{item.a}</p>}
-              </div>
+                <AnimatePresence initial={false}>
+                  {openFaq === String(i) && (
+                    <motion.div
+                      key="content"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                      style={{ overflow: 'hidden' }}
+                    >
+                      <p className="faq-a">{item.a}</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
             ))}
-          </div>
+          </RevealGroup>
         </section>
 
         {/* suporte */}
         <section className="suporte-sec">
-          <div className="sec-hd aos">
+          <Reveal className="sec-hd">
             <div className="sec-lbl">suporte</div>
-            <h2>Sempre que <span className="gt2">precisar</span></h2>
-          </div>
-          <div className="suporte-grid">
-            <a className="sup-card" href="https://wa.me/55SEUNUMERO" target="_blank" rel="noreferrer">
+            <h2>Travou em algo? <span className="gt2">A gente resolve.</span></h2>
+          </Reveal>
+          <RevealGroup className="suporte-grid" gap={0.1}>
+            <motion.a className="sup-card" variants={fadeUp} whileHover={{ y: -4 }} href="https://wa.me/55SEUNUMERO" target="_blank" rel="noreferrer">
               <div className="sup-icon">💬</div>
               <h4>WhatsApp</h4>
               <p>Resposta rápida em dias úteis</p>
-            </a>
-            <a className="sup-card" href="mailto:contato@conteudos.tech">
+            </motion.a>
+            <motion.a className="sup-card" variants={fadeUp} whileHover={{ y: -4 }} href="mailto:contato@conteudos.tech">
               <div className="sup-icon">✉️</div>
               <h4>E-mail</h4>
               <p>contato@conteudos.tech</p>
-            </a>
-            <a className="sup-card" href="https://instagram.com/i_mdiego" target="_blank" rel="noreferrer">
+            </motion.a>
+            <motion.a className="sup-card" variants={fadeUp} whileHover={{ y: -4 }} href="https://instagram.com/i_mdiego" target="_blank" rel="noreferrer">
               <div className="sup-icon">📸</div>
               <h4>Instagram</h4>
               <p>@i_mdiego</p>
-            </a>
-          </div>
+            </motion.a>
+          </RevealGroup>
         </section>
 
         {/* cta final */}
         <section className="cta-sec">
-          <h2 className="aos">Monte seu<br /><span className="gt2">tabuleiro agora.</span></h2>
-          <p className="aos">Crie sua conta grátis e gere seu primeiro carrossel em menos de 3 minutos.</p>
-          <button className="btn-primary" onClick={() => navigate('/dashboard')}>Começar grátis →</button>
+          <Reveal>
+            <h2>Daqui a <span className="gt2">3 minutos</span><br />seu primeiro carrossel pode estar pronto.</h2>
+          </Reveal>
+          <Reveal delay={0.12}>
+            <p>Sem cartão. Sem instalar nada. É só descrever o tema e ver a IA construir — do jeito que você acabou de ver lá em cima.</p>
+          </Reveal>
+          <Reveal delay={0.22}>
+            <Magnetic strength={14}>
+              <button className="btn-primary glow-orbit" onClick={() => navigate('/dashboard')}>Criar minha conta grátis →</button>
+            </Magnetic>
+          </Reveal>
         </section>
 
         {/* footer */}

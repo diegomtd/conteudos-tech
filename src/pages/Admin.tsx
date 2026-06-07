@@ -50,19 +50,24 @@ interface KPIs {
 }
 
 interface ProfileRow {
-  id:                       string
-  user_id:                  string
-  display_name:             string | null
-  instagram_handle:         string | null
-  niche:                    string | null
-  plan:                     string
-  exports_used_this_month:  number
-  exports_limit:            number
-  ai_images_used_this_month?: number
-  ai_images_limit?:         number
-  telegram_chat_id:         string | null
-  onboarding_completed:     boolean
-  created_at:               string
+  id:                          string
+  user_id:                     string
+  email?:                      string | null
+  display_name:                string | null
+  instagram_handle:            string | null
+  niche:                       string | null
+  plan:                        string
+  subscription_source?:        string
+  exports_used_this_month:     number
+  exports_limit:               number
+  ai_images_used_this_month?:  number
+  ai_images_limit?:            number
+  carousels_used_this_month?:  number
+  carousels_limit?:            number
+  price_brl?:                  number
+  telegram_chat_id:            string | null
+  onboarding_completed:        boolean
+  created_at:                  string
 }
 
 interface UsageLog {
@@ -237,27 +242,37 @@ function UserModal({ profile, onClose, onSaved }: {
   onSaved: () => void
 }) {
   const [plan, setPlan] = useState(profile.plan)
+  const [source, setSource] = useState(profile.subscription_source ?? 'manual')
   const [exportsLimit, setExportsLimit] = useState(String(profile.exports_limit))
   const [aiLimit, setAiLimit] = useState(String(profile.ai_images_limit ?? 0))
+  const [carouselsLimit, setCarouselsLimit] = useState(String(profile.carousels_limit ?? 0))
   const [saving, setSaving] = useState(false)
   const [resetting, setResetting] = useState(false)
   const [logs, setLogs] = useState<UsageLog[]>([])
   const [logsLoading, setLogsLoading] = useState(true)
+  const [totalCost, setTotalCost] = useState(0)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
   useEffect(() => {
-    async function loadLogs() {
-      const { data } = await supabase
-        .from('usage_logs')
-        .select('*')
-        .eq('user_id', profile.user_id)
-        .order('created_at', { ascending: false })
-        .limit(10)
-      setLogs(data ?? [])
+    async function loadData() {
+      const [logsRes, costRes] = await Promise.all([
+        supabase
+          .from('usage_logs')
+          .select('*')
+          .eq('user_id', profile.user_id)
+          .order('created_at', { ascending: false })
+          .limit(20),
+        supabase
+          .from('usage_logs')
+          .select('cost_brl')
+          .eq('user_id', profile.user_id),
+      ])
+      setLogs(logsRes.data ?? [])
+      setTotalCost((costRes.data ?? []).reduce((s, r) => s + Number(r.cost_brl ?? 0), 0))
       setLogsLoading(false)
     }
-    loadLogs()
+    loadData()
   }, [profile.user_id])
 
   async function save() {
@@ -268,8 +283,10 @@ function UserModal({ profile, onClose, onSaved }: {
       .from('profiles')
       .update({
         plan,
-        exports_limit:    Number(exportsLimit),
-        ai_images_limit:  Number(aiLimit),
+        subscription_source: source,
+        exports_limit:       Number(exportsLimit),
+        ai_images_limit:     Number(aiLimit),
+        carousels_limit:     Number(carouselsLimit),
       })
       .eq('id', profile.id)
 
@@ -285,7 +302,11 @@ function UserModal({ profile, onClose, onSaved }: {
     setError('')
     const { error: err } = await supabase
       .from('profiles')
-      .update({ exports_used_this_month: 0, ai_images_used_this_month: 0 })
+      .update({
+        exports_used_this_month:   0,
+        ai_images_used_this_month: 0,
+        carousels_used_this_month: 0,
+      })
       .eq('id', profile.id)
     setResetting(false)
     if (err) { setError(err.message); return }
@@ -294,39 +315,46 @@ function UserModal({ profile, onClose, onSaved }: {
     onSaved()
   }
 
+  const isWebhook = source === 'webhook'
+
   return (
     <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)',
       display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end',
       zIndex: 100,
     }} onClick={onClose}>
       <div
         style={{
-          width: 400, height: '100vh', background: S, borderLeft: `1px solid ${B}`,
+          width: 440, height: '100vh', background: S, borderLeft: `1px solid ${B}`,
           overflowY: 'auto', padding: 28, display: 'flex', flexDirection: 'column', gap: 20,
         }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <p style={{ fontFamily: ffd, fontSize: 20, color: T, letterSpacing: 1, margin: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <p style={{ fontFamily: ffd, fontSize: 22, color: T, letterSpacing: 1, margin: 0 }}>
               {userLabel(profile)}
             </p>
+            {profile.email && (
+              <p style={{ fontFamily: ff, fontSize: 12, color: M, margin: 0 }}>
+                {profile.email}
+              </p>
+            )}
             {profile.instagram_handle && (
-              <p style={{ fontFamily: ff, fontSize: 12, color: M, margin: '2px 0 0' }}>
+              <p style={{ fontFamily: ff, fontSize: 12, color: M2, margin: 0 }}>
                 @{profile.instagram_handle}
               </p>
             )}
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: M }}>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: M, paddingTop: 2 }}>
             <X size={20} />
           </button>
         </div>
 
         <div style={{ borderTop: `1px solid ${B}` }} />
 
-        {/* Plano */}
+        {/* Plano + Origem */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <label style={{ fontFamily: ff, fontSize: 11, color: M, textTransform: 'uppercase', letterSpacing: 1 }}>Plano</label>
           <select
@@ -338,44 +366,112 @@ function UserModal({ profile, onClose, onSaved }: {
             }}
           >
             {['free', 'construtor', 'escala', 'agencia'].map(p => (
-              <option key={p} value={p}>{PLAN_LABEL[p]}</option>
+              <option key={p} value={p}>{PLAN_LABEL[p]} — {p !== 'free' ? `R$${PLAN_PRICE[p]}/mês` : 'Gratuito'}</option>
             ))}
           </select>
+
+          {/* Toggle origem */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
+            <span style={{ fontFamily: ff, fontSize: 12, color: M }}>Origem:</span>
+            <button
+              onClick={() => setSource(isWebhook ? 'manual' : 'webhook')}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                background: isWebhook ? `${A}18` : `${B}`,
+                border: `1px solid ${isWebhook ? A : B}`,
+                borderRadius: 20, padding: '4px 12px',
+                cursor: 'pointer', transition: 'all 0.15s',
+              }}
+            >
+              <span style={{
+                width: 8, height: 8, borderRadius: '50%',
+                background: isWebhook ? A : M2,
+                display: 'inline-block',
+              }} />
+              <span style={{ fontFamily: ffd, fontSize: 11, color: isWebhook ? A : M, letterSpacing: 1 }}>
+                {isWebhook ? 'ORGÂNICO (CAKTO)' : 'MANUAL (ADMIN)'}
+              </span>
+            </button>
+            <span style={{ fontFamily: ff, fontSize: 11, color: M2 }}>
+              {isWebhook ? 'Conta no MRR real' : 'Não conta no MRR real'}
+            </span>
+          </div>
         </div>
 
-        {/* Limites */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        {/* Custo acumulado */}
+        <div style={{
+          background: totalCost > 0 ? `${ERR}12` : B2,
+          border: `1px solid ${totalCost > 0 ? `${ERR}30` : B}`,
+          borderRadius: 8, padding: '14px 16px',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        }}>
+          <div>
+            <p style={{ fontFamily: ff, fontSize: 11, color: M, margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: 1 }}>Custo total IA gerado</p>
+            <span style={{ fontFamily: ffd, fontSize: 26, color: totalCost > 0 ? '#FF6B6B' : M, letterSpacing: 1 }}>
+              {fmtCurrency(totalCost)}
+            </span>
+          </div>
+          {plan !== 'free' && (
+            <div style={{ textAlign: 'right' }}>
+              <p style={{ fontFamily: ff, fontSize: 11, color: M, margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: 1 }}>Receita mensal</p>
+              <span style={{ fontFamily: ffd, fontSize: 26, color: A, letterSpacing: 1 }}>
+                {fmtCurrency(PLAN_PRICE[plan] ?? 0)}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Uso atual */}
+        <div style={{ background: B2, borderRadius: 8, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <p style={{ fontFamily: ff, fontSize: 11, color: M, margin: 0, textTransform: 'uppercase', letterSpacing: 1 }}>Uso este mês</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+            {[
+              { label: 'Carouseis', used: profile.carousels_used_this_month ?? 0, limit: profile.carousels_limit ?? 0 },
+              { label: 'Exports', used: profile.exports_used_this_month, limit: profile.exports_limit },
+              { label: 'IA Images', used: profile.ai_images_used_this_month ?? 0, limit: profile.ai_images_limit ?? 0 },
+            ].map(({ label, used, limit }) => {
+              const pct = limit > 0 && limit < 999999 ? Math.min(used / limit, 1) : null
+              return (
+                <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <span style={{ fontFamily: ff, fontSize: 10, color: M, textTransform: 'uppercase', letterSpacing: 0.8 }}>{label}</span>
+                  <span style={{ fontFamily: ffd, fontSize: 18, color: pct !== null && pct > 0.8 ? '#FF6B6B' : T, letterSpacing: 1 }}>
+                    {used}
+                  </span>
+                  <span style={{ fontFamily: ff, fontSize: 10, color: M2 }}>
+                    / {limit >= 999999 ? '∞' : limit}
+                  </span>
+                  {pct !== null && (
+                    <div style={{ height: 3, background: B, borderRadius: 2, overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${pct * 100}%`, background: pct > 0.8 ? '#FF6B6B' : A, borderRadius: 2 }} />
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Limites editáveis */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
           {[
-            { label: 'Limite exports', value: exportsLimit, set: setExportsLimit },
-            { label: 'Limite imagens IA', value: aiLimit, set: setAiLimit },
+            { label: 'Lim. carouseis', value: carouselsLimit, set: setCarouselsLimit },
+            { label: 'Lim. exports', value: exportsLimit, set: setExportsLimit },
+            { label: 'Lim. IA images', value: aiLimit, set: setAiLimit },
           ].map(({ label, value, set }) => (
             <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <label style={{ fontFamily: ff, fontSize: 11, color: M, textTransform: 'uppercase', letterSpacing: 1 }}>{label}</label>
+              <label style={{ fontFamily: ff, fontSize: 10, color: M, textTransform: 'uppercase', letterSpacing: 0.8 }}>{label}</label>
               <input
                 type="number"
                 value={value}
                 onChange={e => set(e.target.value)}
                 style={{
                   background: S2, border: `1px solid ${B}`, borderRadius: 8,
-                  padding: '10px 12px', color: T, fontFamily: ff, fontSize: 14,
+                  padding: '8px 10px', color: T, fontFamily: ff, fontSize: 13,
                   width: '100%', boxSizing: 'border-box',
                 }}
               />
             </div>
           ))}
-        </div>
-
-        {/* Uso atual */}
-        <div style={{ background: B2, borderRadius: 8, padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <p style={{ fontFamily: ff, fontSize: 11, color: M, margin: 0, textTransform: 'uppercase', letterSpacing: 1 }}>Uso atual</p>
-          <div style={{ display: 'flex', gap: 24 }}>
-            <span style={{ fontFamily: ff, fontSize: 13, color: T }}>
-              Exports: <b>{profile.exports_used_this_month}</b> / {profile.exports_limit}
-            </span>
-            <span style={{ fontFamily: ff, fontSize: 13, color: T }}>
-              IA: <b>{profile.ai_images_used_this_month ?? 0}</b> / {profile.ai_images_limit ?? 0}
-            </span>
-          </div>
         </div>
 
         {/* Feedback */}
@@ -398,8 +494,7 @@ function UserModal({ profile, onClose, onSaved }: {
             style={{
               flex: 1, background: A, color: '#000', border: 'none', borderRadius: 8,
               padding: '10px 0', fontFamily: ffd, fontSize: 14, letterSpacing: 1,
-              cursor: saving ? 'not-allowed' : 'pointer',
-              opacity: saving ? 0.6 : 1,
+              cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1,
             }}
           >
             {saving ? 'SALVANDO…' : 'SALVAR'}
@@ -410,8 +505,7 @@ function UserModal({ profile, onClose, onSaved }: {
             style={{
               flex: 1, background: 'none', color: M, border: `1px solid ${B}`, borderRadius: 8,
               padding: '10px 0', fontFamily: ff, fontSize: 13,
-              cursor: resetting ? 'not-allowed' : 'pointer',
-              opacity: resetting ? 0.6 : 1,
+              cursor: resetting ? 'not-allowed' : 'pointer', opacity: resetting ? 0.6 : 1,
             }}
           >
             {resetting ? 'Zerando…' : 'Zerar contadores'}
@@ -422,23 +516,27 @@ function UserModal({ profile, onClose, onSaved }: {
 
         {/* Usage logs */}
         <div>
-          <p style={{ fontFamily: ffd, fontSize: 14, color: T, letterSpacing: 1, margin: '0 0 12px' }}>HISTÓRICO (últimas 10)</p>
+          <p style={{ fontFamily: ffd, fontSize: 14, color: T, letterSpacing: 1, margin: '0 0 12px' }}>HISTÓRICO (últimas 20)</p>
           {logsLoading ? (
             <Spinner />
           ) : logs.length === 0 ? (
             <p style={{ fontFamily: ff, fontSize: 13, color: M2 }}>Sem registros</p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {logs.map(log => (
                 <div key={log.id} style={{
-                  display: 'flex', justifyContent: 'space-between',
-                  padding: '8px 0', borderBottom: `1px solid ${B}`,
+                  display: 'grid', gridTemplateColumns: '1fr auto auto auto',
+                  gap: 8, padding: '8px 0', borderBottom: `1px solid ${B}`,
+                  alignItems: 'center',
                 }}>
-                  <span style={{ fontFamily: ff, fontSize: 12, color: T }}>{log.action}</span>
-                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <span style={{ fontFamily: ff, fontSize: 11, color: M }}>{fmtCurrency(Number(log.cost_brl))}</span>
-                    <span style={{ fontFamily: ff, fontSize: 11, color: M2 }}>{fmtDate(log.created_at)}</span>
-                  </div>
+                  <span style={{ fontFamily: ff, fontSize: 11, color: T, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {log.action}
+                  </span>
+                  <span style={{ fontFamily: 'monospace', fontSize: 10, color: M2 }}>
+                    {(log.tokens_used ?? 0).toLocaleString('pt-BR')}tk
+                  </span>
+                  <span style={{ fontFamily: ff, fontSize: 11, color: M }}>{fmtCurrency(Number(log.cost_brl))}</span>
+                  <span style={{ fontFamily: ff, fontSize: 10, color: M2 }}>{fmtDate(log.created_at)}</span>
                 </div>
               ))}
             </div>
@@ -447,6 +545,7 @@ function UserModal({ profile, onClose, onSaved }: {
 
         {/* Info */}
         <div style={{ background: B2, borderRadius: 8, padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <Row label="ID" value={profile.user_id.slice(0, 16) + '…'} />
           <Row label="Nicho" value={profile.niche ?? '—'} />
           <Row label="Telegram" value={profile.telegram_chat_id ? 'Conectado' : 'Não'} />
           <Row label="Onboarding" value={profile.onboarding_completed ? 'Completo' : 'Pendente'} />
@@ -474,6 +573,7 @@ function UsersSection() {
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(0)
   const [planFilter, setPlanFilter] = useState('')
+  const [sourceFilter, setSourceFilter] = useState('')
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -488,15 +588,16 @@ function UsersSection() {
       .order('created_at', { ascending: false })
       .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
 
-    if (planFilter) q = q.eq('plan', planFilter)
-    if (search)     q = q.or(`display_name.ilike.%${search}%,instagram_handle.ilike.%${search}%`)
+    if (planFilter)   q = q.eq('plan', planFilter)
+    if (sourceFilter) q = q.eq('subscription_source', sourceFilter)
+    if (search)       q = q.or(`display_name.ilike.%${search}%,instagram_handle.ilike.%${search}%,email.ilike.%${search}%`)
 
     const { data, error: err, count } = await q
     setLoading(false)
     if (err) { setError(err.message); return }
     setUsers(data ?? [])
     setTotal(count ?? 0)
-  }, [page, planFilter, search])
+  }, [page, planFilter, sourceFilter, search])
 
   useEffect(() => { load() }, [load])
 
@@ -509,13 +610,13 @@ function UsersSection() {
       </h2>
 
       {/* Filtros */}
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         <input
-          placeholder="Buscar por nome ou @instagram…"
+          placeholder="Buscar por nome, @instagram ou email…"
           value={search}
           onChange={e => { setSearch(e.target.value); setPage(0) }}
           style={{
-            flex: 1, minWidth: 220, background: S2, border: `1px solid ${B}`, borderRadius: 8,
+            flex: 1, minWidth: 240, background: S2, border: `1px solid ${B}`, borderRadius: 8,
             padding: '10px 14px', color: T, fontFamily: ff, fontSize: 13,
           }}
         />
@@ -532,6 +633,18 @@ function UsersSection() {
             <option key={p} value={p}>{PLAN_LABEL[p]}</option>
           ))}
         </select>
+        <select
+          value={sourceFilter}
+          onChange={e => { setSourceFilter(e.target.value); setPage(0) }}
+          style={{
+            background: S2, border: `1px solid ${B}`, borderRadius: 8,
+            padding: '10px 12px', color: T, fontFamily: ff, fontSize: 13,
+          }}
+        >
+          <option value="">Toda origem</option>
+          <option value="webhook">Orgânico (Cakto)</option>
+          <option value="manual">Manual (Admin)</option>
+        </select>
       </div>
 
       {error && (
@@ -544,10 +657,10 @@ function UsersSection() {
       <div style={{ background: S, border: `1px solid ${B}`, borderRadius: 12, overflow: 'hidden' }}>
         {/* Cabeçalho */}
         <div style={{
-          display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 100px',
+          display: 'grid', gridTemplateColumns: '2.2fr 1.2fr 1fr 1fr 90px',
           padding: '12px 20px', borderBottom: `1px solid ${B}`,
         }}>
-          {['Nome', 'Plano', 'Exports', 'IA', 'Desde'].map(h => (
+          {['Usuário', 'Plano / Origem', 'Carouseis', 'IA / Exports', 'Desde'].map(h => (
             <span key={h} style={{ fontFamily: ff, fontSize: 11, color: M, textTransform: 'uppercase', letterSpacing: 1 }}>{h}</span>
           ))}
         </div>
@@ -560,25 +673,56 @@ function UsersSection() {
               key={u.id}
               onClick={() => setSelected(u)}
               style={{
-                display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 100px',
-                padding: '14px 20px',
+                display: 'grid', gridTemplateColumns: '2.2fr 1.2fr 1fr 1fr 90px',
+                padding: '13px 20px',
                 borderBottom: i < users.length - 1 ? `1px solid ${B}` : 'none',
                 cursor: 'pointer', transition: 'background 0.12s',
               }}
               onMouseEnter={e => (e.currentTarget.style.background = B2)}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
             >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <span style={{ fontFamily: ff, fontSize: 13, color: T }}>{userLabel(u)}</span>
-                {u.niche && <span style={{ fontFamily: ff, fontSize: 11, color: M2 }}>{u.niche}</span>}
+              {/* Nome + email */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                <span style={{ fontFamily: ff, fontSize: 13, color: T, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {userLabel(u)}
+                </span>
+                {u.email && (
+                  <span style={{ fontFamily: ff, fontSize: 11, color: M2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {u.email}
+                  </span>
+                )}
               </div>
-              <div><Pill plan={u.plan} /></div>
+
+              {/* Plano + badge origem */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <Pill plan={u.plan} />
+                {u.plan !== 'free' && (
+                  <span style={{
+                    fontFamily: ffd, fontSize: 9, letterSpacing: 0.8,
+                    color: u.subscription_source === 'webhook' ? A : M2,
+                    textTransform: 'uppercase',
+                  }}>
+                    {u.subscription_source === 'webhook' ? '● Orgânico' : '○ Manual'}
+                  </span>
+                )}
+              </div>
+
+              {/* Carouseis */}
               <span style={{ fontFamily: ff, fontSize: 13, color: T }}>
-                {u.exports_used_this_month} / {u.exports_limit}
+                {u.carousels_used_this_month ?? 0}
+                <span style={{ color: M2 }}> / {(u.carousels_limit ?? 0) >= 999999 ? '∞' : (u.carousels_limit ?? 0)}</span>
               </span>
-              <span style={{ fontFamily: ff, fontSize: 13, color: T }}>
-                {u.ai_images_used_this_month ?? 0} / {u.ai_images_limit ?? 0}
-              </span>
+
+              {/* IA / Exports */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <span style={{ fontFamily: ff, fontSize: 12, color: T }}>
+                  IA: {u.ai_images_used_this_month ?? 0}/{(u.ai_images_limit ?? 0) >= 999999 ? '∞' : (u.ai_images_limit ?? 0)}
+                </span>
+                <span style={{ fontFamily: ff, fontSize: 11, color: M2 }}>
+                  Exp: {u.exports_used_this_month}/{u.exports_limit >= 999999 ? '∞' : u.exports_limit}
+                </span>
+              </div>
+
               <span style={{ fontFamily: ff, fontSize: 12, color: M }}>{fmtDate(u.created_at)}</span>
             </div>
           ))
@@ -631,10 +775,13 @@ function UsersSection() {
 }
 
 // ─── Section: Financeiro ──────────────────────────────────────────
+interface PlanSourceRow { plan: string; subscription_source: string }
+
 function FinancialSection() {
-  const [planCounts, setPlanCounts] = useState<Record<string, number>>({})
+  const [planRows, setPlanRows] = useState<PlanSourceRow[]>([])
   const [costLast30, setCostLast30] = useState(0)
-  const [recentLogs, setRecentLogs] = useState<(UsageLog & { display_name?: string })[]>([])
+  const [totalCostAllTime, setTotalCostAllTime] = useState(0)
+  const [recentLogs, setRecentLogs] = useState<UsageLog[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -645,30 +792,35 @@ function FinancialSection() {
       const cutoff = new Date()
       cutoff.setDate(cutoff.getDate() - 30)
 
-      const [profilesRes, costRes, logsRes] = await Promise.all([
-        supabase.from('profiles').select('plan'),
+      const [profilesRes, cost30Res, costAllRes, logsRes] = await Promise.all([
+        supabase.from('profiles').select('plan, subscription_source'),
         supabase.from('usage_logs').select('cost_brl').gte('created_at', cutoff.toISOString()),
+        supabase.from('usage_logs').select('cost_brl'),
         supabase.from('usage_logs').select('*').order('created_at', { ascending: false }).limit(50),
       ])
 
       setLoading(false)
       if (profilesRes.error) { setError(profilesRes.error.message); return }
 
-      const counts: Record<string, number> = {}
-      for (const p of profilesRes.data ?? []) {
-        counts[p.plan] = (counts[p.plan] ?? 0) + 1
-      }
-      setPlanCounts(counts)
-      setCostLast30((costRes.data ?? []).reduce((s, l) => s + Number(l.cost_brl ?? 0), 0))
+      setPlanRows(profilesRes.data ?? [])
+      setCostLast30((cost30Res.data ?? []).reduce((s, l) => s + Number(l.cost_brl ?? 0), 0))
+      setTotalCostAllTime((costAllRes.data ?? []).reduce((s, l) => s + Number(l.cost_brl ?? 0), 0))
       setRecentLogs(logsRes.data ?? [])
     }
     load()
   }, [])
 
-  const mrr = Object.entries(planCounts).reduce((s, [plan, count]) => {
-    return s + (PLAN_PRICE[plan] ?? 0) * count
-  }, 0)
-  const margin = mrr - costLast30
+  // MRR real = só usuários que pagaram via webhook
+  const mrrReal = planRows
+    .filter(p => p.subscription_source === 'webhook')
+    .reduce((s, p) => s + (PLAN_PRICE[p.plan] ?? 0), 0)
+
+  // MRR total = todos (incluindo manual)
+  const mrrTotal = planRows.reduce((s, p) => s + (PLAN_PRICE[p.plan] ?? 0), 0)
+
+  const organicCount = planRows.filter(p => p.subscription_source === 'webhook' && p.plan !== 'free').length
+  const manualCount  = planRows.filter(p => p.subscription_source === 'manual'  && p.plan !== 'free').length
+  const margin = mrrReal - costLast30
 
   if (loading) return <Spinner />
   if (error) return (
@@ -681,26 +833,39 @@ function FinancialSection() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <h2 style={{ fontFamily: ffd, fontSize: 28, color: T, letterSpacing: 1, margin: 0 }}>FINANCEIRO</h2>
 
-      {/* Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
-        <KpiCard label="MRR estimado"     value={fmtCurrency(mrr)}        accent sub="assinaturas ativas" />
-        <KpiCard label="Custo IA (30d)"   value={fmtCurrency(costLast30)} sub="últimos 30 dias" />
-        <KpiCard label="Margem estimada"  value={fmtCurrency(margin)}     sub="MRR − custo IA" />
+      {/* KPI primários */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 12 }}>
+        <KpiCard label="MRR Real"           value={fmtCurrency(mrrReal)}        accent sub={`${organicCount} pagantes orgânicos`} />
+        <KpiCard label="MRR c/ manuais"     value={fmtCurrency(mrrTotal)}       sub={`+${manualCount} atribuídos manualmente`} />
+        <KpiCard label="Custo IA (30d)"     value={fmtCurrency(costLast30)}     sub="últimos 30 dias" />
+        <KpiCard label="Margem real (30d)"  value={fmtCurrency(margin)}         sub="MRR real − custo IA 30d" />
+        <KpiCard label="Custo IA total"     value={fmtCurrency(totalCostAllTime)} sub="desde o início" />
       </div>
 
-      {/* Breakdown MRR */}
+      {/* Breakdown MRR por plano */}
       <div style={{ background: S, border: `1px solid ${B}`, borderRadius: 12, padding: '20px 24px' }}>
-        <p style={{ fontFamily: ffd, fontSize: 16, color: T, letterSpacing: 1, margin: '0 0 16px' }}>MRR POR PLANO</p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <p style={{ fontFamily: ffd, fontSize: 14, color: T, letterSpacing: 1, margin: '0 0 16px' }}>MRR POR PLANO</p>
+
+        {/* Header */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr', gap: 8, marginBottom: 10 }}>
+          {['Plano', 'Orgânico', 'Manual', 'Receita Real'].map(h => (
+            <span key={h} style={{ fontFamily: ff, fontSize: 10, color: M, textTransform: 'uppercase', letterSpacing: 1 }}>{h}</span>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {(['construtor', 'escala', 'agencia'] as const).map(plan => {
-            const count = planCounts[plan] ?? 0
-            const revenue = count * PLAN_PRICE[plan]
+            const organic = planRows.filter(p => p.plan === plan && p.subscription_source === 'webhook').length
+            const manual  = planRows.filter(p => p.plan === plan && p.subscription_source !== 'webhook').length
+            const revenue = organic * PLAN_PRICE[plan]
             return (
-              <div key={plan} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                  <Pill plan={plan} />
-                  <span style={{ fontFamily: ff, fontSize: 13, color: M }}>{count} usuários × {fmtCurrency(PLAN_PRICE[plan])}</span>
-                </div>
+              <div key={plan} style={{
+                display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr', gap: 8,
+                padding: '10px 12px', background: B2, borderRadius: 8, alignItems: 'center',
+              }}>
+                <Pill plan={plan} />
+                <span style={{ fontFamily: ffd, fontSize: 16, color: A, letterSpacing: 1 }}>{organic}</span>
+                <span style={{ fontFamily: ffd, fontSize: 16, color: M, letterSpacing: 1 }}>{manual}</span>
                 <span style={{ fontFamily: ffd, fontSize: 18, color: T, letterSpacing: 1 }}>{fmtCurrency(revenue)}</span>
               </div>
             )
@@ -731,7 +896,7 @@ function FinancialSection() {
               borderBottom: i < recentLogs.length - 1 ? `1px solid ${B}` : 'none',
             }}>
               <span style={{ fontFamily: ff, fontSize: 13, color: T }}>{log.action}</span>
-              <span style={{ fontFamily: ff, fontSize: 13, color: M }}>{(log.tokens_used ?? 0).toLocaleString('pt-BR')}</span>
+              <span style={{ fontFamily: 'monospace', fontSize: 12, color: M }}>{(log.tokens_used ?? 0).toLocaleString('pt-BR')}</span>
               <span style={{ fontFamily: ff, fontSize: 13, color: M }}>{fmtCurrency(Number(log.cost_brl))}</span>
               <span style={{ fontFamily: ff, fontSize: 12, color: M2 }}>{fmtDate(log.created_at)}</span>
             </div>

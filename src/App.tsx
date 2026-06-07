@@ -28,6 +28,7 @@ export default function App() {
         <Route path="/"               element={<RootRedirect />} />
         <Route path="/auth"           element={<Auth />} />
         <Route path="/preview/:token" element={<PreviewPublic />} />
+        <Route path="/landing-preview" element={<Landing />} />
 
         {/* Protegidas */}
         <Route path="/onboarding" element={
