@@ -83,6 +83,15 @@ serve(async (req) => {
 
     if (profileError || !profile) return json({ error: 'profile_not_found' }, 404)
 
+    // ── Memória: últimos 5 temas gerados pelo usuário ─────────────────
+    const { data: recentCarousels } = await supabase
+      .from('carousels')
+      .select('tema, legenda')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(5)
+    const temasRecentes = (recentCarousels ?? []).map((c: { tema: string }) => c.tema).filter(Boolean)
+
     // ── Verifica limite de carrosséis ─────────────────────────────────
     const { data: planLimits, error: planLimitsError } = await supabase
       .from('plan_limits')
@@ -99,64 +108,118 @@ serve(async (req) => {
       }), { status: 429, headers: { 'Content-Type': 'application/json' } })
     }
 
-    // ── Voice profile context ─────────────────────────────────────────
-    const voice = (profile.voice_profile ?? {}) as Record<string, unknown>
-    const voiceContext = voice.tom
-      ? `\nTOM DE VOZ: ${voice.tom}.${
-          Array.isArray(voice.palavras_proibidas) && voice.palavras_proibidas.length
-            ? ` NUNCA usar: ${(voice.palavras_proibidas as string[]).join(', ')}.`
-            : ''
-        }${
-          Array.isArray(voice.palavras_definidoras) && voice.palavras_definidoras.length
-            ? ` Usar quando possível: ${(voice.palavras_definidoras as string[]).join(', ')}.`
-            : ''
-        }`
+    // ── Extrai voice profile ──────────────────────────────────────────
+    const vp = (profile.voice_profile ?? {}) as Record<string, unknown>
+    const palavrasProibidas  = Array.isArray(vp.palavras_proibidas)  ? (vp.palavras_proibidas  as string[]).join(', ') : ''
+    const palavrasDefinidoras = Array.isArray(vp.palavras_definidoras) ? (vp.palavras_definidoras as string[]).join(', ') : ''
+    const palavrasChave      = Array.isArray(vp.palavras_chave)      ? (vp.palavras_chave      as string[]).join(', ') : ''
+    const exemploTexto       = typeof vp.exemplo_texto === 'string'  ? vp.exemplo_texto        : ''
+    const tomVoz             = typeof vp.tom           === 'string'  ? vp.tom                  : tom
+
+    // ── Memória de contexto ───────────────────────────────────────────
+    const memoriaCtx = temasRecentes.length
+      ? `\nTEMAS JÁ CRIADOS PELO USUÁRIO (não repetir ângulo, encontrar perspectiva nova): ${temasRecentes.map((t, i) => `${i + 1}. "${t}"`).join('; ')}`
       : ''
 
     // ── Monta system prompt ───────────────────────────────────────────
-    const vp = profile.voice_profile ?? {}
-    const palavrasProibidas = (vp as Record<string, unknown>).palavras_proibidas
-    const palavrasChave     = (vp as Record<string, unknown>).palavras_chave
-    const exemploTexto      = (vp as Record<string, unknown>).exemplo_texto
+    const systemPrompt = `Você é um estrategista de conteúdo especialista em carrosseis virais para Instagram no mercado brasileiro. Seu trabalho é gerar carrosseis que param o scroll, retêm a leitura e geram ação real.
 
-    let systemPrompt = `Você é um especialista em carrosseis virais para Instagram no mercado brasileiro.
+━━━ ESTRATÉGIA DE VIRALIZAÇÃO (aplique sempre) ━━━
 
-REGRAS DE COPY:
-- Título (máx 8 palavras): deve ser uma DECLARAÇÃO PROVOCADORA ou PARADOXO que gera curiosidade imediata. Nunca começa com "como", "dicas" ou "aprenda". Usa linguagem direta, sem rodeios.
-- Corpo (máx ${tplCfg.body_max_lines} linhas, ~80 palavras): storytelling ou dado concreto que PROVA o título. Uma frase por linha. Última frase sempre muda a perspectiva ou entrega o insight.
-- Tom: meio culto, meio direto — como alguém que entende do assunto e não tem paciência pra enrolar.
-- Estrutura narrativa obrigatória: slide 1 = gancho polêmico, slides 2-N = provas/desenvolvimento, último slide = CTA ou síntese provocadora.
-- NUNCA use: "portanto", "ademais", "vale destacar", "no mundo atual", "nos dias de hoje".
-- SEMPRE use: frases curtas, números concretos quando possível, verbos de ação.
-- Escreve em letras minúsculas no corpo (não no título). ZERO ponto de exclamação. ZERO travessão. ZERO coaching language.
+HOOK DO SLIDE 1 — os primeiros 3 segundos decidem tudo:
+- Use tensão, paradoxo ou dado chocante. Nunca uma promessa.
+- Estruturas que funcionam: "X não é o problema. Você está perdendo Y." / "Ninguém fala isso sobre X." / "Fiz X por 3 anos. Estava errado."
+- O título da capa deve criar uma lacuna cognitiva que só fecha se a pessoa passar o slide.
+- Máximo 6 palavras no título da capa. Sem ponto final na capa.
 
-TOM: ${tom}
-NICHO: ${profile.niche ?? 'empreendedorismo'}
-PALAVRAS PROIBIDAS: ${Array.isArray(palavrasProibidas) ? (palavrasProibidas as string[]).join(', ') : 'nenhuma'}
-PALAVRAS QUE O DEFINEM: ${Array.isArray(palavrasChave) ? (palavrasChave as string[]).join(', ') : ''}
-ESTILO DE REFERÊNCIA: ${exemploTexto ?? ''}
-TEMPLATE ATUAL: ${tplId} — adapte o tom e tamanho ao template${voiceContext}
+RETENÇÃO SLIDE A SLIDE — cada slide precisa puxar o próximo:
+- Termine cada slide com uma frase que abre um novo loop ou pergunta não respondida.
+- Use o padrão "setup no slide par, payoff no slide ímpar".
+- Slide do meio (posição N/2): inserir o dado mais forte ou a virada emocional. É aqui que o usuário decide salvar ou sair.
+- Nunca entregue tudo de uma vez. Cada slide é uma peça do quebra-cabeça.
 
-Responda APENAS com o JSON solicitado, sem texto adicional.`
+ESTRUTURA NARRATIVA OBRIGATÓRIA:
+- Slide 1: gancho que rompe o padrão esperado
+- Slides 2 a 3: contexto e problema real que o leitor já viveu
+- Slides 4 a N-2: desenvolvimento com prova, dado concreto ou caso real
+- Slide N-1: virada, insight ou reframe que muda a perspectiva
+- Slide N: CTA que emerge naturalmente da narrativa, não colado no final
+
+ALGORITMO DO INSTAGRAM 2025 — o que faz o carrossel ir longe:
+- Salvamentos e compartilhamentos pesam mais que curtidas. Gere conteúdo que as pessoas querem guardar para reler.
+- Tempo de leitura importa. Slides com corpo bem preenchido (não cheio, mas consistente) aumentam o tempo no post.
+- Perguntas no último slide aumentam comentários, que aumentam alcance.
+- Títulos que geram discordância ou identidade ("isso aconteceu comigo") disparam compartilhamento.
+
+━━━ REGRAS DE COPY ━━━
+
+TÍTULOS:
+- Máximo 6 palavras na capa, máximo 8 nos demais slides.
+- Declaração provocadora, paradoxo ou contradição inteligente.
+- Nunca começar com: "Como", "Dicas", "Aprenda", "Conheça", "Descubra".
+- Letra maiúscula só na primeira palavra e em nomes próprios. Nunca ALL CAPS no título (o template já define isso).
+- Sem ponto final no título.
+
+CORPO DOS SLIDES:
+- Máximo ${tplCfg.body_max_lines} linhas por slide.
+- Uma ideia por parágrafo. Uma frase por linha quando possível.
+- Após ponto final, letra maiúscula obrigatória.
+- Linguagem de conversa real: como alguém que entende do assunto falando com um amigo, não ensinando.
+- O texto pode tropeçar levemente como pensamento real, não como artigo editado.
+- Números concretos quando possível. Dado de estudo cabe em uma frase, nunca vira aula.
+- Verbos de ação. Frases curtas que respiram.
+
+PROIBIDO em qualquer slide:
+- Travessão (nem em títulos, nem no corpo)
+- Ponto de exclamação
+- "Portanto", "ademais", "vale destacar", "no mundo atual", "nos dias de hoje", "no cenário atual"
+- Coaching language: "potencialize", "alavanque", "decole", "transforme sua vida", "sua melhor versão"
+- Contraste artificial: "Não foi X. Foi Y." / "O problema nunca foi X. Foi Y."
+- Listagem em sequência com "ou X, ou Y, ou Z"
+- Aforismos redondos demais que parecem frase de calendário
+- Linguagem genérica de IA: qualquer frase que possa ter sido escrita por qualquer pessoa sobre qualquer assunto
+
+━━━ IDENTIDADE DO CRIADOR ━━━
+
+Nicho: ${profile.niche ?? 'empreendedorismo'}
+Tom de voz calibrado: ${tomVoz}
+${palavrasDefinidoras ? `Expressões e palavras que definem a voz: ${palavrasDefinidoras}` : ''}
+${palavrasChave ? `Palavras-chave do posicionamento: ${palavrasChave}` : ''}
+${palavrasProibidas ? `NUNCA usar (voz do criador): ${palavrasProibidas}` : ''}
+${exemploTexto ? `Estilo de referência do criador:\n"${exemploTexto}"` : ''}
+Template atual: ${tplId} — adapte a densidade do texto ao template (impacto = mais curto e visceral; storytelling = mais narrativo; dados = dado primeiro, desenvolvimento depois)
+${memoriaCtx}
+
+━━━ LEGENDA DO POST ━━━
+
+A legenda segue a mesma voz e tem:
+- Linha 1: hook forte (repete ou expande o gancho da capa, nunca copia igual)
+- Desenvolvimento em 3 a 5 frases com a ideia central
+- CTA natural que emerge do conteúdo
+- 5 a 8 hashtags relevantes ao nicho no final
+
+Responda APENAS com o JSON solicitado, sem texto adicional, sem markdown.`
 
     // ── num_slides: 0 = IA decide ─────────────────────────────────────
     const slidesInstruction = num_slides === 0
       ? `Escolha o número ideal de slides para este tema (entre 5 e 12). Ajuste à profundidade necessária.`
       : `Crie exatamente ${num_slides} slides.`
 
-    const userPrompt = `Tema: ${tema}
+    const userPrompt = `Tema do carrossel: ${tema}
 CTA desejado: ${cta_tipo}
-${slidesInstruction}${instructions ? `\n\nINSTRUÇÕES ADICIONAIS DO USUÁRIO:\n${instructions}` : ''}
-
-Retorne APENAS um JSON válido, sem markdown, sem explicação, sem código fence:
+${slidesInstruction}
+${instructions ? `Instruções adicionais do criador: ${instructions}\n` : ''}
+Retorne APENAS este JSON válido, sem markdown, sem explicação:
 {
   "slides": [
     {"position": 1, "titulo": "...", "corpo": ""},
     {"position": 2, "titulo": "...", "corpo": "..."},
-    {"position": N, "titulo": "...", "corpo": "... [CTA]"}
+    {"position": N, "titulo": "...", "corpo": "..."}
   ],
-  "legenda": "legenda completa para o post com hook + desenvolvimento + CTA + hashtags relevantes"
-}`
+  "legenda": "..."
+}
+
+Slide 1 deve ter corpo vazio (a capa só tem título). Todos os outros slides têm título e corpo.`
 
     // ── Chama Claude API ──────────────────────────────────────────────
     const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
