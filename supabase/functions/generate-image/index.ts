@@ -77,20 +77,28 @@ function buildSceneFromContent(titulo: string, corpo: string, nicho: string, isF
 
   // Capa: cena de alto impacto que representa o tema principal
   if (isFirstSlide) {
-    if (/instagram|carrossel|feed|post|conteúdo|criador/.test(t))
-      return 'a lone creative professional standing at the edge of a rooftop at golden hour, phone in hand, city lights blurring below, dramatic rim lighting outlining the figure against a deep dark sky'
-    if (/dinheiro|lucro|faturamento|receita|rico|riqueza/.test(t))
-      return 'stacks of hundred-dollar bills fanning out on a dark marble surface, single overhead spotlight creating dramatic shadows, macro detail of the texture, deep dark background'
-    if (/erro|fracasso|problema|armadilha|mentira|cuidado/.test(t))
-      return 'a cracked glass surface with light refracting through the fractures, dark moody atmosphere, single cold blue light source, sense of something breaking apart in slow motion'
-    if (/segredo|sistema|controle|algoritmo|por tr[áa]s/.test(t))
-      return 'a maze viewed from above, one person standing at the center illuminated by a single shaft of light, all others trapped in dark corridors, aerial cinematic perspective'
-    if (/sucesso|crescimento|conquista|escala|vit[óo]ria/.test(t))
-      return 'a person at the summit of a mountain at dawn, arms slightly open, warm golden light breaking over the horizon, deep atmospheric mist below, sense of achievement and scale'
-    if (/tempo|horas|rotina|produtividade|eficiência/.test(t))
-      return 'a close-up of an analog clock face, gears exposed, dramatic side lighting with deep shadows, time as a tangible and precious object, high detail macro photography'
-    // genérico de capa
-    return `a dramatic cinematic scene representing "${titulo.substring(0, 60)}", powerful focal subject, high contrast lighting, magazine-cover visual impact`
+    if (/instagram|carrossel|feed|post|conteúdo|criador|redes sociais/.test(t))
+      return 'a lone creative professional standing at the edge of a rooftop at golden hour, phone in hand, city lights blurring below, dramatic warm rim lighting outlining the silhouette against a deep dark sky, cinematic'
+    if (/dinheiro|lucro|faturamento|receita|rico|riqueza|ganhar|fatura/.test(t))
+      return 'stacks of hundred-dollar bills fanning out on a dark marble surface, single overhead spotlight creating dramatic shadows, macro texture detail, deep black background, premium cinematic'
+    if (/erro|fracasso|problema|armadilha|mentira|cuidado|alerta|perigo/.test(t))
+      return 'a cracked glass surface with cold blue light refracting through the fractures, dark moody atmosphere, sense of something breaking apart in slow motion, dramatic underlighting'
+    if (/segredo|sistema|controle|algoritmo|por tr[áa]s|invisível|oculto/.test(t))
+      return 'a aerial view of a geometric maze at night, one small figure at the center illuminated by a single shaft of warm light, all others in dark corridors, cinematic drone perspective'
+    if (/sucesso|crescimento|conquista|escala|vit[óo]ria|lider|autoridade/.test(t))
+      return 'a lone figure at the summit of a mountain at dawn, arms slightly open, warm golden light breaking over the horizon, deep atmospheric mist in the valleys below, epic scale and achievement'
+    if (/tempo|hora|rotina|produtividade|eficiência|trabalha|trabalho|grátis|desperdiç|automat|manual/.test(t))
+      return 'extreme close-up macro of a luxury analog watch face, gears and mechanisms partially exposed, dramatic single side light with deep shadows, time as a tangible precious object, dark background'
+    if (/venda|cliente|negócio|empresa|mercado|produto|contrato|fechar/.test(t))
+      return 'a handshake moment captured in dramatic close-up, warm directional light illuminating only the hands, dark premium background, sense of power and finality, cinematic depth of field'
+    if (/aprender|conhecimento|curso|habilidade|skill|estud/.test(t))
+      return 'a single open book on a dark surface, a beam of golden light falling on it from above, dust particles visible in the light ray, knowledge as something sacred and rare'
+    if (/saúde|corpo|mente|bem.estar|energia|dormir|descanso/.test(t))
+      return 'abstract organic light waves flowing through a dark space, bioluminescent energy patterns, calm powerful atmosphere, sense of internal vitality and strength'
+    if (/medo|bloqueio|trava|dúvida|ansiedade|paralisa/.test(t))
+      return 'a single figure standing at the edge of a diving board over a pool far below, dramatic underlighting, high altitude perspective, moment of decision frozen in time'
+    // fallback forte — usa o título real como referência descritiva
+    return `dramatic cinematic cover image evoking the concept "${titulo.substring(0, 70)}", powerful focal subject with strong directional light, deep dark background, magazine-cover energy, no text`
   }
 
   // Slides internos: cena que sustenta o conteúdo específico

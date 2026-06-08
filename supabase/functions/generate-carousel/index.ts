@@ -20,12 +20,12 @@ const TEMPLATE_CONFIGS: Record<string, {
   title_letter_spacing: number; text_position: string; overlay_opacity: number
   body_max_lines: number; num_slides_sugerido: number
 }> = {
-  impacto:      { font_size_title: 96, font_size_body: 22, title_uppercase: true,  title_letter_spacing: 3, text_position: 'bottom', overlay_opacity: 60, body_max_lines: 3,  num_slides_sugerido: 7  },
-  editorial:    { font_size_title: 64, font_size_body: 26, title_uppercase: true,  title_letter_spacing: 1, text_position: 'center', overlay_opacity: 70, body_max_lines: 6,  num_slides_sugerido: 10 },
-  lista:        { font_size_title: 48, font_size_body: 28, title_uppercase: false, title_letter_spacing: 0, text_position: 'center', overlay_opacity: 65, body_max_lines: 5,  num_slides_sugerido: 7  },
-  citacao:      { font_size_title: 52, font_size_body: 20, title_uppercase: false, title_letter_spacing: 0, text_position: 'center', overlay_opacity: 75, body_max_lines: 2,  num_slides_sugerido: 5  },
-  storytelling: { font_size_title: 58, font_size_body: 24, title_uppercase: false, title_letter_spacing: 0, text_position: 'bottom', overlay_opacity: 55, body_max_lines: 5,  num_slides_sugerido: 10 },
-  dados:        { font_size_title: 88, font_size_body: 22, title_uppercase: true,  title_letter_spacing: 2, text_position: 'center', overlay_opacity: 70, body_max_lines: 3,  num_slides_sugerido: 7  },
+  impacto:      { font_size_title: 96, font_size_body: 30, title_uppercase: true,  title_letter_spacing: 3, text_position: 'bottom', overlay_opacity: 60, body_max_lines: 3,  num_slides_sugerido: 7  },
+  editorial:    { font_size_title: 64, font_size_body: 30, title_uppercase: true,  title_letter_spacing: 1, text_position: 'center', overlay_opacity: 70, body_max_lines: 5,  num_slides_sugerido: 10 },
+  lista:        { font_size_title: 48, font_size_body: 30, title_uppercase: false, title_letter_spacing: 0, text_position: 'center', overlay_opacity: 65, body_max_lines: 4,  num_slides_sugerido: 7  },
+  citacao:      { font_size_title: 52, font_size_body: 28, title_uppercase: false, title_letter_spacing: 0, text_position: 'center', overlay_opacity: 75, body_max_lines: 2,  num_slides_sugerido: 5  },
+  storytelling: { font_size_title: 58, font_size_body: 28, title_uppercase: false, title_letter_spacing: 0, text_position: 'bottom', overlay_opacity: 55, body_max_lines: 4,  num_slides_sugerido: 10 },
+  dados:        { font_size_title: 88, font_size_body: 30, title_uppercase: true,  title_letter_spacing: 2, text_position: 'center', overlay_opacity: 70, body_max_lines: 3,  num_slides_sugerido: 7  },
 }
 
 // ─── Font size adaptativo por comprimento do título ───────────────────────────
@@ -133,10 +133,11 @@ HOOK DO SLIDE 1 — os primeiros 3 segundos decidem tudo:
 - Máximo 6 palavras no título da capa. Sem ponto final na capa.
 
 RETENÇÃO SLIDE A SLIDE — cada slide precisa puxar o próximo:
-- Termine cada slide com uma frase que abre um novo loop ou pergunta não respondida.
-- Use o padrão "setup no slide par, payoff no slide ímpar".
+- A última frase de cada slide (exceto o último) deve obrigatoriamente abrir um loop, uma pergunta implícita ou uma tensão que só resolve no slide seguinte. Exemplos: "Mas tem um detalhe que a maioria ignora." / "E aqui é onde tudo muda." / "O problema não é o que você pensa."
+- Use o padrão "setup no slide par, payoff no slide ímpar": slide 2 levanta a tensão, slide 3 resolve parcialmente e abre outra.
 - Slide do meio (posição N/2): inserir o dado mais forte ou a virada emocional. É aqui que o usuário decide salvar ou sair.
 - Nunca entregue tudo de uma vez. Cada slide é uma peça do quebra-cabeça.
+- O leitor deve sentir que não pode parar no meio — cada slide cria dependência do próximo.
 
 ESTRUTURA NARRATIVA OBRIGATÓRIA:
 - Slide 1: gancho que rompe o padrão esperado
@@ -161,21 +162,27 @@ TÍTULOS:
 - Sem ponto final no título.
 
 CORPO DOS SLIDES:
-- Máximo ${tplCfg.body_max_lines} linhas por slide.
-- Uma ideia por parágrafo. Uma frase por linha quando possível.
-- Após ponto final, letra maiúscula obrigatória.
+- Máximo ${tplCfg.body_max_lines} linhas por slide. Cada linha é uma frase completa com sujeito, verbo e objeto.
+- OBRIGATÓRIO: após todo ponto final, a próxima palavra começa com letra maiúscula. Sem exceção.
+- O corpo é uma narrativa contínua, não uma lista. Proibido usar itens separados por ponto, vírgula ou linha como se fossem bullet points. Proibido o formato "item 1 / item 2 / item 3".
 - Linguagem de conversa real: como alguém que entende do assunto falando com um amigo, não ensinando.
-- O texto pode tropeçar levemente como pensamento real, não como artigo editado.
-- Números concretos quando possível. Dado de estudo cabe em uma frase, nunca vira aula.
-- Verbos de ação. Frases curtas que respiram.
+- O texto pode tropeçar levemente como pensamento real, não como artigo editado e polido.
+- Números concretos quando encaixam na narrativa. Dado de estudo cabe em uma frase, nunca vira aula.
+- Verbos de ação. Frases curtas que respiram. Cada frase tem só uma ideia.
+
+FORMATO DO CORPO — EXEMPLO CORRETO:
+"Você passa horas fazendo isso toda semana. Não percebe porque virou rotina. Mas tem um número que muda tudo quando você calcula."
+
+FORMATO DO CORPO — EXEMPLO ERRADO (nunca fazer):
+"agendar posts: 4 horas\nemails de follow up: 2 horas\nrelatórios: 3 horas"
 
 PROIBIDO em qualquer slide:
 - Travessão (nem em títulos, nem no corpo)
 - Ponto de exclamação
+- Listas com itens separados por quebra de linha, dois-pontos ou barra
 - "Portanto", "ademais", "vale destacar", "no mundo atual", "nos dias de hoje", "no cenário atual"
 - Coaching language: "potencialize", "alavanque", "decole", "transforme sua vida", "sua melhor versão"
 - Contraste artificial: "Não foi X. Foi Y." / "O problema nunca foi X. Foi Y."
-- Listagem em sequência com "ou X, ou Y, ou Z"
 - Aforismos redondos demais que parecem frase de calendário
 - Linguagem genérica de IA: qualquer frase que possa ter sido escrita por qualquer pessoa sobre qualquer assunto
 
