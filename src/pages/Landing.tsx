@@ -103,12 +103,12 @@ const STEPS = [
 ]
 
 const FEATURES = [
-  { id: 'copy',      label: 'Copy IA',    title: 'Copy que para o scroll',       body: 'Cada slide recebe título, subtítulo e corpo calibrados para engajamento. A IA lê o tema e gera narrativa com gancho, desenvolvimento e CTA — sem você precisar saber de copywriting.' },
-  { id: 'image',     label: 'Imagem IA',  title: 'Visual cinematográfico',       body: 'fal.ai Flux 2 Pro gera imagens de fundo para cada slide com base no conteúdo real. O resultado é um carrossel que parece produção de estúdio.' },
-  { id: 'studio',    label: 'Studio',     title: 'Editor visual completo',       body: 'Ajuste fonte, cor, tamanho, imagem, sobreposição e posição de cada slide. O que a IA gera é ponto de partida — você finaliza como quiser.' },
-  { id: 'calendar',  label: 'Calendário', title: 'Seu tabuleiro de conteúdo',    body: 'Visualize todos os carrosseis no calendário e organize sua presença digital por semana ou mês. Nunca mais posta no improviso.' },
-  { id: 'export',    label: 'Export',     title: 'Pronto pra postar',            body: 'Exporte cada slide como PNG em alta resolução (1080×1350). Ideal para Stories e Feed. Sem marca d\'água nos planos pagos.' },
-  { id: 'workspace', label: 'Workspace',  title: 'Para times e agências',        body: 'Crie múltiplos workspaces para clientes diferentes. Cada workspace tem seu próprio calendário, carrosseis e configurações.' },
+  { id: 'copy',      label: 'Copy IA',    img: '/images/recursos/copy-ia.jpg',      title: 'Copy que para o scroll',       body: 'Cada slide recebe título, subtítulo e corpo calibrados para engajamento. A IA lê o tema e gera narrativa com gancho, desenvolvimento e CTA — sem você precisar saber de copywriting.' },
+  { id: 'image',     label: 'Imagem IA',  img: '/images/recursos/imagem-ia.jpg',    title: 'Visual cinematográfico',       body: 'fal.ai Flux 2 Pro gera imagens de fundo para cada slide com base no conteúdo real. O resultado é um carrossel que parece produção de estúdio.' },
+  { id: 'studio',    label: 'Studio',     img: '/images/recursos/studio.jpg',       title: 'Editor visual completo',       body: 'Ajuste fonte, cor, tamanho, imagem, sobreposição e posição de cada slide. O que a IA gera é ponto de partida — você finaliza como quiser.' },
+  { id: 'calendar',  label: 'Calendário', img: '/images/recursos/calendario.jpg',   title: 'Seu tabuleiro de conteúdo',    body: 'Visualize todos os carrosseis no calendário e organize sua presença digital por semana ou mês. Nunca mais posta no improviso.' },
+  { id: 'export',    label: 'Export',     img: '/images/recursos/export.jpg',       title: 'Pronto pra postar',            body: 'Exporte cada slide como PNG em alta resolução (1080×1350). Ideal para Stories e Feed. Sem marca d\'água nos planos pagos.' },
+  { id: 'workspace', label: 'Workspace',  img: '/images/recursos/workspace.jpg',    title: 'Para times e agências',        body: 'Crie múltiplos workspaces para clientes diferentes. Cada workspace tem seu próprio calendário, carrosseis e configurações.' },
 ]
 
 const SLIDE_IMAGES = [
@@ -497,18 +497,18 @@ export default function Landing() {
               Em tempo real.
             </h1>
             <p className="hero-sub">
-              Olhe pro card ao lado: é o ConteúdOS rodando de verdade — tema entra, a IA escreve a copy,
-              gera a imagem e monta o slide na sua frente. Sem Canva, sem prompt técnico, sem trava criativa.
+              O ConteúdOS acabou de montar esse carrossel ao vivo — sem Canva, sem prompt técnico, sem designer.
+              Você descreve o tema, ele escreve a copy, gera a imagem e entrega pronto pra postar.
             </p>
             <div className="hero-btns">
               <Magnetic>
                 <button className="btn-primary glow-orbit" onClick={() => navigate('/dashboard')}>Montar meu primeiro carrossel →</button>
               </Magnetic>
-              <button className="btn-ghost" onClick={() => document.getElementById('como-funciona')?.scrollIntoView({ behavior: 'smooth' })}>Ver como funciona</button>
+              <button className="btn-ghost" onClick={() => document.getElementById('como-funciona')?.scrollIntoView({ behavior: 'smooth' })}>Ver demo abaixo ↓</button>
             </div>
             <div className="hero-stats">
               <div><div className="stat-num">3min</div><div className="stat-lbl">do tema ao slide pronto</div></div>
-              <div><div className="stat-num">10+</div><div className="stat-lbl">slides por carrossel</div></div>
+              <div><div className="stat-num">até 15</div><div className="stat-lbl">slides por carrossel</div></div>
               <div><div className="stat-num">0</div><div className="stat-lbl">apps extras pra abrir</div></div>
             </div>
           </motion.div>
@@ -593,8 +593,8 @@ export default function Landing() {
           <Reveal>
             <div className="truth-num">97%</div>
             <h2>Você posta.<br />Eles <span className="gt2">jogam outro jogo.</span></h2>
-            <p>97% dos perfis publicam no escuro — sem tema fixo, sem narrativa, sem sequência. O algoritmo nota essa falta de padrão e empurra esse conteúdo pra baixo. Não é falta de talento: é falta de tabuleiro.</p>
-            <p>Os perfis que crescem de verdade pensam em peças que se conectam — cada carrossel ocupa um lugar, puxa o próximo, constrói autoridade post a post. O ConteúdOS monta esse tabuleiro com você, com IA, em minutos.</p>
+            <p>97% dos perfis publicam no escuro — sem tema fixo, sem narrativa, sem sequência. O algoritmo nota essa falta de padrão e empurra pra baixo. Não é falta de talento: é falta de tabuleiro.</p>
+            <p>Os perfis que crescem pensam em peças que se conectam — cada carrossel puxa o próximo, constrói autoridade post a post. O ConteúdOS monta esse tabuleiro com você, com IA, em minutos.</p>
             <Magnetic><button className="btn-primary glow-orbit" onClick={() => navigate('/dashboard')}>Montar meu tabuleiro →</button></Magnetic>
           </Reveal>
           <Reveal delay={0.15}>
@@ -678,10 +678,11 @@ export default function Landing() {
               <p>{activeFeature.body}</p>
             </motion.div>
             <motion.div className="fs-visual" style={{ padding: 0, overflow: 'hidden' }}
-              initial={{ opacity: 0, scale: 0.94 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true, amount: 0.4 }}
-              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              key={activeFeature.id + '-img'}
+              initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             >
-              <img src="/images/recursos/dashboard.jpg" alt="Preview"
+              <img src={activeFeature.img} alt={activeFeature.title}
                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             </motion.div>
           </div>
@@ -847,7 +848,7 @@ export default function Landing() {
             <h2>Travou em algo? <span className="gt2">A gente resolve.</span></h2>
           </Reveal>
           <RevealGroup className="suporte-grid" gap={0.1}>
-            <motion.a className="sup-card" variants={fadeUp} whileHover={{ y: -4 }} href="https://wa.me/55SEUNUMERO" target="_blank" rel="noreferrer">
+            <motion.a className="sup-card" variants={fadeUp} whileHover={{ y: -4 }} href="https://wa.me/5511999999999" target="_blank" rel="noreferrer">
               <div className="sup-icon">💬</div>
               <h4>WhatsApp</h4>
               <p>Resposta rápida em dias úteis</p>
