@@ -14,54 +14,143 @@ function json(data: unknown, status = 200) {
   })
 }
 
-// Vocabulário de direção de arte/fotografia profissional — adjetivos genéricos
-// como "dark moody" produziam imagens de banco de imagens. Termos técnicos
-// específicos (lente, luz, textura, referência de estilo) guiam o modelo
-// pra resultados com cara de capa de carrossel viral, não de stock photo.
+// ─── Estilo por tipo de imagem ────────────────────────────────────────────────
+// Termos técnicos de fotografia e direção de arte guiam o Flux melhor que
+// adjetivos genéricos. Cada estilo define lente, luz, textura e referência.
 const STYLE_MODIFIERS: Record<string, string> = {
-  cinematic:    'cinematic photography, anamorphic lens flare, deep directional shadows, fine film grain, Kodak Portra color science',
-  illustration: 'modern editorial illustration, bold flat color blocking, geometric shapes, high-contrast vector art, trending Behance aesthetic',
-  abstract:     'abstract fluid art, organic gradient blends, soft bokeh light leaks, painterly texture, generative-art aesthetic',
-  minimal:      'minimalist studio photography, single-source soft light, clean geometric subject, generous negative space',
-  gradient:     'smooth gradient mesh, holographic sheen, glassmorphism texture, premium tech-brand aesthetic',
+  cinematic:    'shot on ARRI Alexa, 35mm anamorphic lens, deep directional key light, fine analog film grain, rich shadow detail, Kodak Vision3 color science, professional color grade',
+  illustration: 'bold editorial illustration, high-contrast graphic design, geometric shapes, flat vector art with depth, Behance trending style 2025',
+  abstract:     'abstract cinematic background, organic fluid shapes, soft light leaks, painterly bokeh texture, premium generative-art aesthetic',
+  minimal:      'minimalist studio shot, single soft-box key light, clean subject, generous negative space, sharp focus, neutral tones',
+  gradient:     'premium gradient background, subtle holographic sheen, glassmorphism depth, tech-brand aesthetic, smooth color transitions',
 }
 
-const NO_TEXT_PREFIX = 'Abstract cinematic background only. NO TEXT, NO WORDS, NO LETTERS, NO NUMBERS, NO TYPOGRAPHY, NO WATERMARKS anywhere in the image. Pure visual atmosphere. '
-const NO_TEXT_SUFFIX = ', wide cinematic atmospheric background, ultra detailed, professional color grading, no text, no people, no faces, no writing, no words, no labels, no logos visible anywhere'
+// ─── Bloqueio de texto na imagem ─────────────────────────────────────────────
+const NO_TEXT = 'NO TEXT, NO WORDS, NO LETTERS, NO NUMBERS, NO TYPOGRAPHY, NO WATERMARKS, NO CAPTIONS anywhere in the image.'
 
-// Técnica nº1 que separa carrossel amador de profissional: deixar uma área
-// limpa (negative space) onde o texto vai ser sobreposto depois. Capa precisa
-// parar o scroll (alto impacto); slides internos precisam "sustentar" o texto
-// sem competir com ele.
-const COVER_COMPOSITION = 'bold scroll-stopping composition for a social media cover: striking focal subject placed off-center using rule-of-thirds, large clean negative-space area in the upper half reserved for a bold headline overlay, high visual impact, magazine-cover energy'
-const SLIDE_COMPOSITION = 'calm supportive composition for a content slide: subject pushed toward one edge of the frame, large clean low-detail negative-space area across the center reserved for body-text overlay, minimal visual noise so overlaid text stays legible'
+// ─── Composição por tipo de slide ────────────────────────────────────────────
+// Capa: impacto visual máximo, espaço limpo no topo para o título sobreposto.
+// Slides internos: suportam o texto sem competir, espaço limpo no centro.
+const COVER_COMP  = 'scroll-stopping cover composition: bold dramatic focal subject at bottom-right using rule-of-thirds, large clean dark negative space in the upper-left third reserved for headline text overlay, strong visual impact, magazine-cover energy'
+const SLIDE_COMP  = 'editorial content-slide composition: main subject pushed to one edge of frame, wide clean low-contrast negative space across the center reserved for body text overlay, minimal visual clutter so overlaid text stays fully legible, moody atmospheric background'
 
-// Lê o tom emocional do conteúdo (PT-BR) pra dar direção de luz/cor coerente
-// com a mensagem do slide, em vez de aplicar sempre o mesmo clima genérico.
+// ─── Infere mood pelo conteúdo em PT-BR ──────────────────────────────────────
 function inferMood(text: string): string {
   const t = text.toLowerCase()
-  if (/\berro|medo|perigo|risco|problema|fracass|perd[ae]|\bdor\b|trava|armadilha|cuidado/.test(t))
-    return 'tense, cautionary mood, cool desaturated shadows, a sense of unease'
-  if (/resultado|sucesso|crescimento|conquist|transform|vit[óo]ria|lucro|escala|liberdade/.test(t))
-    return 'aspirational, triumphant mood, warm golden rim light, a sense of forward momentum'
-  if (/segredo|verdade|revela[çc]|descobert|ningu[ée]m.*conta|por tr[áa]s/.test(t))
-    return 'mysterious, intriguing mood, a single dramatic light source carving the subject out of darkness'
-  return 'focused, confident mood, balanced high-contrast lighting'
+  if (/\berro|medo|perigo|risco|problema|fracass|perd[ae]|\bdor\b|trava|armadilha|cuidado|alerta|mentira|ilusão/.test(t))
+    return 'tense cautionary atmosphere, cool desaturated blue-grey shadows, dramatic underlighting, sense of unease and urgency'
+  if (/resultado|sucesso|crescimento|conquist|transform|vit[óo]ria|lucro|escala|liberdade|poder|lider|autoridade/.test(t))
+    return 'aspirational triumphant atmosphere, warm golden-amber rim light, strong forward momentum, premium cinematic feel'
+  if (/segredo|verdade|revela[çc]|descobert|ningu[ée]m|por tr[áa]s|invisível|oculto|esquema|sistema|controle/.test(t))
+    return 'mysterious intriguing atmosphere, single dramatic spotlight carving subject from deep darkness, noir tension'
+  if (/dinheiro|venda|negócio|empresa|mercado|produto|cliente|receita|faturamento|contrato/.test(t))
+    return 'sharp professional atmosphere, clean directional studio light, confident premium business aesthetic'
+  if (/rede social|instagram|conteúdo|algoritmo|post|feed|criador|audiência|engajamento|viral/.test(t))
+    return 'modern digital creative atmosphere, cool blue-teal accent light, dynamic tech energy, content-creator aesthetic'
+  return 'focused confident atmosphere, balanced high-contrast dramatic lighting, cinematic depth'
 }
 
-function buildPrompt(tema: string, style: string): string {
-  const modifier = STYLE_MODIFIERS[style] ?? STYLE_MODIFIERS['cinematic']
-  return `${NO_TEXT_PREFIX}Visual metaphor representing the theme "${tema}". ${SLIDE_COMPOSITION}, ${modifier}${NO_TEXT_SUFFIX}`
+// ─── Traduz nicho para vocabulário visual ────────────────────────────────────
+function nichoToVisualContext(nicho: string): string {
+  const n = (nicho ?? '').toLowerCase()
+  if (/marketing|conteúdo|criador|social|instagram/.test(n))
+    return 'social media creative environment, smartphone screens with glowing light, modern workspace, digital content creation'
+  if (/negócio|empreend|empresa|vendas|mercado/.test(n))
+    return 'premium business environment, modern city architecture, executive office, corporate energy'
+  if (/finanças|invest|dinheiro|renda/.test(n))
+    return 'financial growth metaphor, abstract currency flows, clean data visualization, wealth and precision'
+  if (/saúde|nutri|fitness|bem.estar/.test(n))
+    return 'health and vitality environment, natural light, organic textures, clean lifestyle aesthetic'
+  if (/educação|curso|mentor|coach/.test(n))
+    return 'knowledge and learning environment, books, light breaking through, pathway forward, intellectual energy'
+  if (/tecnologia|ia|software|digital/.test(n))
+    return 'cutting-edge technology environment, glowing circuits, neural network visuals, sci-fi realism'
+  return 'modern professional environment, dramatic architecture, high-contrast urban setting'
 }
 
-function buildContextualPrompt(titulo: string, corpo: string, style: string, isFirstSlide: boolean): string {
+// ─── Gera a cena concreta a partir do conteúdo do slide ──────────────────────
+// Em vez de "visual metaphor for X", descreve uma cena fotográfica específica
+// que o Flux consegue renderizar de forma realista e cinematográfica.
+function buildSceneFromContent(titulo: string, corpo: string, nicho: string, isFirstSlide: boolean): string {
+  const combinedText = `${titulo} ${corpo ?? ''}`.trim()
+  const t = combinedText.toLowerCase()
+
+  // Capa: cena de alto impacto que representa o tema principal
+  if (isFirstSlide) {
+    if (/instagram|carrossel|feed|post|conteúdo|criador/.test(t))
+      return 'a lone creative professional standing at the edge of a rooftop at golden hour, phone in hand, city lights blurring below, dramatic rim lighting outlining the figure against a deep dark sky'
+    if (/dinheiro|lucro|faturamento|receita|rico|riqueza/.test(t))
+      return 'stacks of hundred-dollar bills fanning out on a dark marble surface, single overhead spotlight creating dramatic shadows, macro detail of the texture, deep dark background'
+    if (/erro|fracasso|problema|armadilha|mentira|cuidado/.test(t))
+      return 'a cracked glass surface with light refracting through the fractures, dark moody atmosphere, single cold blue light source, sense of something breaking apart in slow motion'
+    if (/segredo|sistema|controle|algoritmo|por tr[áa]s/.test(t))
+      return 'a maze viewed from above, one person standing at the center illuminated by a single shaft of light, all others trapped in dark corridors, aerial cinematic perspective'
+    if (/sucesso|crescimento|conquista|escala|vit[óo]ria/.test(t))
+      return 'a person at the summit of a mountain at dawn, arms slightly open, warm golden light breaking over the horizon, deep atmospheric mist below, sense of achievement and scale'
+    if (/tempo|horas|rotina|produtividade|eficiência/.test(t))
+      return 'a close-up of an analog clock face, gears exposed, dramatic side lighting with deep shadows, time as a tangible and precious object, high detail macro photography'
+    // genérico de capa
+    return `a dramatic cinematic scene representing "${titulo.substring(0, 60)}", powerful focal subject, high contrast lighting, magazine-cover visual impact`
+  }
+
+  // Slides internos: cena que sustenta o conteúdo específico
+  if (/dinheiro|lucro|faturamento|venda|negócio/.test(t))
+    return 'abstract close-up of premium financial symbols, dark rich background, single directional warm light, depth of field blur creating clean space for text overlay'
+  if (/rede social|algoritmo|engajamento|viral|alcance/.test(t))
+    return 'glowing smartphone screen emitting light in a dark room, social media interface visible as light source, modern minimalist composition, clean dark background for text'
+  if (/pessoas|time|equipe|cliente|comunidade/.test(t))
+    return 'silhouettes of people against a warm backlit window, soft natural light diffusion, peaceful collaborative atmosphere, large clean bright area for text overlay'
+  if (/dados|número|resultado|métrica|análise/.test(t))
+    return 'abstract data visualization with glowing lines on dark background, clean geometric precision, teal accent light, premium tech aesthetic with open space for text'
+  if (/tempo|rotina|hábito|consistência|diário/.test(t))
+    return 'morning desk with soft window light, coffee steam rising, open notebook, calm productive atmosphere, clean neutral tones with generous empty space'
+  if (/crescimento|evolução|progresso|escala/.test(t))
+    return 'abstract upward trajectory, light trail ascending through dark atmosphere, sense of movement and momentum, large dark area for text overlay'
+  if (/medo|bloqueio|trava|dúvida|ansiedade/.test(t))
+    return 'a single empty chair under a spotlight in a vast dark empty room, isolating atmosphere, cool blue-grey tones, sense of stillness and unease'
+
+  // fallback contextual pelo nicho
+  const nichoCtx = nichoToVisualContext(nicho)
+  return `${nichoCtx}, cinematic atmospheric background, dramatic professional lighting, wide negative space area for text overlay`
+}
+
+// ─── Monta prompt completo ────────────────────────────────────────────────────
+function buildContextualPrompt(
+  titulo: string,
+  corpo: string,
+  style: string,
+  isFirstSlide: boolean,
+  nicho: string,
+  tema: string,
+): string {
+  const modifier  = STYLE_MODIFIERS[style] ?? STYLE_MODIFIERS['cinematic']
+  const mood      = inferMood(`${titulo} ${corpo ?? ''} ${tema ?? ''}`)
+  const comp      = isFirstSlide ? COVER_COMP : SLIDE_COMP
+  const scene     = buildSceneFromContent(titulo, corpo, nicho, isFirstSlide)
+
+  return [
+    NO_TEXT,
+    `Scene: ${scene}.`,
+    `Composition: ${comp}.`,
+    `Mood and lighting: ${mood}.`,
+    `Render style: ${modifier}.`,
+    'Ultra high resolution, professional color grading, no text, no letters, no numbers, no watermarks, no people\'s faces visible.',
+  ].join(' ')
+}
+
+// ─── Prompt genérico quando não há slide específico ──────────────────────────
+function buildGenericPrompt(tema: string, style: string, nicho: string): string {
   const modifier = STYLE_MODIFIERS[style] ?? STYLE_MODIFIERS['cinematic']
-  const mood = inferMood(`${titulo} ${corpo ?? ''}`)
-  const composition = isFirstSlide ? COVER_COMPOSITION : SLIDE_COMPOSITION
-  const subject = corpo
-    ? `Visual metaphor for the idea: "${titulo}" — ${corpo.substring(0, 140)}`
-    : `Visual metaphor for the idea: "${titulo}"`
-  return `${NO_TEXT_PREFIX}${subject}. Composition: ${composition}. Mood: ${mood}, ${modifier}${NO_TEXT_SUFFIX}`
+  const mood     = inferMood(tema)
+  const nichoCtx = nichoToVisualContext(nicho)
+  return [
+    NO_TEXT,
+    `Scene: ${nichoCtx}, evocating the theme "${tema.substring(0, 80)}".`,
+    `Composition: ${SLIDE_COMP}.`,
+    `Mood: ${mood}.`,
+    `Render style: ${modifier}.`,
+    'Ultra high resolution, professional color grading, no text, no letters, no watermarks.',
+  ].join(' ')
 }
 
 serve(async (req) => {
@@ -110,12 +199,20 @@ serve(async (req) => {
       return json({ error: 'ai_images_limit_reached' }, 403)
     }
 
+    // ── Busca tema do carrossel + nicho do usuário (contexto para o prompt) ──
+    const [carouselRes, profileNichoRes] = await Promise.all([
+      supabase.from('carousels').select('tema').eq('id', carousel_id).single(),
+      supabase.from('profiles').select('niche').eq('user_id', userId).single(),
+    ])
+    const carouselTema = carouselRes.data?.tema ?? ''
+    const userNicho    = profileNichoRes.data?.niche ?? 'empreendedorismo'
+
     // ── Monta prompt ──────────────────────────────────────────────────
     const styleKey = (style ?? 'cinematic').toLowerCase()
     let fullPrompt: string
 
     if (slide_id) {
-      // Busca conteúdo real do slide no banco para garantir dados atualizados
+      // Busca conteúdo real do slide no banco
       const { data: slideData } = await supabase
         .from('carousel_slides')
         .select('titulo, corpo')
@@ -123,21 +220,13 @@ serve(async (req) => {
         .single()
 
       const finalTitulo = slideData?.titulo ?? titulo ?? ''
-      const finalCorpo = slideData?.corpo ?? corpo ?? ''
+      const finalCorpo  = slideData?.corpo  ?? corpo  ?? ''
 
-      fullPrompt = finalTitulo
-        ? buildContextualPrompt(finalTitulo, finalCorpo, styleKey, !!is_first_slide)
-        : buildPrompt(finalTitulo, styleKey)
+      fullPrompt = buildContextualPrompt(finalTitulo, finalCorpo, styleKey, !!is_first_slide, userNicho, carouselTema)
     } else {
-      // Prompt genérico baseado no tema do carrossel
-      const { data: carousel, error: carouselError } = await supabase
-        .from('carousels')
-        .select('tema')
-        .eq('id', carousel_id)
-        .single()
-
-      if (carouselError || !carousel) return json({ error: 'carousel_not_found' }, 404)
-      fullPrompt = buildPrompt(carousel.tema, styleKey)
+      // Sem slide específico: prompt genérico contextualizado pelo nicho
+      if (carouselRes.error || !carouselRes.data) return json({ error: 'carousel_not_found' }, 404)
+      fullPrompt = buildGenericPrompt(carouselTema, styleKey, userNicho)
     }
 
     console.log('[generate-image] slide_id:', slide_id ?? 'all', 'prompt:', fullPrompt)
@@ -155,8 +244,8 @@ serve(async (req) => {
       body: JSON.stringify({
         prompt: fullPrompt,
         image_size: { width: 1080, height: 1350 },
-        num_inference_steps: 28,
-        guidance_scale: 3.5,
+        num_inference_steps: is_first_slide ? 35 : 30,  // capa recebe mais passos
+        guidance_scale: 4.5,   // mais aderência ao prompt descritivo
         num_images: 1,
         enable_safety_checker: true,
       }),
