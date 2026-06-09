@@ -26,7 +26,7 @@ const STYLE_MODIFIERS: Record<string, string> = {
 }
 
 // ─── Bloqueio de texto na imagem ─────────────────────────────────────────────
-const NO_TEXT = 'NO TEXT, NO WORDS, NO LETTERS, NO NUMBERS, NO TYPOGRAPHY, NO WATERMARKS, NO CAPTIONS anywhere in the image.'
+const NO_TEXT = 'NO TEXT, NO WORDS, NO LETTERS, NO NUMBERS, NO TYPOGRAPHY, NO WATERMARKS, NO CAPTIONS, NO UI ELEMENTS anywhere in the image.'
 
 // ─── Composição por tipo de slide ────────────────────────────────────────────
 // Capa: impacto visual máximo, espaço limpo no topo para o título sobreposto.
@@ -78,27 +78,27 @@ function buildSceneFromContent(titulo: string, corpo: string, nicho: string, isF
   // Capa: cena de alto impacto que representa o tema principal
   if (isFirstSlide) {
     if (/instagram|carrossel|feed|post|conteúdo|criador|redes sociais/.test(t))
-      return 'a lone creative professional standing at the edge of a rooftop at golden hour, phone in hand, city lights blurring below, dramatic warm rim lighting outlining the silhouette against a deep dark sky, cinematic'
+      return 'photorealistic shot of a young confident creative professional standing at the edge of a rooftop terrace at golden hour, holding a smartphone, city skyline with bokeh lights behind, warm dramatic rim light outlining the figure, cinematic depth of field, fashion editorial quality'
     if (/dinheiro|lucro|faturamento|receita|rico|riqueza|ganhar|fatura/.test(t))
-      return 'stacks of hundred-dollar bills fanning out on a dark marble surface, single overhead spotlight creating dramatic shadows, macro texture detail, deep black background, premium cinematic'
+      return 'photorealistic macro shot of a hand holding a thick stack of hundred-dollar bills fanning out, single overhead key light creating dramatic shadows on dark marble, ultra detailed paper texture, deep black background, premium commercial photography'
     if (/erro|fracasso|problema|armadilha|mentira|cuidado|alerta|perigo/.test(t))
-      return 'a cracked glass surface with cold blue light refracting through the fractures, dark moody atmosphere, sense of something breaking apart in slow motion, dramatic underlighting'
+      return 'photorealistic image of a person standing alone in a dark empty corridor, single cold blue light source ahead casting long shadows behind them, sense of isolation and tension, cinematic wide angle'
     if (/segredo|sistema|controle|algoritmo|por tr[áa]s|invisível|oculto/.test(t))
-      return 'a aerial view of a geometric maze at night, one small figure at the center illuminated by a single shaft of warm light, all others in dark corridors, cinematic drone perspective'
+      return 'aerial photorealistic view of a geometric maze at night, one solitary person illuminated by a single warm shaft of light at the center, everyone else lost in dark corridors, dramatic contrast, drone photography aesthetic'
     if (/sucesso|crescimento|conquista|escala|vit[óo]ria|lider|autoridade/.test(t))
-      return 'a lone figure at the summit of a mountain at dawn, arms slightly open, warm golden light breaking over the horizon, deep atmospheric mist in the valleys below, epic scale and achievement'
+      return 'photorealistic image of a person standing at the summit of a mountain at dawn, silhouette against a massive golden sunrise, deep atmospheric fog filling the valleys below, sense of epic achievement and scale, long exposure quality'
     if (/tempo|hora|rotina|produtividade|eficiência|trabalha|trabalho|grátis|desperdiç|automat|manual/.test(t))
-      return 'extreme close-up macro of a luxury analog watch face, gears and mechanisms partially exposed, dramatic single side light with deep shadows, time as a tangible precious object, dark background'
+      return 'extreme close-up macro photorealistic shot of a luxury mechanical watch, gears and movement partially visible, dramatic raking side light with deep shadows highlighting every detail, dark background, precision engineering aesthetic'
     if (/venda|cliente|negócio|empresa|mercado|produto|contrato|fechar/.test(t))
-      return 'a handshake moment captured in dramatic close-up, warm directional light illuminating only the hands, dark premium background, sense of power and finality, cinematic depth of field'
+      return 'photorealistic cinematic shot of a sharp-dressed person in a modern glass office at night, city lights visible behind floor-to-ceiling windows, dramatic single light source from above, confident powerful atmosphere'
     if (/aprender|conhecimento|curso|habilidade|skill|estud/.test(t))
-      return 'a single open book on a dark surface, a beam of golden light falling on it from above, dust particles visible in the light ray, knowledge as something sacred and rare'
+      return 'photorealistic image of a focused person studying at a desk late at night, single warm desk lamp illuminating their face and an open notebook, dark room around them, determined concentrated expression, cinematic intimate framing'
     if (/saúde|corpo|mente|bem.estar|energia|dormir|descanso/.test(t))
-      return 'abstract organic light waves flowing through a dark space, bioluminescent energy patterns, calm powerful atmosphere, sense of internal vitality and strength'
+      return 'photorealistic image of a person meditating on a mountain cliff at sunrise, perfect stillness, warm golden light from the horizon, dramatic sky with clouds, sense of inner power and peace'
     if (/medo|bloqueio|trava|dúvida|ansiedade|paralisa/.test(t))
-      return 'a single figure standing at the edge of a diving board over a pool far below, dramatic underlighting, high altitude perspective, moment of decision frozen in time'
-    // fallback forte — usa o título real como referência descritiva
-    return `dramatic cinematic cover image evoking the concept "${titulo.substring(0, 70)}", powerful focal subject with strong directional light, deep dark background, magazine-cover energy, no text`
+      return 'photorealistic image of a person standing alone at a crossroads on an empty road at night, multiple paths lit differently, sense of isolation and decision pressure, cinematic wide angle, fog in the distance'
+    // fallback forte com pessoa — mais engajante que objetos abstratos
+    return `photorealistic cinematic image representing the concept "${titulo.substring(0, 70)}", a person as the main subject in a dramatic professional setting, strong directional lighting, dark moody background, editorial photography quality`
   }
 
   // Slides internos: cena que sustenta o conteúdo específico
@@ -136,13 +136,17 @@ function buildContextualPrompt(
   const comp      = isFirstSlide ? COVER_COMP : SLIDE_COMP
   const scene     = buildSceneFromContent(titulo, corpo, nicho, isFirstSlide)
 
+  const qualitySuffix = isFirstSlide
+    ? 'Photorealistic ultra-detailed render, 8K resolution, perfect focus, professional color grade, RAW photo quality, hyper-realistic textures and materials, no text, no words, no watermarks, no overlaid graphics.'
+    : 'Photorealistic render, sharp focus on subject, soft natural background, professional color grade, no text, no words, no watermarks, no UI elements.'
+
   return [
     NO_TEXT,
     `Scene: ${scene}.`,
     `Composition: ${comp}.`,
     `Mood and lighting: ${mood}.`,
     `Render style: ${modifier}.`,
-    'Ultra high resolution, professional color grading, no text, no letters, no numbers, no watermarks, no people\'s faces visible.',
+    qualitySuffix,
   ].join(' ')
 }
 
