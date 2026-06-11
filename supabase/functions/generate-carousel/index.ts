@@ -113,8 +113,11 @@ serve(async (req) => {
     const palavrasProibidas  = Array.isArray(vp.palavras_proibidas)  ? (vp.palavras_proibidas  as string[]).join(', ') : ''
     const palavrasDefinidoras = Array.isArray(vp.palavras_definidoras) ? (vp.palavras_definidoras as string[]).join(', ') : ''
     const palavrasChave      = Array.isArray(vp.palavras_chave)      ? (vp.palavras_chave      as string[]).join(', ') : ''
-    const exemploTexto       = typeof vp.exemplo_texto === 'string'  ? vp.exemplo_texto        : ''
-    const tomVoz             = typeof vp.tom           === 'string'  ? vp.tom                  : tom
+    const exemploTexto       = typeof vp.exemplo_texto  === 'string' ? vp.exemplo_texto   : ''
+    const tomExtraido        = typeof vp.tom_extraido   === 'string' ? vp.tom_extraido    : ''
+    const ritmoVoz           = typeof vp.ritmo          === 'string' ? vp.ritmo           : ''
+    const personalidadeVoz   = typeof vp.personalidade  === 'string' ? vp.personalidade   : ''
+    const tomVoz             = tomExtraido || (typeof vp.tom === 'string' ? vp.tom : tom)
 
     // ── Memória de contexto ───────────────────────────────────────────
     const memoriaCtx = temasRecentes.length
@@ -190,6 +193,8 @@ PROIBIDO em qualquer slide:
 
 Nicho: ${profile.niche ?? 'empreendedorismo'}
 Tom de voz calibrado: ${tomVoz}
+${ritmoVoz ? `Ritmo de escrita: ${ritmoVoz}` : ''}
+${personalidadeVoz ? `Personalidade da voz: ${personalidadeVoz}` : ''}
 ${palavrasDefinidoras ? `Expressões e palavras que definem a voz: ${palavrasDefinidoras}` : ''}
 ${palavrasChave ? `Palavras-chave do posicionamento: ${palavrasChave}` : ''}
 ${palavrasProibidas ? `NUNCA usar (voz do criador): ${palavrasProibidas}` : ''}

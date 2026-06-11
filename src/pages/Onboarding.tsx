@@ -18,6 +18,14 @@ const TOTAL = 5
 const ff = 'DM Sans, sans-serif'
 
 // ─── FormData ─────────────────────────────────────────────────
+interface VoiceAnalysis {
+  tom: string
+  ritmo: string
+  expressoes_marcantes: string[]
+  o_que_evitar: string[]
+  personalidade: string
+}
+
 interface FormData {
   displayName: string
   instagramHandle: string
@@ -35,6 +43,7 @@ interface FormData {
   intensidadeFundo: number
   // step 4
   exemploTexto: string
+  voiceAnalysis: VoiceAnalysis | null
   // step 5
   primeiraTema: string
 }
@@ -379,90 +388,174 @@ function Step3({ data, onChange }: { data: FormData; onChange: (d: Partial<FormD
 }
 
 // ─── Step 4 ───────────────────────────────────────────────────
-function Step4({ data, onChange, onSkip }: {
-  data: FormData; onChange: (d: Partial<FormData>) => void; onSkip: () => void
+function Step4({ data, onChange, onSkip, session }: {
+  data: FormData
+  onChange: (d: Partial<FormData>) => void
+  onSkip: () => void
+  session: string
 }) {
-  const [showHelp, setShowHelp] = useState(false)
-  const [helpText, setHelpText] = useState('')
-  const count = data.exemploTexto.length
+  const [analyzing, setAnalyzing] = useState(false)
+  const [error, setError]         = useState('')
+  const analysis = data.voiceAnalysis
+  const canAnalyze = data.exemploTexto.trim().length >= 60
+
+  const analyze = async () => {
+    setAnalyzing(true); setError('')
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
+      const res = await fetch(`${supabaseUrl}/functions/v1/analyze-voice`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session}`,
+        },
+        body: JSON.stringify({ texto: data.exemploTexto, niche: data.niche }),
+      })
+      if (!res.ok) throw new Error('Erro na análise')
+      const result: VoiceAnalysis = await res.json()
+      onChange({
+        voiceAnalysis: result,
+        palavrasChave: [...new Set([...data.palavrasChave, ...result.expressoes_marcantes.slice(0, 3)])],
+        palavrasProibidas: [...new Set([...data.palavrasProibidas, ...result.o_que_evitar.slice(0, 3)])],
+      })
+    } catch {
+      setError('Não consegui analisar. Tenta de novo.')
+    } finally {
+      setAnalyzing(false)
+    }
+  }
+
+  const resetAnalysis = () => onChange({ voiceAnalysis: null })
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{ position: 'relative' }}>
-        <textarea
-          value={data.exemploTexto}
-          onChange={(e) => onChange({ exemploTexto: e.target.value })}
-          placeholder="Cole qualquer texto que você já escreveu — post, legenda, e-mail, mensagem de WhatsApp para um amigo. A IA vai aprender seu jeito de escrever."
-          rows={7}
-          style={{
-            ...inputSt, resize: 'vertical', minHeight: 160,
-            lineHeight: 1.6, paddingBottom: 28,
-          }}
-          onFocus={(e) => { e.target.style.borderColor = A }}
-          onBlur={(e) => { e.target.style.borderColor = B }}
-        />
-        <span style={{ position: 'absolute', bottom: 10, right: 14, fontSize: 11, color: M, fontFamily: ff, pointerEvents: 'none' }}>
-          {count} caracteres
-        </span>
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-      {/* Collapsible help */}
-      <button type="button" onClick={() => setShowHelp(!showHelp)} style={{
-        background: 'none', border: 'none', color: M, fontSize: 13, fontFamily: ff,
-        cursor: 'pointer', textAlign: 'left', padding: 0, textDecoration: 'underline',
-        textDecorationColor: 'rgba(255,255,255,0.2)',
-      }}>
-        {showHelp ? '▲ Fechar ajuda' : 'Não tenho nada escrito. E agora?'}
-      </button>
-
+      {/* Textarea — esconde quando análise está pronta */}
       <AnimatePresence>
-        {showHelp && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            style={{ overflow: 'hidden' }}
-          >
-            <div style={{
-              backgroundColor: S2, border: `1px solid ${B}`, borderRadius: 10,
-              padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 12,
-            }}>
-              <p style={{ fontSize: 13, color: M, fontFamily: ff, margin: 0, lineHeight: 1.7 }}>
-                Sem problema. Responda isso em 2-3 linhas:
-                <br /><span style={{ color: T }}>→ O que você faz e para quem?</span>
-                <br /><span style={{ color: T }}>→ Como você explicaria seu trabalho para um amigo?</span>
-                <br /><span style={{ color: T }}>→ Qual é uma verdade que você acredita que a maioria das pessoas não fala?</span>
-              </p>
-              <div style={{ position: 'relative' }}>
-                <textarea
-                  value={helpText}
-                  onChange={(e) => setHelpText(e.target.value)}
-                  rows={4}
-                  placeholder="Escreva aqui..."
-                  style={{ ...inputSt, resize: 'vertical', minHeight: 100, lineHeight: 1.6 }}
-                  onFocus={(e) => { e.target.style.borderColor = A }}
-                  onBlur={(e) => { e.target.style.borderColor = B }}
-                />
-              </div>
-              <button type="button" onClick={() => { if (helpText.trim()) { onChange({ exemploTexto: helpText.trim() }); setShowHelp(false) } }} style={{
-                backgroundColor: 'rgba(200,255,0,0.1)', border: `1px solid rgba(200,255,0,0.3)`,
-                borderRadius: 8, padding: '9px 16px', color: A, fontSize: 13, fontFamily: ff,
-                fontWeight: 600, cursor: 'pointer', alignSelf: 'flex-start',
-              }}>
-                Usar essas respostas →
-              </button>
+        {!analysis && (
+          <motion.div initial={{ opacity: 1 }} exit={{ opacity: 0, height: 0 }} style={{ overflow: 'hidden' }}>
+            <div style={{ position: 'relative' }}>
+              <textarea
+                value={data.exemploTexto}
+                onChange={(e) => onChange({ exemploTexto: e.target.value, voiceAnalysis: null })}
+                placeholder="Cole qualquer texto seu — legenda de post, e-mail, mensagem de WhatsApp, rascunho. Quanto mais natural, melhor."
+                rows={6}
+                style={{ ...inputSt, resize: 'none', minHeight: 140, lineHeight: 1.65, paddingBottom: 30 }}
+                onFocus={(e) => { e.target.style.borderColor = A }}
+                onBlur={(e) => { e.target.style.borderColor = B }}
+              />
+              <span style={{ position: 'absolute', bottom: 10, right: 14, fontSize: 11, color: M, fontFamily: ff, pointerEvents: 'none' }}>
+                {data.exemploTexto.length} chars {canAnalyze ? '✓' : `— mín. 60`}
+              </span>
             </div>
+
+            {/* Botão analisar */}
+            <motion.button
+              type="button"
+              onClick={analyze}
+              disabled={!canAnalyze || analyzing}
+              animate={{ opacity: canAnalyze ? 1 : 0.4 }}
+              style={{
+                marginTop: 10, width: '100%', height: 44,
+                background: canAnalyze ? `linear-gradient(135deg, ${A}, #6366F1)` : S2,
+                border: 'none', borderRadius: 8, color: canAnalyze ? '#000' : M,
+                fontSize: 14, fontWeight: 700, fontFamily: ff,
+                cursor: canAnalyze && !analyzing ? 'pointer' : 'not-allowed',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              }}
+            >
+              {analyzing
+                ? <><span style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }}>◌</span> Lendo sua voz...</>
+                : '✦ Analisar meu jeito de escrever'}
+            </motion.button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <button type="button" onClick={onSkip} style={{
-        background: 'none', border: 'none', color: M, fontSize: 13, fontFamily: ff,
-        cursor: 'pointer', textAlign: 'center', padding: '4px 0',
-      }}>
-        Pular por agora →
-      </button>
+      {/* Resultado da análise */}
+      <AnimatePresence>
+        {analysis && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
+          >
+            {/* Card de confirmação */}
+            <div style={{
+              background: 'rgba(0,212,255,0.05)', border: `1px solid rgba(0,212,255,0.2)`,
+              borderRadius: 12, padding: '16px 18px',
+              display: 'flex', flexDirection: 'column', gap: 12,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 16 }}>✦</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: A, fontFamily: ff }}>Aprendi isso sobre como você escreve</span>
+              </div>
+
+              <div>
+                <p style={{ fontSize: 11, color: M, fontFamily: ff, margin: '0 0 4px', letterSpacing: '.08em', textTransform: 'uppercase' }}>Tom</p>
+                <p style={{ fontSize: 13, color: T, fontFamily: ff, margin: 0, lineHeight: 1.55 }}>{analysis.tom}</p>
+              </div>
+
+              <div>
+                <p style={{ fontSize: 11, color: M, fontFamily: ff, margin: '0 0 4px', letterSpacing: '.08em', textTransform: 'uppercase' }}>Ritmo</p>
+                <p style={{ fontSize: 13, color: T, fontFamily: ff, margin: 0, lineHeight: 1.55 }}>{analysis.ritmo}</p>
+              </div>
+
+              <div>
+                <p style={{ fontSize: 11, color: M, fontFamily: ff, margin: '0 0 6px', letterSpacing: '.08em', textTransform: 'uppercase' }}>Expressões do seu estilo</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {analysis.expressoes_marcantes.map((e) => (
+                    <span key={e} style={{
+                      padding: '3px 10px', borderRadius: 999, fontSize: 12,
+                      background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.25)', color: A, fontFamily: ff,
+                    }}>{e}</span>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p style={{ fontSize: 11, color: M, fontFamily: ff, margin: '0 0 6px', letterSpacing: '.08em', textTransform: 'uppercase' }}>O que nunca combinaria com você</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {analysis.o_que_evitar.map((e) => (
+                    <span key={e} style={{
+                      padding: '3px 10px', borderRadius: 999, fontSize: 12,
+                      background: 'rgba(255,100,100,0.08)', border: '1px solid rgba(255,100,100,0.2)', color: '#FF9999', fontFamily: ff,
+                    }}>{e}</span>
+                  ))}
+                </div>
+              </div>
+
+              <p style={{
+                fontSize: 12, color: M, fontFamily: ff, margin: 0,
+                borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 10,
+                fontStyle: 'italic',
+              }}>
+                "{analysis.personalidade}"
+              </p>
+            </div>
+
+            <button type="button" onClick={resetAnalysis} style={{
+              background: 'none', border: 'none', color: M, fontSize: 12, fontFamily: ff,
+              cursor: 'pointer', textAlign: 'center', padding: '2px 0',
+            }}>
+              ← Usar outro texto
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {error && <p style={{ fontSize: 13, color: '#f87171', fontFamily: ff, margin: 0 }}>{error}</p>}
+
+      {!analysis && (
+        <button type="button" onClick={onSkip} style={{
+          background: 'none', border: 'none', color: 'rgba(232,244,255,0.25)', fontSize: 13, fontFamily: ff,
+          cursor: 'pointer', textAlign: 'center', padding: '2px 0',
+        }}>
+          Pular por agora →
+        </button>
+      )}
     </div>
   )
 }
@@ -577,6 +670,13 @@ export default function Onboarding() {
   const [error, setError] = useState('')
   const [plan, setPlan] = useState<string>('free')
   const [agencyPrompt, setAgencyPrompt] = useState(false)
+  const [sessionToken, setSessionToken] = useState('')
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSessionToken(data.session?.access_token ?? '')
+    })
+  }, [])
 
   const [form, setForm] = useState<FormData>({
     displayName: (user?.user_metadata?.full_name as string) ?? '',
@@ -584,7 +684,7 @@ export default function Onboarding() {
     tom: '', palavrasProibidas: [], palavrasChave: [],
     cor: '#C8FF00', estilo: 'dark_cinematic', fonte: 'Bebas Neue',
     tamanhoTitulo: 'medio', posicaoTexto: 'base', intensidadeFundo: 60,
-    exemploTexto: '', primeiraTema: '',
+    exemploTexto: '', voiceAnalysis: null, primeiraTema: '',
   })
 
   const update = (d: Partial<FormData>) => setForm((p) => ({ ...p, ...d }))
@@ -601,6 +701,7 @@ export default function Onboarding() {
   const canContinue = () => {
     if (step === 1) return form.displayName.trim().length > 0 && form.niche.length > 0
     if (step === 2) return form.tom.length > 0
+    if (step === 4) return form.voiceAnalysis !== null  // só avança após análise (ou skip)
     if (step === 5) return form.primeiraTema.trim().length > 0
     return true
   }
@@ -618,6 +719,12 @@ export default function Onboarding() {
           palavras_proibidas: form.palavrasProibidas,
           palavras_chave: form.palavrasChave,
           exemplo_texto: form.exemploTexto,
+          ...(form.voiceAnalysis ? {
+            tom_extraido: form.voiceAnalysis.tom,
+            ritmo: form.voiceAnalysis.ritmo,
+            personalidade: form.voiceAnalysis.personalidade,
+            palavras_definidoras: form.palavrasChave,
+          } : {}),
         },
         visual_kit: {
           cor: form.cor,
@@ -699,7 +806,7 @@ export default function Onboarding() {
                 {step === 1 && <Step1 data={form} onChange={update} />}
                 {step === 2 && <Step2 data={form} onChange={update} />}
                 {step === 3 && <Step3 data={form} onChange={update} />}
-                {step === 4 && <Step4 data={form} onChange={update} onSkip={() => go(5)} />}
+                {step === 4 && <Step4 data={form} onChange={update} onSkip={() => go(5)} session={sessionToken} />}
                 {step === 5 && <Step5 data={form} onChange={update} />}
               </motion.div>
             </AnimatePresence>
