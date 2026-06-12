@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react'
-import { toast } from 'sonner'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   LayoutDashboard, Zap, Calendar, Settings,
-  ChevronLeft, TrendingUp, Sparkles, Users, Shield,
+  ChevronLeft, Users, Shield,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -22,8 +21,6 @@ type CarouselWithCover = {
 // ─── Design tokens — Apple Dark ───────────────────────────────────
 const A   = '#00D4FF'
 const BG  = '#080808'
-const S   = 'rgba(255,255,255,0.04)'
-const S2  = 'rgba(255,255,255,0.07)'
 const T   = '#F2F2F7'
 const M   = 'rgba(242,242,247,0.4)'
 const B   = 'rgba(255,255,255,0.07)'
@@ -52,9 +49,6 @@ const PLAN_BORDER_SIDEBAR: Record<string, string> = {
 
 const STATUS_COLOR: Record<string, string> = {
   draft: '#555', ready: '#22C55E', exported: A, scheduled: '#F59E0B',
-}
-const STATUS_LABEL: Record<string, string> = {
-  draft: 'rascunho', ready: 'pronto', exported: 'exportado', scheduled: 'agendado',
 }
 
 // ─── Fallback ideas ───────────────────────────────────────────────
@@ -149,31 +143,6 @@ function PhoneIllustration() {
   )
 }
 
-// ─── Gradient border card ─────────────────────────────────────────
-function GradCard({
-  children, accentColor = A, style = {},
-}: {
-  children: React.ReactNode
-  accentColor?: string
-  style?: React.CSSProperties
-}) {
-  return (
-    <div style={{
-      ...GLASS,
-      background: `linear-gradient(rgba(255,255,255,0.04), rgba(255,255,255,0.04)) padding-box,
-                   linear-gradient(135deg, ${accentColor}33, ${accentColor}06 60%, transparent) border-box`,
-      border: '1px solid transparent',
-      borderRadius: 18,
-      padding: '22px 24px',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 10,
-      ...style,
-    }}>
-      {children}
-    </div>
-  )
-}
 
 // ─── Glow progress bar ────────────────────────────────────────────
 function GlowBar({ pct, color }: { pct: number; color: string }) {
@@ -389,10 +358,9 @@ export default function Dashboard() {
   const [profile, setProfile]               = useState<Profile | null>(null)
   const [carouselsCount, setCarouselsCount] = useState<number>(0)
   const [recentCarousels, setRecentCarousels] = useState<CarouselWithCover[]>([])
-  const [nextPost, setNextPost]             = useState<ScheduledPost | null>(null)
+  const [, setNextPost]                     = useState<ScheduledPost | null>(null)
   const [trends, setTrends]                 = useState<WeeklyTrend | null>(null)
   const [loading, setLoading]               = useState(true)
-  const [viewMode, setViewMode]             = useState<'list' | 'grid'>('list')
 
   const toggleSidebar = () => {
     setSidebarOpen(prev => {
@@ -455,20 +423,11 @@ export default function Dashboard() {
   const exportPct    = Math.min(100, (exportsUsed / Math.max(1, exportsLimit)) * 100)
   const barColor     = exportPct >= 90 ? '#EF4444' : exportPct >= 70 ? '#F59E0B' : A
 
-  const aiImgLimit = profile?.ai_images_limit ?? 0
-  const aiImgUsed  = profile?.ai_images_used_this_month ?? 0
-  const aiImgPct   = aiImgLimit > 0 ? Math.min(100, (aiImgUsed / aiImgLimit) * 100) : 0
-  const aiImgColor = aiImgPct >= 90 ? '#EF4444' : aiImgPct >= 70 ? '#F59E0B' : '#00B4D8'
-
-  const nextPostLabel = nextPost
-    ? new Date(nextPost.scheduled_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
-    : 'Nenhum'
   const renewLabel = plan === 'free' ? 'gratuito' : 'renova em 30 dias'
 
   // ── Count-up ───────────────────────────────────────────────────
-  const countExports  = useCountUp(exportsUsed, !loading)
+  const countExports   = useCountUp(exportsUsed, !loading)
   const countCarousels = useCountUp(carouselsCount, !loading)
-  const countAI       = useCountUp(aiImgUsed, !loading)
 
   // ── Idea topics ────────────────────────────────────────────────
   const ideaTopics: string[] = (() => {
@@ -476,6 +435,22 @@ export default function Dashboard() {
     const niche = profile?.niche?.toLowerCase() ?? ''
     const byNiche = Object.entries(NICHE_IDEAS).find(([k]) => niche.includes(k))
     return byNiche ? byNiche[1] : GENERIC_IDEAS
+  })()
+
+  // ── Streak de criação (dias consecutivos com pelo menos 1 carrossel) ──
+  const streak = (() => {
+    if (recentCarousels.length === 0) return 0
+    const dates = [...new Set(recentCarousels.map(c =>
+      new Date(c.created_at).toDateString()
+    ))].map(d => new Date(d).setHours(0,0,0,0)).sort((a,b) => b - a)
+    let s = 0
+    const today = new Date(); today.setHours(0,0,0,0)
+    let expected = today.getTime()
+    for (const d of dates) {
+      const diff = (expected - d) / 86400000
+      if (diff <= 1) { s++; expected = d } else break
+    }
+    return s
   })()
 
   return (
@@ -508,421 +483,296 @@ export default function Dashboard() {
 
       <Sidebar open={sidebarOpen} onToggle={toggleSidebar} profile={profile} />
 
-      <main style={{ flex: 1, minWidth: 0, padding: '36px 44px', overflowY: 'auto' }}>
+      <main style={{ flex: 1, minWidth: 0, padding: '40px 48px 64px', overflowY: 'auto' }}>
 
-        {/* ── Header ─────────────────────────────────────────── */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 36, gap: 24 }}>
+        {/* ── Header Apple-style ──────────────────────────────── */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 48 }}>
           <div>
             {loading ? (
               <>
-                <Skeleton w={340} h={52} r={6} />
-                <div style={{ marginTop: 10 }}><Skeleton w={220} h={16} r={4} /></div>
+                <Skeleton w={260} h={36} r={6} />
+                <div style={{ marginTop: 8 }}><Skeleton w={180} h={14} r={4} /></div>
               </>
             ) : (
-              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }}>
+              <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
                 <h1 style={{
-                  fontFamily: ffd, fontSize: 48, letterSpacing: 2, margin: 0, lineHeight: 1,
-                  background: `linear-gradient(90deg, ${T} 30%, ${A} 80%)`,
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
+                  fontFamily: ffd, fontSize: 36, letterSpacing: 1.5, margin: 0, lineHeight: 1.1,
+                  color: T,
                 }}>
-                  {greeting()}, {profile?.display_name?.toUpperCase() ?? 'USUÁRIO'}
+                  {greeting()}, {profile?.display_name ?? 'criador'}
                 </h1>
-                <p style={{ fontFamily: ff, fontSize: 13, color: M, margin: '8px 0 0', textTransform: 'capitalize' }}>
+                <p style={{ fontFamily: ff, fontSize: 13, color: M, margin: '6px 0 0', textTransform: 'capitalize' }}>
                   {formatDate()}
                 </p>
               </motion.div>
             )}
           </div>
 
-          <motion.button
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={() => navigate('/studio')}
-            style={{
-              background: A, color: '#000', border: 'none',
-              borderRadius: 10, padding: '14px 28px', cursor: 'pointer',
-              fontFamily: ffd, fontSize: 18, letterSpacing: 1,
-              whiteSpace: 'nowrap', flexShrink: 0,
-              animation: 'btn-pulse 2.4s ease-in-out infinite',
-            }}
-          >
-            + NOVA CRIAÇÃO
-          </motion.button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {/* Streak badge */}
+            {!loading && streak > 0 && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  background: 'rgba(245,158,11,0.1)',
+                  border: '1px solid rgba(245,158,11,0.25)',
+                  borderRadius: 99, padding: '7px 14px',
+                }}
+              >
+                <span style={{ fontSize: 14 }}>🔥</span>
+                <span style={{ fontFamily: ffd, fontSize: 15, color: '#F59E0B', letterSpacing: 0.5 }}>
+                  {streak} dia{streak > 1 ? 's' : ''}
+                </span>
+              </motion.div>
+            )}
+
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => navigate('/studio')}
+              style={{
+                background: A, color: '#000', border: 'none',
+                borderRadius: 12, padding: '11px 22px', cursor: 'pointer',
+                fontFamily: ffd, fontSize: 16, letterSpacing: 0.8,
+                whiteSpace: 'nowrap',
+                boxShadow: `0 0 24px ${A}33`,
+              }}
+            >
+              + Criar
+            </motion.button>
+          </div>
         </div>
 
-        {/* ── Metric cards ───────────────────────────────────── */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))',
-          gap: 14, marginBottom: 36,
-        }}>
-
-          {/* Card: Exportações */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-            <GradCard accentColor={barColor}>
-              <span style={{ fontFamily: ff, fontSize: 11, color: M, textTransform: 'uppercase', letterSpacing: 1.2 }}>
-                Exportações
+        {/* ── LAYOUT APPLE ───────────────────────────────────── */}
+        {/* ── Stats — 3 números Apple widget ─────────────────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 28 }}>
+          {[
+            {
+              label: 'Carrosseis',
+              value: loading ? null : String(countCarousels),
+              sub: 'criados no total',
+              color: T,
+            },
+            {
+              label: 'Exportações',
+              value: loading ? null : (plan === 'escala' || plan === 'agencia' ? '∞' : `${countExports} / ${exportsLimit}`),
+              sub: 'este mês',
+              color: barColor,
+              bar: !loading && plan !== 'escala' && plan !== 'agencia',
+              pct: exportPct,
+            },
+            {
+              label: 'Plano',
+              value: loading ? null : PLAN_LABELS[plan],
+              sub: renewLabel,
+              color: PLAN_COLOR[plan],
+            },
+          ].map((stat, i) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.06 }}
+              style={{
+                ...GLASS, borderRadius: 18, padding: '22px 24px',
+                display: 'flex', flexDirection: 'column', gap: 6,
+              }}
+            >
+              <span style={{ fontFamily: ff, fontSize: 11, color: M, textTransform: 'uppercase', letterSpacing: 1 }}>
+                {stat.label}
               </span>
-              {loading ? <Skeleton w={80} h={52} r={4} /> : (
-                <span style={{ fontFamily: ffd, fontSize: 56, color: barColor, lineHeight: 1, letterSpacing: 1 }}>
-                  {plan === 'escala' || plan === 'agencia' ? '∞' : countExports}
-                </span>
-              )}
-              <span style={{ fontFamily: ff, fontSize: 12, color: M }}>
-                {plan === 'escala' || plan === 'agencia'
-                  ? 'ilimitadas'
-                  : `de ${exportsLimit} este mês`}
-              </span>
-              {!loading && plan !== 'escala' && plan !== 'agencia' && (
-                <GlowBar pct={exportPct} color={barColor} />
-              )}
-            </GradCard>
-          </motion.div>
-
-          {/* Card: Imagens IA */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.10 }}>
-            <GradCard accentColor="#00B4D8">
-              <span style={{ fontFamily: ff, fontSize: 11, color: M, textTransform: 'uppercase', letterSpacing: 1.2 }}>
-                Imagens IA
-              </span>
-              {loading ? <Skeleton w={80} h={52} r={4} /> : aiImgLimit > 0 ? (
-                <>
-                  <span style={{ fontFamily: ffd, fontSize: 56, color: '#00B4D8', lineHeight: 1, letterSpacing: 1 }}>
-                    {countAI}
-                  </span>
-                  <span style={{ fontFamily: ff, fontSize: 12, color: M }}>de {aiImgLimit} este mês</span>
-                  <GlowBar pct={aiImgPct} color={aiImgColor} />
-                </>
-              ) : (
-                <>
-                  <span style={{ fontFamily: ffd, fontSize: 32, color: 'rgba(255,255,255,0.2)', lineHeight: 1 }}>—</span>
-                  <span style={{ fontFamily: ff, fontSize: 12, color: 'rgba(255,255,255,0.2)', fontStyle: 'italic' }}>
-                    {plan === 'free' ? 'Upgrade para gerar' : 'Não incluso'}
-                  </span>
-                </>
-              )}
-            </GradCard>
-          </motion.div>
-
-          {/* Card: Carrosseis */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-            <GradCard accentColor="rgba(255,255,255,0.3)">
-              <span style={{ fontFamily: ff, fontSize: 11, color: M, textTransform: 'uppercase', letterSpacing: 1.2 }}>
-                Carrosseis
-              </span>
-              {loading ? <Skeleton w={80} h={52} r={4} /> : (
-                <span style={{ fontFamily: ffd, fontSize: 56, color: T, lineHeight: 1, letterSpacing: 1 }}>
-                  {countCarousels}
-                </span>
-              )}
-              <span style={{ fontFamily: ff, fontSize: 12, color: M }}>criados no total</span>
-            </GradCard>
-          </motion.div>
-
-          {/* Card: Plano */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.20 }}>
-            <GradCard accentColor={PLAN_COLOR[plan]}>
-              <span style={{ fontFamily: ff, fontSize: 11, color: M, textTransform: 'uppercase', letterSpacing: 1.2 }}>
-                Plano atual
-              </span>
-              {loading ? (
-                <>
-                  <Skeleton w={120} h={52} r={4} />
-                  <Skeleton w={100} h={14} r={4} />
-                </>
-              ) : (
-                <>
-                  {/* Badge with shine */}
-                  <div style={{ position: 'relative', overflow: 'hidden', display: 'inline-flex', alignItems: 'center' }}>
-                    <span style={{
-                      fontFamily: ffd, fontSize: 52, color: PLAN_COLOR[plan],
-                      lineHeight: 1, letterSpacing: 1, position: 'relative',
-                    }}>
-                      {PLAN_LABELS[plan]}
-                    </span>
-                    <div style={{
-                      position: 'absolute', inset: 0,
-                      background: 'linear-gradient(105deg, transparent 25%, rgba(255,255,255,0.2) 50%, transparent 75%)',
-                      animation: 'badge-shine 3s ease-in-out infinite',
-                      pointerEvents: 'none',
-                    }} />
-                  </div>
-                  <span style={{ fontFamily: ff, fontSize: 12, color: M }}>{renewLabel}</span>
-                  {nextPost && (
-                    <span style={{ fontFamily: ff, fontSize: 11, color: '#F59E0B' }}>
-                      próximo: {nextPostLabel}
-                    </span>
-                  )}
-                </>
-              )}
-            </GradCard>
-          </motion.div>
+              {stat.value === null
+                ? <Skeleton w={80} h={38} r={4} />
+                : <span style={{ fontFamily: ffd, fontSize: 38, color: stat.color, lineHeight: 1, letterSpacing: 0.5 }}>{stat.value}</span>
+              }
+              <span style={{ fontFamily: ff, fontSize: 12, color: M }}>{stat.sub}</span>
+              {stat.bar && <GlowBar pct={stat.pct!} color={barColor} />}
+            </motion.div>
+          ))}
         </div>
 
-        {/* ── Recentes ───────────────────────────────────────── */}
-        <section style={{ marginBottom: 40 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <h2 style={{ fontFamily: ffd, fontSize: 22, color: T, margin: 0, letterSpacing: 1.5 }}>
-              RECENTES
-            </h2>
-            {recentCarousels.length > 0 && (
-              <div style={{ display: 'flex', gap: 4 }}>
-                {(['list', 'grid'] as const).map(mode => (
-                  <button
-                    key={mode}
-                    onClick={() => setViewMode(mode)}
-                    style={{
-                      width: 32, height: 32, borderRadius: 6, border: `1px solid ${viewMode === mode ? 'rgba(200,255,0,0.4)' : B}`,
-                      background: viewMode === mode ? 'rgba(200,255,0,0.08)' : 'none',
-                      cursor: 'pointer', color: viewMode === mode ? A : M,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      transition: 'all 0.15s',
-                    }}
-                    title={mode === 'list' ? 'Lista' : 'Grade'}
-                  >
-                    {mode === 'list' ? (
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-                        <rect x="0" y="1" width="14" height="2.5" rx="1"/>
-                        <rect x="0" y="5.75" width="14" height="2.5" rx="1"/>
-                        <rect x="0" y="10.5" width="14" height="2.5" rx="1"/>
-                      </svg>
-                    ) : (
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-                        <rect x="0" y="0" width="6" height="6" rx="1.5"/>
-                        <rect x="8" y="0" width="6" height="6" rx="1.5"/>
-                        <rect x="0" y="8" width="6" height="6" rx="1.5"/>
-                        <rect x="8" y="8" width="6" height="6" rx="1.5"/>
-                      </svg>
-                    )}
-                  </button>
-                ))}
+        {/* ── Hero: O que criar hoje ─────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.18 }}
+          style={{
+            ...GLASS,
+            border: '1px solid rgba(0,212,255,0.15)',
+            borderRadius: 22, padding: '28px 32px', marginBottom: 28,
+            position: 'relative', overflow: 'hidden',
+          }}
+        >
+          {/* Ambient glow top-right */}
+          <div style={{
+            position: 'absolute', top: -80, right: -80, width: 220, height: 220,
+            borderRadius: '50%',
+            background: `radial-gradient(circle, ${A}14 0%, transparent 70%)`,
+            pointerEvents: 'none',
+          }} />
+
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 24, position: 'relative' }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                <div style={{
+                  width: 7, height: 7, borderRadius: '50%', background: A,
+                  boxShadow: `0 0 10px ${A}`,
+                  animation: 'pulse-dot 2.2s ease-in-out infinite',
+                }} />
+                <span style={{ fontFamily: ff, fontSize: 11, color: A, textTransform: 'uppercase', letterSpacing: 1.2, fontWeight: 600 }}>
+                  sugestão de hoje
+                </span>
               </div>
+              {loading
+                ? <Skeleton w="75%" h={26} r={4} />
+                : <p style={{ fontFamily: ffd, fontSize: 22, color: T, margin: '0 0 6px', lineHeight: 1.25, letterSpacing: 0.4 }}>
+                    {ideaTopics[0]}
+                  </p>
+              }
+            </div>
+
+            <motion.button
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => navigate(`/studio?tema=${encodeURIComponent(ideaTopics[0] ?? '')}`)}
+              disabled={loading}
+              style={{
+                background: A, color: '#000', border: 'none', borderRadius: 12,
+                padding: '12px 22px', cursor: 'pointer',
+                fontFamily: ffd, fontSize: 16, letterSpacing: 0.8,
+                flexShrink: 0, whiteSpace: 'nowrap',
+                opacity: loading ? 0 : 1, transition: 'opacity 0.2s',
+                boxShadow: `0 0 20px ${A}33`,
+              }}
+            >
+              Criar →
+            </motion.button>
+          </div>
+
+          {/* Outras sugestões como pills */}
+          {!loading && ideaTopics.length > 1 && (
+            <div style={{ display: 'flex', gap: 8, marginTop: 20, flexWrap: 'wrap' }}>
+              {ideaTopics.slice(1).map((t, i) => (
+                <button
+                  key={i}
+                  onClick={() => navigate(`/studio?tema=${encodeURIComponent(t)}`)}
+                  style={{
+                    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: 99, padding: '7px 16px', cursor: 'pointer',
+                    fontFamily: ff, fontSize: 12, color: M, transition: 'all 0.15s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = `${A}44`; e.currentTarget.style.color = T }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = M }}
+                >
+                  {t.length > 58 ? t.slice(0, 58) + '…' : t}
+                </button>
+              ))}
+              <button
+                onClick={() => navigate('/studio')}
+                style={{
+                  background: 'none', border: '1px dashed rgba(255,255,255,0.1)',
+                  borderRadius: 99, padding: '7px 16px', cursor: 'pointer',
+                  fontFamily: ff, fontSize: 12, color: M, transition: 'color 0.15s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.color = T}
+                onMouseLeave={e => e.currentTarget.style.color = M}
+              >
+                Ver mais ideias →
+              </button>
+            </div>
+          )}
+        </motion.div>
+
+        {/* ── Recentes ─────────────────────────────────────────── */}
+        <section>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <h2 style={{ fontFamily: ffd, fontSize: 18, color: T, margin: 0, letterSpacing: 1, fontWeight: 400 }}>
+              Recentes
+            </h2>
+            {!loading && recentCarousels.length > 0 && (
+              <button
+                onClick={() => navigate('/studio')}
+                style={{ background: 'none', border: 'none', color: A, fontFamily: ff, fontSize: 13, cursor: 'pointer', padding: 0 }}
+              >
+                + novo
+              </button>
             )}
           </div>
 
-          {/* ── 3 Cards de ação ── */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 40 }}>
-            {[
-              {
-                icon: <Sparkles size={20} />,
-                title: 'Criar com IA',
-                desc: 'Dê um tópico e deixe a IA montar o carrossel completo — texto, layout e imagens.',
-                cta: 'Começar →',
-                onClick: () => navigate('/studio'),
-                accent: true,
-              },
-              {
-                icon: <TrendingUp size={20} />,
-                title: 'Buscar Ideias',
-                desc: 'A IA sugere 8 temas virais baseados no seu nicho. Escolha e já vá criando.',
-                cta: 'Ver ideias →',
-                onClick: () => navigate('/studio?buscar=1'),
-                accent: false,
-              },
-              {
-                icon: <Zap size={20} />,
-                title: 'Criar do Zero',
-                desc: 'Abra o editor e construa seu carrossel manualmente, slide por slide.',
-                cta: 'Abrir editor →',
-                onClick: () => navigate('/studio?blank=1'),
-                accent: false,
-              },
-            ].map((card) => (
-              <motion.div
-                key={card.title}
-                whileHover={{ y: -3 }}
-                onClick={card.onClick}
-                style={{
-                  background: card.accent ? 'rgba(200,255,0,0.06)' : '#0A0A0A',
-                  border: `1px solid ${card.accent ? 'rgba(200,255,0,0.25)' : 'rgba(255,255,255,0.08)'}`,
-                  borderRadius: 14, padding: '22px 20px',
-                  cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 12,
-                  transition: 'box-shadow 0.2s',
-                }}
-              >
-                <div style={{ color: card.accent ? '#C8FF00' : 'rgba(255,255,255,0.45)' }}>{card.icon}</div>
-                <div>
-                  <p style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 18, color: '#F5F5F5', margin: '0 0 6px', letterSpacing: 0.5 }}>{card.title}</p>
-                  <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: 'rgba(255,255,255,0.45)', margin: 0, lineHeight: 1.55 }}>{card.desc}</p>
-                </div>
-                <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: card.accent ? '#C8FF00' : 'rgba(255,255,255,0.45)', fontWeight: 600, marginTop: 'auto' }}>{card.cta}</span>
-              </motion.div>
-            ))}
-          </div>
-
           {loading ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
               {[1, 2, 3].map(i => (
-                <div key={i} style={{ background: S, borderRadius: 12, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <Skeleton w={44} h={44} r={6} />
-                  <Skeleton w="55%" h={16} r={4} />
-                  <div style={{ marginLeft: 'auto' }}><Skeleton w={70} h={14} r={4} /></div>
+                <div key={i} style={{ ...GLASS, borderRadius: 14, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <Skeleton w={40} h={40} r={8} />
+                  <Skeleton w="50%" h={14} r={4} />
+                  <div style={{ marginLeft: 'auto' }}><Skeleton w={60} h={12} r={4} /></div>
                 </div>
               ))}
             </div>
           ) : recentCarousels.length === 0 ? (
             <EmptyState onNew={() => navigate('/studio')} />
-          ) : viewMode === 'list' ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {recentCarousels.map((c, i) => {
-                const tema        = c.tema.length > 60 ? c.tema.slice(0, 60) + '…' : c.tema
+                const tema = c.tema.length > 72 ? c.tema.slice(0, 72) + '…' : c.tema
                 const statusColor = STATUS_COLOR[c.status] ?? '#555'
-                const coverUrl    = c.carousel_slides?.find(s => s.position === 1)?.bg_image_url
+                const coverUrl = c.carousel_slides?.find(s => s.position === 1)?.bg_image_url
                 return (
                   <motion.div
                     key={c.id}
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.05, duration: 0.35 }}
-                    whileHover={{ y: -2 }}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.035, duration: 0.3 }}
                     onClick={() => navigate(`/studio?carousel_id=${c.id}`)}
                     style={{
-                      background: S, border: `1px solid ${B}`, borderRadius: 12,
-                      padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 14,
-                      cursor: 'pointer', transition: 'box-shadow 0.2s, border-color 0.2s',
+                      ...GLASS, borderRadius: 14, padding: '13px 18px',
+                      display: 'flex', alignItems: 'center', gap: 14,
+                      cursor: 'pointer', transition: 'border-color 0.15s, background 0.15s',
                     }}
                     onMouseEnter={e => {
-                      e.currentTarget.style.boxShadow = `0 8px 32px rgba(0,0,0,0.5)`
-                      e.currentTarget.style.borderColor = `${statusColor}40`
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)'
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
                     }}
                     onMouseLeave={e => {
-                      e.currentTarget.style.boxShadow = 'none'
-                      e.currentTarget.style.borderColor = B
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
                     }}
                   >
                     {/* Thumbnail */}
                     <div style={{
-                      width: 44, height: 44, borderRadius: 6, flexShrink: 0,
+                      width: 40, height: 40, borderRadius: 8, flexShrink: 0,
                       backgroundImage: coverUrl ? `url(${coverUrl})` : undefined,
                       backgroundSize: 'cover', backgroundPosition: 'center',
-                      backgroundColor: coverUrl ? undefined : 'rgba(200,255,0,0.06)',
-                      border: `1px solid ${B}`,
+                      background: coverUrl ? undefined : 'rgba(255,255,255,0.04)',
+                      border: '1px solid rgba(255,255,255,0.06)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
                       {!coverUrl && (
-                        <span style={{ fontFamily: ffd, fontSize: 16, color: 'rgba(200,255,0,0.3)' }}>{i + 1}</span>
+                        <span style={{ fontFamily: ffd, fontSize: 13, color: 'rgba(255,255,255,0.2)' }}>{i + 1}</span>
                       )}
                     </div>
 
                     {/* Tema */}
                     <span style={{
                       fontFamily: ff, fontSize: 14, color: T,
-                      flex: 1, minWidth: 0,
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>
                       {tema}
                     </span>
 
-                    {/* Time */}
+                    {/* Tempo */}
                     <span style={{ fontFamily: ff, fontSize: 12, color: M, flexShrink: 0 }}>
                       {relativeTime(c.created_at)}
                     </span>
 
-                    {/* Status badge */}
-                    <span style={{
-                      fontFamily: ff, fontSize: 11, color: statusColor,
-                      border: `1px solid ${statusColor}60`,
-                      borderRadius: 20, padding: '3px 10px', flexShrink: 0,
-                    }}>
-                      {STATUS_LABEL[c.status]}
-                    </span>
-                  </motion.div>
-                )
-              })}
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              {recentCarousels.map((c, i) => {
-                const tema        = c.tema.length > 40 ? c.tema.slice(0, 40) + '…' : c.tema
-                const statusColor = STATUS_COLOR[c.status] ?? '#555'
-                const coverUrl    = c.carousel_slides?.find(s => s.position === 1)?.bg_image_url
-                return (
-                  <motion.div
-                    key={c.id}
-                    initial={{ opacity: 0, scale: 0.96 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: i * 0.05, duration: 0.3 }}
-                    whileHover={{ y: -3 }}
-                    onClick={() => navigate(`/studio?carousel_id=${c.id}`)}
-                    style={{
-                      height: 200, borderRadius: 12, overflow: 'hidden',
-                      position: 'relative', cursor: 'pointer',
-                      backgroundImage: coverUrl ? `url(${coverUrl})` : undefined,
-                      backgroundSize: 'cover', backgroundPosition: 'center',
-                      backgroundColor: coverUrl ? undefined : S2,
-                      border: `1px solid ${B}`,
-                      transition: 'box-shadow 0.2s, border-color 0.2s',
-                    }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.boxShadow = `0 8px 32px rgba(0,0,0,0.6)`
-                      e.currentTarget.style.borderColor = `${statusColor}50`
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.boxShadow = 'none'
-                      e.currentTarget.style.borderColor = B
-                    }}
-                  >
-                    {/* Gradient overlay */}
+                    {/* Status dot */}
                     <div style={{
-                      position: 'absolute', inset: 0,
-                      background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 55%)',
-                      pointerEvents: 'none',
+                      width: 7, height: 7, borderRadius: '50%',
+                      background: statusColor, flexShrink: 0,
+                      boxShadow: `0 0 6px ${statusColor}88`,
                     }} />
-
-                    {/* No-image background number */}
-                    {!coverUrl && (
-                      <div style={{
-                        position: 'absolute', inset: 0,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        <span style={{ fontFamily: ffd, fontSize: 64, color: 'rgba(200,255,0,0.06)' }}>{i + 1}</span>
-                      </div>
-                    )}
-
-                    {/* Status badge */}
-                    <span style={{
-                      position: 'absolute', top: 10, right: 10,
-                      fontFamily: ff, fontSize: 10, color: statusColor,
-                      border: `1px solid ${statusColor}60`,
-                      borderRadius: 20, padding: '2px 8px',
-                      backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
-                    }}>
-                      {STATUS_LABEL[c.status]}
-                    </span>
-
-                    {/* Footer */}
-                    <div style={{
-                      position: 'absolute', bottom: 0, left: 0, right: 0,
-                      padding: '10px 12px',
-                    }}>
-                      <p style={{ fontFamily: ff, fontSize: 11, color: T, margin: 0, lineHeight: 1.4 }}>
-                        {tema}
-                      </p>
-                      <p style={{ fontFamily: ff, fontSize: 10, color: M, margin: '3px 0 0' }}>
-                        {relativeTime(c.created_at)}
-                      </p>
-                    </div>
-
-                    {/* Prompt usado */}
-                    {c.carousel_slides && c.carousel_slides.length > 0 && (
-                      <div style={{
-                        position: 'absolute', bottom: 0, left: 0, right: 0,
-                        borderTop: '1px solid rgba(255,255,255,0.06)',
-                        paddingTop: 8, marginTop: 4,
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-                        padding: '8px 12px',
-                      }}>
-                        <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 11, color: 'rgba(255,255,255,0.3)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {c.tema}
-                        </span>
-                        <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(c.tema); toast.success('Tema copiado') }}
-                          style={{ flexShrink: 0, background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 5, padding: '2px 8px', color: 'rgba(255,255,255,0.35)', fontSize: 10, fontFamily: 'DM Sans, sans-serif', cursor: 'pointer' }}>
-                          Copiar
-                        </button>
-                      </div>
-                    )}
                   </motion.div>
                 )
               })}
@@ -930,59 +780,6 @@ export default function Dashboard() {
           )}
         </section>
 
-        {/* ── Inspiração ─────────────────────────────────────── */}
-        {!loading && (
-          <section>
-            <h2 style={{
-              fontFamily: ffd, fontSize: 22, color: T, margin: '0 0 16px', letterSpacing: 1.5,
-              display: 'flex', alignItems: 'center', gap: 10,
-            }}>
-              <TrendingUp size={20} color={A} />
-              {trends ? 'TEMAS EM ALTA' : 'IDEIAS PARA HOJE'}
-            </h2>
-
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              {ideaTopics.map((tema, i) => (
-                <motion.button
-                  key={i}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 + i * 0.07 }}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => navigate(`/studio?tema=${encodeURIComponent(tema)}`)}
-                  style={{
-                    flex: '1 1 220px', minWidth: 0,
-                    background: `linear-gradient(135deg, ${S2} 0%, ${S} 100%)`,
-                    border: `1px solid rgba(200,255,0,0.12)`,
-                    borderRadius: 14, padding: '18px 20px',
-                    cursor: 'pointer', textAlign: 'left',
-                    display: 'flex', flexDirection: 'column', gap: 10,
-                    transition: 'border-color 0.2s',
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(200,255,0,0.35)')}
-                  onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(200,255,0,0.12)')}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Sparkles size={14} color={A} />
-                    <span style={{ fontFamily: ff, fontSize: 11, color: A, textTransform: 'uppercase', letterSpacing: 1 }}>
-                      ideia #{i + 1}
-                    </span>
-                  </div>
-                  <span style={{ fontFamily: ff, fontSize: 13, color: T, lineHeight: 1.5 }}>
-                    {tema}
-                  </span>
-                  <span style={{
-                    fontFamily: ff, fontSize: 12, color: A,
-                    display: 'flex', alignItems: 'center', gap: 4,
-                  }}>
-                    Criar agora →
-                  </span>
-                </motion.button>
-              ))}
-            </div>
-          </section>
-        )}
 
       </main>
     </div>
