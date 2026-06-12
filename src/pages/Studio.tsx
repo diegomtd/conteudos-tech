@@ -143,6 +143,16 @@ const CTA_OPTIONS = [
   'Palavra mágica', 'Personalizado', 'Padrão do perfil',
 ]
 
+// ─── Presets de kit visual ────────────────────────────────────
+const KIT_PRESETS = [
+  { id: 'creator-dark', label: 'Creator',   cor: '#C8FF00', fonte: '"Bebas Neue", sans-serif',       emoji: '⚡' },
+  { id: 'tech-cyan',    label: 'Tech',      cor: '#00D4FF', fonte: '"Space Grotesk", sans-serif',    emoji: '💻' },
+  { id: 'premium-gold', label: 'Premium',   cor: '#F59E0B', fonte: '"Playfair Display", serif',      emoji: '✦' },
+  { id: 'roxo-viral',   label: 'Viral',     cor: '#A855F7', fonte: '"Bebas Neue", sans-serif',       emoji: '🔥' },
+  { id: 'editorial',    label: 'Editorial', cor: '#F5F5F5', fonte: '"Playfair Display", serif',      emoji: '📐' },
+  { id: 'laranja-bold', label: 'Bold',      cor: '#FF6B2B', fonte: '"DM Sans", sans-serif',          emoji: '🧱' },
+]
+
 // ─── Shared ───────────────────────────────────────────────────
 const inputSt: React.CSSProperties = {
   backgroundColor: S, border: `1px solid rgba(200,255,0,0.3)`, borderRadius: 10,
@@ -347,6 +357,10 @@ function StateInput({
     tema?: string; hacks?: string[]; sugestao?: string
     resumo?: string; manual?: boolean
   } | null>(null)
+  const [kitData, setKitData] = useState<{ cor: string; fonte: string } | null>(null)
+  const [useKit, setUseKit] = useState(() => localStorage.getItem('conteudos_use_visual_kit') !== 'false')
+  const [kitExpanded, setKitExpanded] = useState(false)
+  const [savingPreset, setSavingPreset] = useState(false)
 
   const { user } = useAuth()
 
@@ -362,13 +376,35 @@ function StateInput({
         const vp = data.voice_profile as Record<string, string> ?? {}
         if (vp.tom) {
           const tomMap: Record<string, string> = {
-            provocador: 'Provocador', educativo: 'Educativo',
-            bastidor: 'Bastidor', inspiracional: 'Humor'
+            direto: 'Provocador', educativo: 'Educativo',
+            bastidor: 'Bastidor', humor: 'Humor',
+            provocador: 'Provocador', inspiracional: 'Humor',
           }
           setTom(tomMap[vp.tom] ?? 'Provocador')
         }
+        const vk = data.visual_kit as Record<string, string> ?? {}
+        if (vk.cor || vk.fonte) {
+          setKitData({ cor: vk.cor ?? '#C8FF00', fonte: vk.fonte ?? '"Bebas Neue", sans-serif' })
+        }
       })
   }, [user])
+
+  const toggleUseKit = () => {
+    const next = !useKit
+    setUseKit(next)
+    localStorage.setItem('conteudos_use_visual_kit', String(next))
+  }
+
+  const applyPreset = async (preset: typeof KIT_PRESETS[0]) => {
+    if (!user || savingPreset) return
+    setSavingPreset(true)
+    await supabase.from('profiles').update({
+      visual_kit: { cor: preset.cor, fonte: preset.fonte },
+    }).eq('user_id', user.id)
+    setKitData({ cor: preset.cor, fonte: preset.fonte })
+    setSavingPreset(false)
+    setKitExpanded(false)
+  }
 
   const canCreate = tema.trim().length >= 4
 
@@ -857,6 +893,96 @@ function StateInput({
           >
             {CTA_OPTIONS.map((o) => <option key={o} value={o} style={{ backgroundColor: S3 }}>{o}</option>)}
           </select>
+        </div>
+
+        {/* Kit Visual */}
+        <div style={{ borderRadius: 12, overflow: 'hidden', border: `1px solid ${useKit ? 'rgba(200,255,0,0.2)' : B}`, transition: 'border-color 0.2s' }}>
+          {/* Header do kit */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '11px 14px',
+            background: useKit ? 'rgba(200,255,0,0.04)' : 'rgba(255,255,255,0.02)',
+            cursor: 'pointer', userSelect: 'none',
+          }}
+            onClick={() => setKitExpanded(v => !v)}
+          >
+            {/* Bolinha da cor */}
+            <div style={{
+              width: 16, height: 16, borderRadius: '50%', flexShrink: 0,
+              background: kitData?.cor ?? '#C8FF00',
+              boxShadow: useKit ? `0 0 8px ${kitData?.cor ?? '#C8FF00'}55` : 'none',
+              transition: 'box-shadow 0.2s',
+            }} />
+            <div style={{ flex: 1 }}>
+              <span style={{ fontSize: 12, color: useKit ? 'rgba(200,255,0,0.9)' : M, fontFamily: ff, fontWeight: 600 }}>
+                Kit visual
+              </span>
+              {kitData && (
+                <span style={{ fontSize: 11, color: M, fontFamily: ff, marginLeft: 8 }}>
+                  {kitData.fonte.replace(/"/g, '').split(',')[0]}
+                </span>
+              )}
+              {!kitData && (
+                <span style={{ fontSize: 11, color: M, fontFamily: ff, marginLeft: 8 }}>Padrão do template</span>
+              )}
+            </div>
+            {/* Toggle */}
+            <div
+              onClick={(e) => { e.stopPropagation(); toggleUseKit() }}
+              style={{
+                width: 36, height: 20, borderRadius: 99, flexShrink: 0,
+                background: useKit ? '#C8FF00' : 'rgba(255,255,255,0.12)',
+                position: 'relative', cursor: 'pointer', transition: 'background 0.2s',
+              }}
+            >
+              <div style={{
+                position: 'absolute', top: 3, left: useKit ? 18 : 3,
+                width: 14, height: 14, borderRadius: '50%',
+                background: useKit ? '#000' : 'rgba(255,255,255,0.6)',
+                transition: 'left 0.2s',
+              }} />
+            </div>
+            <span style={{ fontSize: 11, color: M, fontFamily: ff, marginLeft: -6 }}>
+              {kitExpanded ? '▲' : '▼'}
+            </span>
+          </div>
+
+          {/* Presets expandidos */}
+          {kitExpanded && (
+            <div style={{ padding: '12px 14px 14px', borderTop: `1px solid ${B}`, background: 'rgba(0,0,0,0.2)' }}>
+              <p style={{ margin: '0 0 10px', fontSize: 11, color: M, fontFamily: ff, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                Escolha um estilo pronto
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                {KIT_PRESETS.map((p) => {
+                  const isActive = kitData?.cor === p.cor && kitData?.fonte === p.fonte
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => applyPreset(p)}
+                      disabled={savingPreset}
+                      style={{
+                        background: isActive ? `${p.cor}18` : 'rgba(255,255,255,0.03)',
+                        border: `1.5px solid ${isActive ? p.cor : 'rgba(255,255,255,0.08)'}`,
+                        borderRadius: 10, padding: '10px 8px',
+                        cursor: savingPreset ? 'not-allowed' : 'pointer',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                        transition: 'all 0.15s',
+                      }}
+                      onMouseEnter={e => { if (!savingPreset) e.currentTarget.style.borderColor = p.cor }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = isActive ? p.cor : 'rgba(255,255,255,0.08)' }}
+                    >
+                      <div style={{ width: 22, height: 22, borderRadius: '50%', background: p.cor, flexShrink: 0 }} />
+                      <span style={{ fontSize: 11, color: isActive ? p.cor : T, fontFamily: ff, fontWeight: 600, textAlign: 'center' }}>{p.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+              <p style={{ margin: '10px 0 0', fontSize: 11, color: M, fontFamily: ff, lineHeight: 1.5 }}>
+                O estilo escolhido é aplicado automaticamente em todos os novos carrosseis quando o kit está ativo.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -4075,31 +4201,25 @@ export default function Studio() {
   const handleDone = useCallback((result: GenerateResult) => {
     setGenerateResult(result)
     setSearchParams({ carousel_id: result.carousel_id }, { replace: true })
-    // Aplica identidade visual do perfil nos slides gerados
-    supabase.from('profiles')
-      .select('visual_kit')
-      .eq('user_id', user?.id)
-      .single()
-      .then(({ data }) => {
-        if (!data?.visual_kit) return
-        const vk = data.visual_kit as Record<string, string>
-        const cor = vk.cor ?? '#C8FF00'
-        const fonte = vk.fonte ?? '"Bebas Neue", sans-serif'
-        if (result.carousel_id) {
-          supabase.from('carousel_slides')
-            .update({
-              text_color: cor,
-              font_family: fonte,
-              font_size_title: 80,
-              font_size_body: 28,
-              accent_color: cor,
-            })
-            .eq('carousel_id', result.carousel_id)
-            .then(() => {
-              console.log('[handleDone] identidade visual aplicada')
-            })
-        }
-      })
+    // Aplica identidade visual do perfil nos slides gerados (respeitando toggle)
+    const kitAtivo = localStorage.getItem('conteudos_use_visual_kit') !== 'false'
+    if (kitAtivo) {
+      supabase.from('profiles')
+        .select('visual_kit')
+        .eq('user_id', user?.id)
+        .single()
+        .then(({ data }) => {
+          if (!data?.visual_kit) return
+          const vk = data.visual_kit as Record<string, string>
+          const cor = vk.cor ?? '#C8FF00'
+          const fonte = vk.fonte ?? '"Bebas Neue", sans-serif'
+          if (result.carousel_id) {
+            supabase.from('carousel_slides')
+              .update({ text_color: cor, font_family: fonte, accent_color: cor })
+              .eq('carousel_id', result.carousel_id)
+          }
+        })
+    }
     setTimeout(() => setAppState('preview'), 50)
     // Recarrega do banco para garantir que edições persistam
     setTimeout(async () => {
