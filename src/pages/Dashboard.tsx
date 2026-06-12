@@ -19,18 +19,24 @@ type CarouselWithCover = {
   carousel_slides?: { bg_image_url: string | null; position: number }[] | null
 }
 
-// ─── Design tokens ────────────────────────────────────────────────
+// ─── Design tokens — Apple Dark ───────────────────────────────────
 const A   = '#00D4FF'
-const BG  = '#010816'
-const S   = '#0A1628'
-const S2  = '#0F2040'
-const T   = '#E8F4FF'
-const M   = 'rgba(232,244,255,0.42)'
+const BG  = '#080808'
+const S   = 'rgba(255,255,255,0.04)'
+const S2  = 'rgba(255,255,255,0.07)'
+const T   = '#F2F2F7'
+const M   = 'rgba(242,242,247,0.4)'
 const B   = 'rgba(255,255,255,0.07)'
 const ff  = 'DM Sans, sans-serif'
 const ffd = '"Bebas Neue", sans-serif'
 
-const CARD_BG = S
+const GLASS = {
+  background: 'rgba(255,255,255,0.04)',
+  backdropFilter: 'blur(24px) saturate(160%)',
+  WebkitBackdropFilter: 'blur(24px) saturate(160%)',
+  border: '1px solid rgba(255,255,255,0.08)',
+} as const
+
 
 // ─── Plan config ──────────────────────────────────────────────────
 const PLAN_LABELS: Record<string, string> = {
@@ -115,7 +121,7 @@ function Skeleton({ w = '100%', h = 20, r = 8 }: { w?: string | number; h?: numb
   return (
     <div style={{
       width: w, height: h, borderRadius: r,
-      background: `linear-gradient(90deg, ${S2} 25%, rgba(255,255,255,0.06) 50%, ${S2} 75%)`,
+      background: 'linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%)',
       backgroundSize: '400% 100%',
       animation: 'shimmer 1.4s ease-in-out infinite',
     }} />
@@ -153,10 +159,11 @@ function GradCard({
 }) {
   return (
     <div style={{
-      background: `linear-gradient(${CARD_BG}, ${CARD_BG}) padding-box,
-                   linear-gradient(135deg, ${accentColor}44, ${accentColor}08 60%, transparent) border-box`,
+      ...GLASS,
+      background: `linear-gradient(rgba(255,255,255,0.04), rgba(255,255,255,0.04)) padding-box,
+                   linear-gradient(135deg, ${accentColor}33, ${accentColor}06 60%, transparent) border-box`,
       border: '1px solid transparent',
-      borderRadius: 16,
+      borderRadius: 18,
       padding: '22px 24px',
       display: 'flex',
       flexDirection: 'column',
@@ -217,8 +224,11 @@ function Sidebar({
 
   return (
     <aside style={{
-      width: W, minHeight: '100vh', background: BG,
-      borderRight: `1px solid ${B}`,
+      width: W, minHeight: '100vh',
+      background: 'rgba(10,10,10,0.85)',
+      backdropFilter: 'blur(24px) saturate(160%)',
+      WebkitBackdropFilter: 'blur(24px) saturate(160%)',
+      borderRight: `1px solid rgba(255,255,255,0.06)`,
       display: 'flex', flexDirection: 'column',
       transition: 'width 0.22s ease',
       flexShrink: 0, position: 'relative', overflow: 'hidden',

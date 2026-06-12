@@ -14,13 +14,13 @@ import { TEMPLATE_CONFIG } from '@/lib/templates'
 // ── Design tokens v3.0 — ConteudOS Futurista ──────────────
 const A    = '#00D4FF'                          // cyan elétrico — accent principal
 const CYAN = '#6366F1'                          // índigo — IA / secundário
-const BG   = '#010816'                          // navy ultra escuro
-const S    = '#0A1628'                          // surface 1
-const S2   = '#0F2040'                          // surface 2
-const S3   = '#152848'                          // surface 3 — inputs
-const T    = '#E8F4FF'                          // texto primário
-const M    = 'rgba(232,244,255,0.42)'           // texto muted
-const M2   = 'rgba(232,244,255,0.18)'           // texto muito muted
+const BG   = '#080808'                          // preto Apple
+const S    = 'rgba(255,255,255,0.04)'           // surface frosted
+const S2   = 'rgba(255,255,255,0.06)'           // surface 2 frosted
+const S3   = 'rgba(255,255,255,0.08)'           // surface 3 — inputs
+const T    = '#F2F2F7'                          // texto primário Apple
+const M    = 'rgba(242,242,247,0.4)'            // texto muted
+const M2   = 'rgba(242,242,247,0.18)'           // texto muito muted
 const B    = 'rgba(255,255,255,0.07)'           // borda padrão
 const ff   = 'DM Sans, sans-serif'
 

@@ -4,14 +4,14 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 
-// ─── Design tokens ────────────────────────────────────────────
+// ─── Design tokens — Apple Dark ───────────────────────────────
 const A  = '#00D4FF'
 const AH = '#00BFEF'
-const BG = '#010816'
-const S  = '#0A1628'
-const S2 = '#0F2040'
-const T  = '#E8F4FF'
-const M  = 'rgba(232,244,255,0.42)'
+const BG = '#080808'
+const S  = 'rgba(255,255,255,0.04)'
+const S2 = 'rgba(255,255,255,0.07)'
+const T  = '#F2F2F7'
+const M  = 'rgba(242,242,247,0.4)'
 const B  = 'rgba(255,255,255,0.07)'
 
 const TOTAL = 5
