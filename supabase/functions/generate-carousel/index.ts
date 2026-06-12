@@ -117,6 +117,7 @@ serve(async (req) => {
     const tomExtraido        = typeof vp.tom_extraido   === 'string' ? vp.tom_extraido    : ''
     const ritmoVoz           = typeof vp.ritmo          === 'string' ? vp.ritmo           : ''
     const personalidadeVoz   = typeof vp.personalidade  === 'string' ? vp.personalidade   : ''
+    const oQueIrrita         = typeof vp.o_que_irrita   === 'string' ? vp.o_que_irrita    : ''
     const tomVoz             = tomExtraido || (typeof vp.tom === 'string' ? vp.tom : tom)
 
     // ── Memória de contexto ───────────────────────────────────────────
@@ -198,6 +199,7 @@ ${personalidadeVoz ? `Personalidade da voz: ${personalidadeVoz}` : ''}
 ${palavrasDefinidoras ? `Expressões e palavras que definem a voz: ${palavrasDefinidoras}` : ''}
 ${palavrasChave ? `Palavras-chave do posicionamento: ${palavrasChave}` : ''}
 ${palavrasProibidas ? `NUNCA usar (voz do criador): ${palavrasProibidas}` : ''}
+${oQueIrrita ? `O que o criador acha que o mercado erra e ninguém fala (use como ângulo ou ponto de vista): "${oQueIrrita}"` : ''}
 ${exemploTexto ? `Estilo de referência do criador:\n"${exemploTexto}"` : ''}
 Template atual: ${tplId} — adapte a densidade do texto ao template (impacto = mais curto e visceral; storytelling = mais narrativo; dados = dado primeiro, desenvolvimento depois)
 ${memoriaCtx}

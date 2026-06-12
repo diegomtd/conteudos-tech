@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, forwardRef, KeyboardEvent } from 'react'
+import { useState, useEffect, useRef, forwardRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
@@ -41,6 +41,8 @@ interface FormData {
   tamanhoTitulo: 'pequeno' | 'medio' | 'grande'
   posicaoTexto: 'topo' | 'centro' | 'base'
   intensidadeFundo: number
+  // step 2
+  irritacao: string
   // step 4
   exemploTexto: string
   voiceAnalysis: VoiceAnalysis | null
@@ -94,62 +96,41 @@ function PrimaryBtn({ busy, disabled, onClick, children, style }: {
 }
 
 // ─── Chip group (predefined + custom) ─────────────────────────
-function ChipGroup({ options, selected, onChange, label, addLabel }: {
-  options: string[]; selected: string[]
-  onChange: (v: string[]) => void
-  label: string; addLabel?: string
-}) {
-  const [custom, setCustom] = useState('')
-  const toggle = (v: string) =>
-    onChange(selected.includes(v) ? selected.filter((x) => x !== v) : [...selected, v])
-  const add = () => {
-    const val = custom.trim()
-    if (val && !selected.includes(val)) onChange([...selected, val])
-    setCustom('')
-  }
-  const onKey = (e: KeyboardEvent<HTMLInputElement>) => { if (e.key === 'Enter') { e.preventDefault(); add() } }
-
-  return (
-    <div style={sectionSt}>
-      <label style={labelSt}>{label}</label>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-        {[...options, ...selected.filter((v) => !options.includes(v))].map((v) => {
-          const sel = selected.includes(v)
-          return (
-            <button key={v} type="button" onClick={() => toggle(v)} style={{
-              backgroundColor: sel ? A : S2,
-              color: sel ? '#000' : T,
-              border: `1px solid ${sel ? A : 'rgba(255,255,255,0.1)'}`,
-              borderRadius: 99, padding: '5px 14px', fontSize: 13,
-              fontFamily: ff, cursor: 'pointer', transition: 'all 0.15s', fontWeight: sel ? 600 : 400,
-            }}>
-              {v}
-            </button>
-          )
-        })}
-      </div>
-      <input
-        value={custom} onChange={(e) => setCustom(e.target.value)} onKeyDown={onKey}
-        placeholder={addLabel ?? 'Adicionar palavra personalizada...'}
-        style={{ ...inputSt, fontSize: 12, padding: '8px 12px' }}
-        onFocus={(e) => { e.target.style.borderColor = A }}
-        onBlur={(e) => { e.target.style.borderColor = B; if (custom.trim()) add() }}
-      />
-    </div>
-  )
-}
-
 // ─── Data constants ───────────────────────────────────────────
-const NICHES = ['empreendedorismo','marketing','saúde','autoconhecimento','espiritualidade','tecnologia','lifestyle','educação','finanças','outro']
-
-const PALAVRAS_PROIBIDAS = ['sinergia','networking','disruptivo','jornada','empoderamento','metodologia','mindset','expertise','entregar valor','high performance','ecossistema','storytelling','crescimento exponencial','curadoria']
-const PALAVRAS_DEFINIDORAS = ['direto','real','sem filtro','provocador','questionador','técnico','simples','humano','prático','filosófico','cru','irônico','leve','denso']
+const NICHES = [
+  { value: 'empreendedorismo', label: 'Empreendedorismo', emoji: '💼' },
+  { value: 'marketing',        label: 'Marketing',        emoji: '📱' },
+  { value: 'saúde',            label: 'Saúde',            emoji: '💪' },
+  { value: 'autoconhecimento', label: 'Autoconhecimento', emoji: '🧠' },
+  { value: 'espiritualidade',  label: 'Espiritualidade',  emoji: '✨' },
+  { value: 'tecnologia',       label: 'Tecnologia',       emoji: '💻' },
+  { value: 'lifestyle',        label: 'Lifestyle',        emoji: '🌅' },
+  { value: 'educação',         label: 'Educação',         emoji: '📚' },
+  { value: 'finanças',         label: 'Finanças',         emoji: '💰' },
+  { value: 'outro',            label: 'Outro nicho',      emoji: '🌐' },
+]
 
 const TONES = [
-  { slug: 'provocador',    label: 'Provocador e direto',     example: 'Você está sabotando seu crescimento sem perceber' },
-  { slug: 'educativo',     label: 'Educativo e estruturado', example: '5 erros que impedem o crescimento no Instagram' },
-  { slug: 'bastidor',      label: 'Bastidor e humano',       example: 'Hoje aprendi algo que mudou como vejo conteúdo' },
-  { slug: 'inspiracional', label: 'Inspiracional e leve',    example: 'Pequenas ações consistentes criam grandes resultados' },
+  {
+    slug: 'direto',
+    label: 'Direto e sem rodeios',
+    example: 'A maioria não cresce porque quer parecer profissional antes de ser real. Simples assim.',
+  },
+  {
+    slug: 'educativo',
+    label: 'Didático e estruturado',
+    example: 'Testei 3 formatos de post essa semana. O resultado foi diferente do que eu esperava. Aqui está o que aprendi.',
+  },
+  {
+    slug: 'bastidor',
+    label: 'Bastidor e humano',
+    example: 'Na semana passada meu post mais trabalhado foi o que menos performou. E o mais simples bombou.',
+  },
+  {
+    slug: 'humor',
+    label: 'Leve com ironia',
+    example: 'Minha rotina matinal tem 3 passos: café, abrir o Instagram e fingir que entendo o algoritmo.',
+  },
 ]
 
 const PALETTE = ['#C8FF00','#FF6B2B','#00B4D8','#A855F7','#F43F5E','#10B981','#F59E0B','#FFFFFF']
@@ -189,25 +170,35 @@ function normalizeNicho(n: string) {
 // ─── Step 1 ───────────────────────────────────────────────────
 function Step1({ data, onChange }: { data: FormData; onChange: (d: Partial<FormData>) => void }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <div style={sectionSt}>
-        <label style={labelSt}>Nome de exibição</label>
-        <FocusInput value={data.displayName} onChange={(e) => onChange({ displayName: e.target.value })} placeholder="Como você quer ser chamado" />
+        <label style={labelSt}>Como você quer ser chamado?</label>
+        <FocusInput value={data.displayName} onChange={(e) => onChange({ displayName: e.target.value })} placeholder="Seu nome ou apelido" />
       </div>
       <div style={sectionSt}>
-        <label style={labelSt}>Instagram <span style={{ color: M }}>(opcional)</span></label>
+        <label style={labelSt}>Sobre o que você faz conteúdo?</label>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {NICHES.map((n) => {
+            const sel = data.niche === n.value
+            return (
+              <button key={n.value} type="button" onClick={() => onChange({ niche: n.value })} style={{
+                background: sel ? 'rgba(0,212,255,0.08)' : S2,
+                border: `2px solid ${sel ? A : B}`,
+                borderRadius: 10, padding: '12px 14px',
+                cursor: 'pointer', textAlign: 'left',
+                display: 'flex', alignItems: 'center', gap: 10,
+                transition: 'border-color 0.15s, background 0.15s',
+              }}>
+                <span style={{ fontSize: 22 }}>{n.emoji}</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: sel ? A : T, fontFamily: ff }}>{n.label}</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+      <div style={sectionSt}>
+        <label style={labelSt}>Instagram <span style={{ color: M, fontWeight: 400 }}>(opcional)</span></label>
         <FocusInput value={data.instagramHandle} onChange={(e) => onChange({ instagramHandle: e.target.value })} placeholder="@seuperfil" />
-      </div>
-      <div style={sectionSt}>
-        <label style={labelSt}>Qual é o seu nicho?</label>
-        <select value={data.niche} onChange={(e) => onChange({ niche: e.target.value })} style={{
-          ...inputSt, appearance: 'none', cursor: 'pointer',
-          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23ffffff66' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
-          backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center',
-        }}>
-          <option value="">Selecione...</option>
-          {NICHES.map((n) => <option key={n} value={n} style={{ backgroundColor: S2 }}>{n.charAt(0).toUpperCase() + n.slice(1)}</option>)}
-        </select>
       </div>
     </div>
   )
@@ -216,39 +207,60 @@ function Step1({ data, onChange }: { data: FormData; onChange: (d: Partial<FormD
 // ─── Step 2 ───────────────────────────────────────────────────
 function Step2({ data, onChange }: { data: FormData; onChange: (d: Partial<FormData>) => void }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-      {/* Tom cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        {TONES.map((t) => {
-          const sel = data.tom === t.slug
-          return (
-            <button key={t.slug} type="button" onClick={() => onChange({ tom: t.slug })} style={{
-              background: sel ? 'rgba(200,255,0,0.08)' : S2,
-              border: `2px solid ${sel ? A : B}`, borderRadius: 10,
-              padding: '14px 16px', cursor: 'pointer', textAlign: 'left',
-              transition: 'border-color 0.2s, background 0.2s',
-            }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: sel ? A : T, fontFamily: ff, margin: '0 0 6px' }}>{t.label}</p>
-              <p style={{ fontSize: 12, color: M, fontFamily: ff, margin: 0, lineHeight: 1.5 }}>"{t.example}"</p>
-            </button>
-          )
-        })}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+      {/* Seleção de tom via exemplos concretos */}
+      <div style={sectionSt}>
+        <label style={labelSt}>Qual dessas frases mais parece você?</label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {TONES.map((t) => {
+            const sel = data.tom === t.slug
+            return (
+              <button key={t.slug} type="button" onClick={() => onChange({ tom: t.slug })} style={{
+                background: sel ? 'rgba(0,212,255,0.08)' : S2,
+                border: `2px solid ${sel ? A : B}`,
+                borderRadius: 12, padding: '14px 18px',
+                cursor: 'pointer', textAlign: 'left',
+                transition: 'border-color 0.15s, background 0.15s',
+                display: 'flex', alignItems: 'flex-start', gap: 12,
+              }}>
+                <div style={{
+                  width: 18, height: 18, borderRadius: '50%', flexShrink: 0, marginTop: 1,
+                  border: `2px solid ${sel ? A : 'rgba(255,255,255,0.2)'}`,
+                  background: sel ? A : 'transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all 0.15s',
+                }}>
+                  {sel && <div style={{ width: 6, height: 6, borderRadius: '50%', background: BG }} />}
+                </div>
+                <div>
+                  <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: sel ? A : M, fontFamily: ff, textTransform: 'uppercase', letterSpacing: 0.5 }}>{t.label}</p>
+                  <p style={{ margin: 0, fontSize: 14, color: sel ? T : 'rgba(232,244,255,0.65)', fontFamily: ff, lineHeight: 1.5, fontStyle: 'italic' }}>"{t.example}"</p>
+                </div>
+              </button>
+            )
+          })}
+        </div>
       </div>
 
-      <ChipGroup
-        label="Palavras que você NUNCA usa"
-        options={PALAVRAS_PROIBIDAS}
-        selected={data.palavrasProibidas}
-        onChange={(v) => onChange({ palavrasProibidas: v })}
-        addLabel="Adicionar palavra proibida..."
-      />
-      <ChipGroup
-        label="Palavras que definem seu jeito"
-        options={PALAVRAS_DEFINIDORAS}
-        selected={data.palavrasChave}
-        onChange={(v) => onChange({ palavrasChave: v })}
-        addLabel="Adicionar palavra..."
-      />
+      {/* Pergunta de irritação — captura a voz real */}
+      <div style={sectionSt}>
+        <label style={labelSt}>
+          O que mais te irrita no seu nicho que ninguém tem coragem de falar?
+          <span style={{ color: M, fontWeight: 400, marginLeft: 6 }}>(opcional)</span>
+        </label>
+        <textarea
+          value={data.irritacao}
+          onChange={(e) => onChange({ irritacao: e.target.value })}
+          placeholder="Pode ser curto. Só joga aqui o que você pensa mas não fala."
+          rows={3}
+          style={{
+            ...inputSt, resize: 'none', lineHeight: 1.6,
+            padding: '12px 14px',
+          }}
+          onFocus={(e) => { e.target.style.borderColor = A }}
+          onBlur={(e) => { e.target.style.borderColor = B }}
+        />
+      </div>
     </div>
   )
 }
@@ -648,11 +660,11 @@ function AgencyPrompt({ tema, onSelf, onClient }: {
 
 // ─── Main ─────────────────────────────────────────────────────
 const STEP_META = [
-  { title: 'Primeiro, me conta quem você é',             subtitle: null },
-  { title: 'Qual desses textos mais parece você?',       subtitle: 'A IA vai escrever assim.' },
-  { title: 'Como é a sua cara?',                         subtitle: null },
-  { title: 'Quanto mais você me der, mais preciso eu fico', subtitle: 'Cole um texto que você já escreveu — post, legenda, qualquer coisa.' },
-  { title: 'TUDO PRONTO.',                               subtitle: 'Vamos criar seu primeiro carrossel?' },
+  { title: 'Primeiro, me conta quem você é',    subtitle: null },
+  { title: 'Como você fala?',                   subtitle: 'Escolha o jeito que mais parece você.' },
+  { title: 'Como é a sua cara?',                subtitle: null },
+  { title: 'Me dá uma amostra da sua escrita',  subtitle: 'Cole qualquer coisa que você escreveu — post, legenda, mensagem.' },
+  { title: 'Tudo pronto.',                      subtitle: 'Sobre o que vamos criar seu primeiro carrossel?' },
 ]
 
 const variants = {
@@ -684,7 +696,7 @@ export default function Onboarding() {
     tom: '', palavrasProibidas: [], palavrasChave: [],
     cor: '#C8FF00', estilo: 'dark_cinematic', fonte: 'Bebas Neue',
     tamanhoTitulo: 'medio', posicaoTexto: 'base', intensidadeFundo: 60,
-    exemploTexto: '', voiceAnalysis: null, primeiraTema: '',
+    irritacao: '', exemploTexto: '', voiceAnalysis: null, primeiraTema: '',
   })
 
   const update = (d: Partial<FormData>) => setForm((p) => ({ ...p, ...d }))
@@ -719,6 +731,7 @@ export default function Onboarding() {
           palavras_proibidas: form.palavrasProibidas,
           palavras_chave: form.palavrasChave,
           exemplo_texto: form.exemploTexto,
+          o_que_irrita: form.irritacao || null,
           ...(form.voiceAnalysis ? {
             tom_extraido: form.voiceAnalysis.tom,
             ritmo: form.voiceAnalysis.ritmo,
