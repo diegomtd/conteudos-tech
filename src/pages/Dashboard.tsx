@@ -9,6 +9,8 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import type { Profile, ScheduledPost, WeeklyTrend } from '@/types'
 
+type SuggestedTema = { titulo: string; hook: string; tipo: string }
+
 type CarouselWithCover = {
   id: string
   tema: string
@@ -361,6 +363,8 @@ export default function Dashboard() {
   const [, setNextPost]                     = useState<ScheduledPost | null>(null)
   const [trends, setTrends]                 = useState<WeeklyTrend | null>(null)
   const [loading, setLoading]               = useState(true)
+  const [aiTopics, setAiTopics]             = useState<SuggestedTema[]>([])
+  const [loadingTopics, setLoadingTopics]   = useState(false)
 
   const toggleSidebar = () => {
     setSidebarOpen(prev => {
@@ -416,6 +420,17 @@ export default function Dashboard() {
     load()
   }, [user])
 
+  // ── Suggest-topics: chama edge function com voz personalizada ──
+  useEffect(() => {
+    if (!user) return
+    setLoadingTopics(true)
+    supabase.functions.invoke('suggest-topics').then(({ data }) => {
+      if (data?.temas && Array.isArray(data.temas) && data.temas.length > 0) {
+        setAiTopics(data.temas as SuggestedTema[])
+      }
+    }).finally(() => setLoadingTopics(false))
+  }, [user])
+
   // ── Derived values ─────────────────────────────────────────────
   const plan         = profile?.plan ?? 'free'
   const exportsUsed  = profile?.exports_used_this_month ?? 0
@@ -430,12 +445,19 @@ export default function Dashboard() {
   const countCarousels = useCountUp(carouselsCount, !loading)
 
   // ── Idea topics ────────────────────────────────────────────────
-  const ideaTopics: string[] = (() => {
-    if (trends && Array.isArray(trends.temas) && trends.temas.length >= 3) return trends.temas.slice(0, 3)
-    const niche = profile?.niche?.toLowerCase() ?? ''
-    const byNiche = Object.entries(NICHE_IDEAS).find(([k]) => niche.includes(k))
-    return byNiche ? byNiche[1] : GENERIC_IDEAS
-  })()
+  // Sugestões ricas da IA (hook + titulo + tipo). Se ainda carregando, usa fallback.
+  const richTopics: SuggestedTema[] = aiTopics.length > 0
+    ? aiTopics.slice(0, 5)
+    : (() => {
+        const fallback: string[] = (() => {
+          if (trends && Array.isArray(trends.temas) && trends.temas.length >= 3) return trends.temas.slice(0, 3)
+          const niche = profile?.niche?.toLowerCase() ?? ''
+          const byNiche = Object.entries(NICHE_IDEAS).find(([k]) => niche.includes(k))
+          return byNiche ? byNiche[1] : GENERIC_IDEAS
+        })()
+        return fallback.map(t => ({ titulo: t, hook: t, tipo: '' }))
+      })()
+  const topicsLoading = loading || loadingTopics
 
   // ── Streak de criação (dias consecutivos com pelo menos 1 carrossel) ──
   const streak = (() => {
@@ -622,28 +644,35 @@ export default function Dashboard() {
                   animation: 'pulse-dot 2.2s ease-in-out infinite',
                 }} />
                 <span style={{ fontFamily: ff, fontSize: 11, color: A, textTransform: 'uppercase', letterSpacing: 1.2, fontWeight: 600 }}>
-                  sugestão de hoje
+                  {aiTopics.length > 0 ? 'IA personalizada para você' : 'sugestão de hoje'}
                 </span>
               </div>
-              {loading
-                ? <Skeleton w="75%" h={26} r={4} />
-                : <p style={{ fontFamily: ffd, fontSize: 22, color: T, margin: '0 0 6px', lineHeight: 1.25, letterSpacing: 0.4 }}>
-                    {ideaTopics[0]}
-                  </p>
+              {topicsLoading
+                ? <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}><Skeleton w="75%" h={26} r={4} /><Skeleton w="45%" h={14} r={4} /></div>
+                : <>
+                    <p style={{ fontFamily: ffd, fontSize: 22, color: T, margin: '0 0 4px', lineHeight: 1.25, letterSpacing: 0.4 }}>
+                      {richTopics[0]?.hook || richTopics[0]?.titulo || '—'}
+                    </p>
+                    {richTopics[0]?.titulo !== richTopics[0]?.hook && richTopics[0]?.titulo && (
+                      <p style={{ fontFamily: ff, fontSize: 12, color: M, margin: 0 }}>
+                        {richTopics[0].titulo}
+                      </p>
+                    )}
+                  </>
               }
             </div>
 
             <motion.button
               whileHover={{ scale: 1.04 }}
               whileTap={{ scale: 0.97 }}
-              onClick={() => navigate(`/studio?tema=${encodeURIComponent(ideaTopics[0] ?? '')}`)}
-              disabled={loading}
+              onClick={() => navigate(`/studio?tema=${encodeURIComponent(richTopics[0]?.titulo ?? richTopics[0]?.hook ?? '')}`)}
+              disabled={topicsLoading}
               style={{
                 background: A, color: '#000', border: 'none', borderRadius: 12,
                 padding: '12px 22px', cursor: 'pointer',
                 fontFamily: ffd, fontSize: 16, letterSpacing: 0.8,
                 flexShrink: 0, whiteSpace: 'nowrap',
-                opacity: loading ? 0 : 1, transition: 'opacity 0.2s',
+                opacity: topicsLoading ? 0 : 1, transition: 'opacity 0.2s',
                 boxShadow: `0 0 20px ${A}33`,
               }}
             >
@@ -652,12 +681,12 @@ export default function Dashboard() {
           </div>
 
           {/* Outras sugestões como pills */}
-          {!loading && ideaTopics.length > 1 && (
+          {!topicsLoading && richTopics.length > 1 && (
             <div style={{ display: 'flex', gap: 8, marginTop: 20, flexWrap: 'wrap' }}>
-              {ideaTopics.slice(1).map((t, i) => (
+              {richTopics.slice(1).map((t, i) => (
                 <button
                   key={i}
-                  onClick={() => navigate(`/studio?tema=${encodeURIComponent(t)}`)}
+                  onClick={() => navigate(`/studio?tema=${encodeURIComponent(t.titulo)}`)}
                   style={{
                     background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
                     borderRadius: 99, padding: '7px 16px', cursor: 'pointer',
@@ -666,7 +695,7 @@ export default function Dashboard() {
                   onMouseEnter={e => { e.currentTarget.style.borderColor = `${A}44`; e.currentTarget.style.color = T }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = M }}
                 >
-                  {t.length > 58 ? t.slice(0, 58) + '…' : t}
+                  {(t.hook || t.titulo).slice(0, 58)}{(t.hook || t.titulo).length > 58 ? '…' : ''}
                 </button>
               ))}
               <button
