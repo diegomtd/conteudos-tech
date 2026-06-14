@@ -33,10 +33,10 @@ const NICHES = [
 ]
 
 const TONES = [
-  { slug: 'provocador',    label: 'Provocador',    example: 'Você está sabotando seu crescimento sem perceber' },
-  { slug: 'educativo',     label: 'Educativo',     example: '5 erros que impedem o crescimento no Instagram' },
-  { slug: 'bastidor',      label: 'Bastidor',      example: 'Hoje aprendi algo que mudou como vejo conteúdo' },
-  { slug: 'inspiracional', label: 'Inspiracional', example: 'Pequenas ações consistentes criam grandes resultados' },
+  { slug: 'direto',     label: 'Direto e sem rodeios', example: 'A maioria não cresce porque quer parecer profissional antes de ser real. Simples assim.' },
+  { slug: 'educativo',  label: 'Didático e estruturado', example: 'Testei 3 formatos de post essa semana. O que mais performou foi o que menos esperava.' },
+  { slug: 'bastidor',   label: 'Bastidor e humano', example: 'Na semana passada meu post mais trabalhado foi o que menos performou...' },
+  { slug: 'humor',      label: 'Leve com ironia', example: 'Minha rotina matinal tem 3 passos: café, abrir o Instagram e fingir que entendo o algoritmo.' },
 ]
 
 const PALETTE = ['#C8FF00','#FF6B2B','#00B4D8','#A855F7','#F43F5E','#10B981','#F59E0B','#FFFFFF']
@@ -297,7 +297,8 @@ function TabVoz({ profile, userId }: { profile: Profile; userId: string }) {
     }).eq('user_id', userId)
     setSaving(false)
     if (error) { toast.error('Erro ao salvar'); return }
-    toast.success('Voz e estilo atualizados')
+    try { localStorage.removeItem('conteudos_topics_cache') } catch { /* ignora */ }
+    toast.success('Voz e estilo atualizados — novas sugestões serão geradas no Dashboard')
   }
 
   return (

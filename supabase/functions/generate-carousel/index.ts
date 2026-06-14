@@ -118,7 +118,26 @@ serve(async (req) => {
     const ritmoVoz           = typeof vp.ritmo          === 'string' ? vp.ritmo           : ''
     const personalidadeVoz   = typeof vp.personalidade  === 'string' ? vp.personalidade   : ''
     const oQueIrrita         = typeof vp.o_que_irrita   === 'string' ? vp.o_que_irrita    : ''
+    const angulos            = Array.isArray(vp.angulos) ? (vp.angulos as string[]) : []
+    const comoConectar       = typeof vp.como_conectar  === 'string' ? vp.como_conectar  : ''
     const tomVoz             = tomExtraido || (typeof vp.tom === 'string' ? vp.tom : tom)
+
+    const ANGULO_LABELS: Record<string, string> = {
+      tendencias: 'tendências e assuntos virais da semana',
+      historico:  'personagens históricos ou figuras famosas como gancho',
+      dados:      'dados, estatísticas e fatos chocantes',
+      noticias:   'notícias e eventos recentes do mundo real',
+      revelacao:  'revelação contraintuitiva — contra o senso comum do mercado',
+      provocacao: 'provocação e polêmica — questionar crenças do nicho',
+      caso_real:  'caso real com resultado concreto e números',
+      bastidor:   'bastidor e processo pessoal do criador',
+    }
+    const angulosCtx = angulos.length > 0
+      ? `Ângulos de gancho preferidos do criador (use no hook da capa e no desenvolvimento):\n${angulos.map(a => `- ${ANGULO_LABELS[a] ?? a}`).join('\n')}`
+      : ''
+    const conectarCtx = comoConectar
+      ? `Como o criador conecta temas ao produto/posicionamento: "${comoConectar}"\nGaranta que o CTA e a narrativa do último slide apontem naturalmente para essa conexão.`
+      : ''
 
     // ── Memória de contexto ───────────────────────────────────────────
     const memoriaCtx = temasRecentes.length
@@ -200,6 +219,8 @@ ${palavrasDefinidoras ? `Expressões e palavras que definem a voz: ${palavrasDef
 ${palavrasChave ? `Palavras-chave do posicionamento: ${palavrasChave}` : ''}
 ${palavrasProibidas ? `NUNCA usar (voz do criador): ${palavrasProibidas}` : ''}
 ${oQueIrrita ? `O que o criador acha que o mercado erra e ninguém fala (use como ângulo ou ponto de vista): "${oQueIrrita}"` : ''}
+${angulosCtx ? angulosCtx : ''}
+${conectarCtx ? conectarCtx : ''}
 ${exemploTexto ? `Estilo de referência do criador:\n"${exemploTexto}"` : ''}
 Template atual: ${tplId} — adapte a densidade do texto ao template (impacto = mais curto e visceral; storytelling = mais narrativo; dados = dado primeiro, desenvolvimento depois)
 ${memoriaCtx}

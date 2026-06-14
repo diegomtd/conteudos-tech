@@ -435,20 +435,32 @@ function StateInput({
     }
   }
 
-  const handleSuggestTopics = async () => {
+  const handleSuggestTopics = async (force = false) => {
+    const CACHE_KEY = 'conteudos_topics_cache'
+    const CACHE_TTL = 24 * 60 * 60 * 1000
+    if (!force) {
+      try {
+        const raw = localStorage.getItem(CACHE_KEY)
+        if (raw) {
+          const { data: { user } } = await supabase.auth.getUser()
+          const { temas, ts, uid } = JSON.parse(raw)
+          if (uid === user?.id && Date.now() - ts < CACHE_TTL && Array.isArray(temas) && temas.length > 0) {
+            setSuggestedTopics(temas)
+            return
+          }
+        }
+      } catch { /* cache inválido */ }
+    }
     setLoadingTopics(true)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/suggest-topics`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
-          body: JSON.stringify({})
-        }
-      )
-      const data = await res.json()
-      if (data.temas) setSuggestedTopics(data.temas)
+      const { data } = await supabase.functions.invoke('suggest-topics')
+      if (data?.temas) {
+        setSuggestedTopics(data.temas)
+        const { data: { user } } = await supabase.auth.getUser()
+        try {
+          localStorage.setItem(CACHE_KEY, JSON.stringify({ temas: data.temas, ts: Date.now(), uid: user?.id }))
+        } catch { /* localStorage cheio */ }
+      }
     } catch {
       toast.error('Erro ao buscar ideias.')
     } finally {
@@ -770,7 +782,7 @@ function StateInput({
         <div>
           {suggestedTopics.length === 0 && (
             <button
-              onClick={handleSuggestTopics}
+              onClick={() => handleSuggestTopics()}
               disabled={loadingTopics}
               style={{
                 background: loadingTopics ? 'rgba(200,255,0,0.03)' : 'rgba(200,255,0,0.05)',

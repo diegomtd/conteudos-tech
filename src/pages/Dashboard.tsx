@@ -484,15 +484,18 @@ export default function Dashboard() {
   // ── Streak de criação (dias consecutivos com pelo menos 1 carrossel) ──
   const streak = (() => {
     if (recentCarousels.length === 0) return 0
+    const todayMs = new Date().setHours(0, 0, 0, 0)
     const dates = [...new Set(recentCarousels.map(c =>
-      new Date(c.created_at).toDateString()
-    ))].map(d => new Date(d).setHours(0,0,0,0)).sort((a,b) => b - a)
+      new Date(c.created_at).setHours(0, 0, 0, 0)
+    ))].sort((a, b) => b - a)
+    // streak só conta se o dia mais recente for hoje ou ontem
+    const mostRecent = dates[0]
+    const diffFromToday = (todayMs - mostRecent) / 86400000
+    if (diffFromToday > 1) return 0
     let s = 0
-    const today = new Date(); today.setHours(0,0,0,0)
-    let expected = today.getTime()
+    let expected = mostRecent
     for (const d of dates) {
-      const diff = (expected - d) / 86400000
-      if (diff <= 1) { s++; expected = d } else break
+      if ((expected - d) / 86400000 <= 1) { s++; expected = d } else break
     }
     return s
   })()
