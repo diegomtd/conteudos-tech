@@ -421,35 +421,37 @@ export default function Dashboard() {
   }, [user])
 
   // ── Suggest-topics: cache 24h em localStorage para evitar chamadas desnecessárias ──
-  useEffect(() => {
-    if (!user) return
-    const CACHE_KEY = 'conteudos_topics_cache'
-    const CACHE_TTL = 24 * 60 * 60 * 1000 // 24 horas
-    try {
-      const raw = localStorage.getItem(CACHE_KEY)
-      if (raw) {
-        const { temas, ts, uid } = JSON.parse(raw)
-        if (uid === user.id && Date.now() - ts < CACHE_TTL && Array.isArray(temas) && temas.length > 0) {
-          setAiTopics(temas as SuggestedTema[])
-          return
-        }
-      }
-    } catch { /* cache inválido, segue para chamada */ }
+  const TOPICS_CACHE_KEY = 'conteudos_topics_cache'
+  const TOPICS_CACHE_TTL = 24 * 60 * 60 * 1000
 
+  const fetchTopics = (force = false) => {
+    if (!user) return
+    if (!force) {
+      try {
+        const raw = localStorage.getItem(TOPICS_CACHE_KEY)
+        if (raw) {
+          const { temas, ts, uid } = JSON.parse(raw)
+          if (uid === user.id && Date.now() - ts < TOPICS_CACHE_TTL && Array.isArray(temas) && temas.length > 0) {
+            setAiTopics(temas as SuggestedTema[])
+            return
+          }
+        }
+      } catch { /* cache inválido */ }
+    }
     setLoadingTopics(true)
     supabase.functions.invoke('suggest-topics').then(({ data }) => {
       if (data?.temas && Array.isArray(data.temas) && data.temas.length > 0) {
         setAiTopics(data.temas as SuggestedTema[])
         try {
-          localStorage.setItem(CACHE_KEY, JSON.stringify({
-            temas: data.temas,
-            ts: Date.now(),
-            uid: user.id,
+          localStorage.setItem(TOPICS_CACHE_KEY, JSON.stringify({
+            temas: data.temas, ts: Date.now(), uid: user.id,
           }))
-        } catch { /* localStorage cheio, ignora */ }
+        } catch { /* localStorage cheio */ }
       }
     }).finally(() => setLoadingTopics(false))
-  }, [user])
+  }
+
+  useEffect(() => { fetchTopics() }, [user])
 
   // ── Derived values ─────────────────────────────────────────────
   const plan         = profile?.plan ?? 'free'
@@ -666,6 +668,19 @@ export default function Dashboard() {
                 <span style={{ fontFamily: ff, fontSize: 11, color: A, textTransform: 'uppercase', letterSpacing: 1.2, fontWeight: 600 }}>
                   {aiTopics.length > 0 ? 'IA personalizada para você' : 'sugestão de hoje'}
                 </span>
+                {!topicsLoading && (
+                  <button
+                    onClick={() => fetchTopics(true)}
+                    title="Gerar novas sugestões"
+                    style={{
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      color: 'rgba(242,242,247,0.25)', fontSize: 13, lineHeight: 1,
+                      padding: '2px 4px', borderRadius: 4, transition: 'color 0.15s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.color = A}
+                    onMouseLeave={e => e.currentTarget.style.color = 'rgba(242,242,247,0.25)'}
+                  >↺</button>
+                )}
               </div>
               {topicsLoading
                 ? <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}><Skeleton w="75%" h={26} r={4} /><Skeleton w="45%" h={14} r={4} /></div>
