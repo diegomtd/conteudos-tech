@@ -144,15 +144,6 @@ const CTA_OPTIONS = [
 ]
 
 // ─── Presets de kit visual ────────────────────────────────────
-const KIT_PRESETS = [
-  { id: 'creator-dark', label: 'Creator',   cor: '#C8FF00', fonte: '"Bebas Neue", sans-serif',       emoji: '⚡' },
-  { id: 'tech-cyan',    label: 'Tech',      cor: '#00D4FF', fonte: '"Space Grotesk", sans-serif',    emoji: '💻' },
-  { id: 'premium-gold', label: 'Premium',   cor: '#F59E0B', fonte: '"Playfair Display", serif',      emoji: '✦' },
-  { id: 'roxo-viral',   label: 'Viral',     cor: '#A855F7', fonte: '"Bebas Neue", sans-serif',       emoji: '🔥' },
-  { id: 'editorial',    label: 'Editorial', cor: '#F5F5F5', fonte: '"Playfair Display", serif',      emoji: '📐' },
-  { id: 'laranja-bold', label: 'Bold',      cor: '#FF6B2B', fonte: '"DM Sans", sans-serif',          emoji: '🧱' },
-]
-
 // ─── Shared ───────────────────────────────────────────────────
 const inputSt: React.CSSProperties = {
   backgroundColor: S, border: `1px solid rgba(200,255,0,0.3)`, borderRadius: 10,
@@ -359,8 +350,6 @@ function StateInput({
   } | null>(null)
   const [kitData, setKitData] = useState<{ cor: string; fonte: string } | null>(null)
   const [useKit, setUseKit] = useState(() => localStorage.getItem('conteudos_use_visual_kit') !== 'false')
-  const [kitExpanded, setKitExpanded] = useState(false)
-  const [savingPreset, setSavingPreset] = useState(false)
 
   const { user } = useAuth()
 
@@ -393,17 +382,6 @@ function StateInput({
     const next = !useKit
     setUseKit(next)
     localStorage.setItem('conteudos_use_visual_kit', String(next))
-  }
-
-  const applyPreset = async (preset: typeof KIT_PRESETS[0]) => {
-    if (!user || savingPreset) return
-    setSavingPreset(true)
-    await supabase.from('profiles').update({
-      visual_kit: { cor: preset.cor, fonte: preset.fonte },
-    }).eq('user_id', user.id)
-    setKitData({ cor: preset.cor, fonte: preset.fonte })
-    setSavingPreset(false)
-    setKitExpanded(false)
   }
 
   const canCreate = tema.trim().length >= 4
@@ -686,12 +664,13 @@ function StateInput({
         </AnimatePresence>
       </div>
 
-      {/* Opções */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {/* Template */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span style={{ fontSize: 12, color: M, fontFamily: ff }}>Template:</span>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+      {/* ─── Configuração ─────────────────────────────────────── */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+
+        {/* TEMPLATE — 3 colunas compactas */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <span style={{ fontSize: 10, color: 'rgba(242,242,247,0.3)', fontFamily: ff, textTransform: 'uppercase', letterSpacing: 1.2 }}>Template:</span>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
             {TEMPLATES.map(({ key, icon, name }) => {
               const sel = selectedTpl === key
               return (
@@ -700,110 +679,142 @@ function StateInput({
                   const cfg = TEMPLATE_CONFIG[key as keyof typeof TEMPLATE_CONFIG]
                   if (cfg) setSlides(cfg.num_slides_sugerido)
                 }} style={{
-                  borderRadius: 6, cursor: 'pointer', padding: '6px 8px',
-                  background: sel ? 'rgba(200,255,0,0.08)' : 'rgba(255,255,255,0.03)',
-                  border: `1.5px solid ${sel ? A : B}`,
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  transition: 'border-color 0.15s',
+                  borderRadius: 8, cursor: 'pointer', padding: '10px 6px',
+                  background: sel ? 'rgba(200,255,0,0.07)' : 'rgba(255,255,255,0.03)',
+                  border: `1.5px solid ${sel ? A : 'rgba(255,255,255,0.07)'}`,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+                  transition: 'all 0.15s',
+                  boxShadow: sel ? `0 0 14px rgba(200,255,0,0.12)` : 'none',
                 }}>
-                  <span style={{ fontSize: 14 }}>{icon}</span>
-                  <span style={{ fontFamily: ff, fontSize: 11, color: sel ? A : T, letterSpacing: 0.5 }}>{name}</span>
+                  <span style={{ fontSize: 18, lineHeight: 1 }}>{icon}</span>
+                  <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 10, color: sel ? A : T, letterSpacing: 0.8, lineHeight: 1 }}>{name}</span>
                 </button>
               )
             })}
           </div>
         </div>
 
-        {/* Slides */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 12, color: M, fontFamily: ff, minWidth: 48 }}>Slides:</span>
-          {([5, 7, 10, 12, 15, 0] as const).map((n) => (
-            <TooltipChip
-              key={n}
-              label={n === 0 ? 'IA' : String(n)}
-              active={slides === n}
-              onClick={() => setSlides(n)}
-              tooltip={SLIDE_TOOLTIPS[n] ?? 'IA escolhe o ideal para o tema'}
-            />
-          ))}
+        {/* TOM + SLIDES — 2 linhas compactas */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 10, color: 'rgba(242,242,247,0.3)', fontFamily: ff, textTransform: 'uppercase', letterSpacing: 1.2, minWidth: 42 }}>Tom:</span>
+            {(['Provocador', 'Educativo', 'Bastidor', 'Humor'] as const).map((t) => (
+              <TooltipChip key={t} label={t} active={tom === t} onClick={() => setTom(t)} tooltip={TOM_TOOLTIPS[t]} />
+            ))}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 10, color: 'rgba(242,242,247,0.3)', fontFamily: ff, textTransform: 'uppercase', letterSpacing: 1.2, minWidth: 42 }}>Slides:</span>
+            {([5, 7, 10, 12, 15, 0] as const).map((n) => (
+              <TooltipChip
+                key={n}
+                label={n === 0 ? 'IA' : String(n)}
+                active={slides === n}
+                onClick={() => setSlides(n)}
+                tooltip={SLIDE_TOOLTIPS[n] ?? 'IA escolhe o ideal para o tema'}
+              />
+            ))}
+          </div>
         </div>
 
-        {/* Tom */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 12, color: M, fontFamily: ff, minWidth: 48 }}>Tom:</span>
-          {(['Provocador', 'Educativo', 'Bastidor', 'Humor'] as const).map((t) => (
-            <TooltipChip
-              key={t}
-              label={t}
-              active={tom === t}
-              onClick={() => setTom(t)}
-              tooltip={TOM_TOOLTIPS[t]}
-            />
-          ))}
+        {/* CTA + KIT VISUAL — linha compacta */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+            <span style={{ fontSize: 10, color: 'rgba(242,242,247,0.3)', fontFamily: ff, textTransform: 'uppercase', letterSpacing: 1.2, whiteSpace: 'nowrap' }}>CTA:</span>
+            <select
+              value={cta}
+              onChange={(e) => setCta(e.target.value)}
+              style={{
+                flex: 1, backgroundColor: S3, border: `1px solid ${B}`, borderRadius: 8,
+                color: T, fontSize: 12, fontFamily: ff, padding: '7px 28px 7px 10px',
+                outline: 'none', cursor: 'pointer', appearance: 'none',
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23ffffff44' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+                backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center',
+              }}
+            >
+              {CTA_OPTIONS.map((o) => <option key={o} value={o} style={{ backgroundColor: S3 }}>{o}</option>)}
+            </select>
+          </div>
+
+          {/* Kit visual — toggle inline */}
+          <div
+            style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, cursor: 'pointer', padding: '4px 0' }}
+            onClick={toggleUseKit}
+          >
+            {kitData && (
+              <div style={{
+                width: 10, height: 10, borderRadius: '50%',
+                background: kitData.cor,
+                boxShadow: useKit ? `0 0 6px ${kitData.cor}` : 'none',
+                transition: 'box-shadow 0.2s', flexShrink: 0,
+              }} />
+            )}
+            <span style={{ fontSize: 10, color: useKit ? A : 'rgba(242,242,247,0.3)', fontFamily: ff, textTransform: 'uppercase', letterSpacing: 1.2, transition: 'color 0.2s' }}>
+              Kit visual
+            </span>
+            <div style={{
+              width: 32, height: 18, borderRadius: 99, flexShrink: 0,
+              background: useKit ? A : 'rgba(255,255,255,0.12)',
+              position: 'relative', transition: 'background 0.2s',
+            }}>
+              <div style={{
+                position: 'absolute', top: 2, left: useKit ? 16 : 2,
+                width: 14, height: 14, borderRadius: '50%',
+                background: useKit ? '#000' : 'rgba(255,255,255,0.5)',
+                transition: 'left 0.2s',
+              }} />
+            </div>
+          </div>
         </div>
 
-        {/* Buscar ideias */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {/* Bloco de destaque "não sei o que criar" */}
+        {/* Sugestões de temas */}
+        <div>
           {suggestedTopics.length === 0 && (
             <button
               onClick={handleSuggestTopics}
               disabled={loadingTopics}
               style={{
                 background: loadingTopics ? 'rgba(200,255,0,0.03)' : 'rgba(200,255,0,0.05)',
-                border: `1px dashed rgba(200,255,0,0.25)`,
-                borderRadius: 12, padding: '16px 20px',
+                border: `1px dashed rgba(200,255,0,0.22)`,
+                borderRadius: 10, padding: '14px 18px',
                 cursor: loadingTopics ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center', gap: 14,
+                display: 'flex', alignItems: 'center', gap: 12,
                 transition: 'all 0.2s', width: '100%', textAlign: 'left',
               }}
-              onMouseEnter={e => { if (!loadingTopics) { e.currentTarget.style.borderColor = 'rgba(200,255,0,0.5)'; e.currentTarget.style.background = 'rgba(200,255,0,0.08)' } }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(200,255,0,0.25)'; e.currentTarget.style.background = 'rgba(200,255,0,0.05)' }}
+              onMouseEnter={e => { if (!loadingTopics) { e.currentTarget.style.borderColor = 'rgba(200,255,0,0.45)'; e.currentTarget.style.background = 'rgba(200,255,0,0.07)' } }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(200,255,0,0.22)'; e.currentTarget.style.background = 'rgba(200,255,0,0.05)' }}
             >
               {loadingTopics ? (
-                <div style={{
-                  width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
-                  border: '2px solid rgba(200,255,0,0.15)',
-                  borderTop: `2px solid ${A}`,
-                  animation: 'spin 0.7s linear infinite',
-                }} />
+                <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid rgba(200,255,0,0.15)', borderTop: `2px solid ${A}`, animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
               ) : (
-                <span style={{ fontSize: 22, lineHeight: 1 }}>✦</span>
+                <span style={{ fontSize: 16, lineHeight: 1, flexShrink: 0 }}>✦</span>
               )}
               <div>
-                <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: A, fontFamily: ff, letterSpacing: 0.2 }}>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: A, fontFamily: ff }}>
                   {loadingTopics ? 'Gerando ideias para o seu nicho...' : 'Não sei o que criar hoje'}
                 </p>
                 {!loadingTopics && (
-                  <p style={{ margin: '3px 0 0', fontSize: 12, color: 'rgba(200,255,0,0.55)', fontFamily: ff }}>
-                    A IA gera 10 pautas baseadas no seu perfil e no que já postou
+                  <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(200,255,0,0.5)', fontFamily: ff }}>
+                    A IA gera pautas baseadas no seu perfil e no que já postou
                   </p>
                 )}
               </div>
             </button>
           )}
 
-          {/* Grid de tópicos sugeridos */}
           {suggestedTopics.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 11, color: M, fontFamily: ff, textTransform: 'uppercase', letterSpacing: 1 }}>
+                <span style={{ fontSize: 10, color: M, fontFamily: ff, textTransform: 'uppercase', letterSpacing: 1 }}>
                   Pautas para o seu nicho — clique para usar
                 </span>
                 <button
                   onClick={() => { setSuggestedTopics([]); handleSuggestTopics() }}
-                  style={{
-                    background: 'none', border: 'none', color: M, fontFamily: ff,
-                    fontSize: 11, cursor: 'pointer', padding: '2px 6px',
-                    borderRadius: 4, transition: 'color 0.15s',
-                  }}
+                  style={{ background: 'none', border: 'none', color: M, fontFamily: ff, fontSize: 11, cursor: 'pointer', padding: '2px 6px', borderRadius: 4, transition: 'color 0.15s' }}
                   onMouseEnter={e => e.currentTarget.style.color = T}
                   onMouseLeave={e => e.currentTarget.style.color = M}
-                >
-                  ↺ Gerar novas
-                </button>
+                >↺ Gerar novas</button>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                 {suggestedTopics.slice(0, 10).map((t, i) => {
                   const TIPO_COLORS: Record<string, string> = {
                     curiosity_gap: CYAN, pattern_interrupt: A,
@@ -817,43 +828,22 @@ function StateInput({
                   }
                   const tipoColor = TIPO_COLORS[t.tipo] ?? M
                   return (
-                    <div
-                      key={i}
-                      style={{
-                        backgroundColor: '#0D0D0D',
-                        border: '1px solid rgba(255,255,255,0.06)',
-                        borderRadius: 10, padding: '12px 16px',
-                        cursor: 'pointer', transition: 'all 0.15s',
-                        display: 'flex', alignItems: 'flex-start', gap: 12,
-                      }}
-                      onMouseEnter={e => {
-                        e.currentTarget.style.borderColor = 'rgba(200,255,0,0.25)'
-                        e.currentTarget.style.background = 'rgba(200,255,0,0.02)'
-                      }}
-                      onMouseLeave={e => {
-                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
-                        e.currentTarget.style.background = '#0D0D0D'
-                      }}
+                    <div key={i} style={{ backgroundColor: '#0D0D0D', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 9, padding: '10px 14px', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'flex-start', gap: 10 }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(200,255,0,0.22)'; e.currentTarget.style.background = 'rgba(200,255,0,0.02)' }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; e.currentTarget.style.background = '#0D0D0D' }}
                       onClick={() => { setTema(t.titulo); setSuggestedTopics([]) }}
                     >
-                      <span style={{ fontSize: 11, color: M, fontFamily: ff, fontWeight: 700, paddingTop: 2, flexShrink: 0, width: 16 }}>{i + 1}</span>
+                      <span style={{ fontSize: 10, color: M, fontFamily: ff, fontWeight: 700, paddingTop: 2, flexShrink: 0, width: 14 }}>{i + 1}</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ margin: 0, fontSize: 13, color: T, fontFamily: ff, lineHeight: 1.4, fontWeight: 500 }}>{t.titulo}</p>
-                        {t.hook && (
-                          <p style={{ margin: '4px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.4)', fontFamily: ff, fontStyle: 'italic' }}>
+                        <p style={{ margin: 0, fontSize: 12, color: T, fontFamily: ff, lineHeight: 1.4 }}>{t.titulo}</p>
+                        {t.hook && t.hook !== t.titulo && (
+                          <p style={{ margin: '3px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.35)', fontFamily: ff, fontStyle: 'italic' }}>
                             Capa: "{t.hook}"
                           </p>
                         )}
                       </div>
                       {t.tipo && (
-                        <span style={{
-                          flexShrink: 0, fontSize: 9, color: tipoColor,
-                          border: `1px solid ${tipoColor}22`,
-                          backgroundColor: `${tipoColor}11`,
-                          fontFamily: ff, fontWeight: 700, letterSpacing: 0.5,
-                          textTransform: 'uppercase', borderRadius: 99,
-                          padding: '3px 8px', whiteSpace: 'nowrap', alignSelf: 'center',
-                        }}>
+                        <span style={{ flexShrink: 0, fontSize: 9, color: tipoColor, border: `1px solid ${tipoColor}22`, backgroundColor: `${tipoColor}11`, fontFamily: ff, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', borderRadius: 99, padding: '3px 7px', whiteSpace: 'nowrap', alignSelf: 'center' }}>
                           {TIPO_LABELS[t.tipo] ?? t.tipo}
                         </span>
                       )}
@@ -861,130 +851,15 @@ function StateInput({
                   )
                 })}
               </div>
-              <button
-                onClick={() => setSuggestedTopics([])}
-                style={{
-                  background: 'none', border: 'none', color: M, fontFamily: ff,
-                  fontSize: 12, cursor: 'pointer', padding: '4px 0', textAlign: 'left',
-                  transition: 'color 0.15s', alignSelf: 'flex-start',
-                }}
+              <button onClick={() => setSuggestedTopics([])} style={{ background: 'none', border: 'none', color: M, fontFamily: ff, fontSize: 11, cursor: 'pointer', padding: '2px 0', textAlign: 'left', transition: 'color 0.15s', alignSelf: 'flex-start' }}
                 onMouseEnter={e => e.currentTarget.style.color = T}
                 onMouseLeave={e => e.currentTarget.style.color = M}
-              >
-                ← Fechar sugestões
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* CTA */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 12, color: M, fontFamily: ff, minWidth: 48 }}>CTA:</span>
-          <select
-            value={cta}
-            onChange={(e) => setCta(e.target.value)}
-            style={{
-              backgroundColor: S3, border: `1px solid ${B}`, borderRadius: 8,
-              color: T, fontSize: 13, fontFamily: ff, padding: '8px 32px 8px 12px',
-              outline: 'none', cursor: 'pointer', appearance: 'none',
-              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23ffffff66' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
-              backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center',
-            }}
-          >
-            {CTA_OPTIONS.map((o) => <option key={o} value={o} style={{ backgroundColor: S3 }}>{o}</option>)}
-          </select>
-        </div>
-
-        {/* Kit Visual */}
-        <div style={{ borderRadius: 12, overflow: 'hidden', border: `1px solid ${useKit ? 'rgba(200,255,0,0.2)' : B}`, transition: 'border-color 0.2s' }}>
-          {/* Header do kit */}
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 12,
-            padding: '11px 14px',
-            background: useKit ? 'rgba(200,255,0,0.04)' : 'rgba(255,255,255,0.02)',
-            cursor: 'pointer', userSelect: 'none',
-          }}
-            onClick={() => setKitExpanded(v => !v)}
-          >
-            {/* Bolinha da cor */}
-            <div style={{
-              width: 16, height: 16, borderRadius: '50%', flexShrink: 0,
-              background: kitData?.cor ?? '#C8FF00',
-              boxShadow: useKit ? `0 0 8px ${kitData?.cor ?? '#C8FF00'}55` : 'none',
-              transition: 'box-shadow 0.2s',
-            }} />
-            <div style={{ flex: 1 }}>
-              <span style={{ fontSize: 12, color: useKit ? 'rgba(200,255,0,0.9)' : M, fontFamily: ff, fontWeight: 600 }}>
-                Kit visual
-              </span>
-              {kitData && (
-                <span style={{ fontSize: 11, color: M, fontFamily: ff, marginLeft: 8 }}>
-                  {kitData.fonte.replace(/"/g, '').split(',')[0]}
-                </span>
-              )}
-              {!kitData && (
-                <span style={{ fontSize: 11, color: M, fontFamily: ff, marginLeft: 8 }}>Padrão do template</span>
-              )}
-            </div>
-            {/* Toggle */}
-            <div
-              onClick={(e) => { e.stopPropagation(); toggleUseKit() }}
-              style={{
-                width: 36, height: 20, borderRadius: 99, flexShrink: 0,
-                background: useKit ? '#C8FF00' : 'rgba(255,255,255,0.12)',
-                position: 'relative', cursor: 'pointer', transition: 'background 0.2s',
-              }}
-            >
-              <div style={{
-                position: 'absolute', top: 3, left: useKit ? 18 : 3,
-                width: 14, height: 14, borderRadius: '50%',
-                background: useKit ? '#000' : 'rgba(255,255,255,0.6)',
-                transition: 'left 0.2s',
-              }} />
-            </div>
-            <span style={{ fontSize: 11, color: M, fontFamily: ff, marginLeft: -6 }}>
-              {kitExpanded ? '▲' : '▼'}
-            </span>
-          </div>
-
-          {/* Presets expandidos */}
-          {kitExpanded && (
-            <div style={{ padding: '12px 14px 14px', borderTop: `1px solid ${B}`, background: 'rgba(0,0,0,0.2)' }}>
-              <p style={{ margin: '0 0 10px', fontSize: 11, color: M, fontFamily: ff, textTransform: 'uppercase', letterSpacing: 0.8 }}>
-                Escolha um estilo pronto
-              </p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                {KIT_PRESETS.map((p) => {
-                  const isActive = kitData?.cor === p.cor && kitData?.fonte === p.fonte
-                  return (
-                    <button
-                      key={p.id}
-                      onClick={() => applyPreset(p)}
-                      disabled={savingPreset}
-                      style={{
-                        background: isActive ? `${p.cor}18` : 'rgba(255,255,255,0.03)',
-                        border: `1.5px solid ${isActive ? p.cor : 'rgba(255,255,255,0.08)'}`,
-                        borderRadius: 10, padding: '10px 8px',
-                        cursor: savingPreset ? 'not-allowed' : 'pointer',
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                        transition: 'all 0.15s',
-                      }}
-                      onMouseEnter={e => { if (!savingPreset) e.currentTarget.style.borderColor = p.cor }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = isActive ? p.cor : 'rgba(255,255,255,0.08)' }}
-                    >
-                      <div style={{ width: 22, height: 22, borderRadius: '50%', background: p.cor, flexShrink: 0 }} />
-                      <span style={{ fontSize: 11, color: isActive ? p.cor : T, fontFamily: ff, fontWeight: 600, textAlign: 'center' }}>{p.label}</span>
-                    </button>
-                  )
-                })}
-              </div>
-              <p style={{ margin: '10px 0 0', fontSize: 11, color: M, fontFamily: ff, lineHeight: 1.5 }}>
-                O estilo escolhido é aplicado automaticamente em todos os novos carrosseis quando o kit está ativo.
-              </p>
+              >← Fechar sugestões</button>
             </div>
           )}
         </div>
       </div>
+
 
       {/* Botão principal */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
