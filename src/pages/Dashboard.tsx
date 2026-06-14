@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import type { Profile, ScheduledPost, WeeklyTrend } from '@/types'
 
-type SuggestedTema = { titulo: string; hook: string; tipo: string }
+type SuggestedTema = { titulo: string; hook: string; contexto?: string; tipo: string }
 
 type CarouselWithCover = {
   id: string
@@ -420,13 +420,33 @@ export default function Dashboard() {
     load()
   }, [user])
 
-  // ── Suggest-topics: chama edge function com voz personalizada ──
+  // ── Suggest-topics: cache 24h em localStorage para evitar chamadas desnecessárias ──
   useEffect(() => {
     if (!user) return
+    const CACHE_KEY = 'conteudos_topics_cache'
+    const CACHE_TTL = 24 * 60 * 60 * 1000 // 24 horas
+    try {
+      const raw = localStorage.getItem(CACHE_KEY)
+      if (raw) {
+        const { temas, ts, uid } = JSON.parse(raw)
+        if (uid === user.id && Date.now() - ts < CACHE_TTL && Array.isArray(temas) && temas.length > 0) {
+          setAiTopics(temas as SuggestedTema[])
+          return
+        }
+      }
+    } catch { /* cache inválido, segue para chamada */ }
+
     setLoadingTopics(true)
     supabase.functions.invoke('suggest-topics').then(({ data }) => {
       if (data?.temas && Array.isArray(data.temas) && data.temas.length > 0) {
         setAiTopics(data.temas as SuggestedTema[])
+        try {
+          localStorage.setItem(CACHE_KEY, JSON.stringify({
+            temas: data.temas,
+            ts: Date.now(),
+            uid: user.id,
+          }))
+        } catch { /* localStorage cheio, ignora */ }
       }
     }).finally(() => setLoadingTopics(false))
   }, [user])
@@ -650,12 +670,12 @@ export default function Dashboard() {
               {topicsLoading
                 ? <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}><Skeleton w="75%" h={26} r={4} /><Skeleton w="45%" h={14} r={4} /></div>
                 : <>
-                    <p style={{ fontFamily: ffd, fontSize: 22, color: T, margin: '0 0 4px', lineHeight: 1.25, letterSpacing: 0.4 }}>
+                    <p style={{ fontFamily: ffd, fontSize: 22, color: T, margin: '0 0 6px', lineHeight: 1.25, letterSpacing: 0.4 }}>
                       {richTopics[0]?.hook || richTopics[0]?.titulo || '—'}
                     </p>
-                    {richTopics[0]?.titulo !== richTopics[0]?.hook && richTopics[0]?.titulo && (
-                      <p style={{ fontFamily: ff, fontSize: 12, color: M, margin: 0 }}>
-                        {richTopics[0].titulo}
+                    {richTopics[0]?.contexto && (
+                      <p style={{ fontFamily: ff, fontSize: 13, color: M, margin: '0 0 4px', lineHeight: 1.4 }}>
+                        {richTopics[0].contexto}
                       </p>
                     )}
                   </>

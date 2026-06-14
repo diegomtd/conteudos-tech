@@ -43,7 +43,7 @@ serve(async (req) => {
         .select('tema')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(10),
+        .limit(15),
     ])
 
     const profile = profileRes.data ?? {}
@@ -52,6 +52,7 @@ serve(async (req) => {
 
     const tomVoz = (vp.tom_extraido as string) || (vp.tom as string) || 'direto e provocador'
     const personalidade = (vp.personalidade as string) || ''
+    const oQueIrrita = (vp.o_que_irrita as string) || ''
     const palavrasChave = Array.isArray(vp.palavras_chave)
       ? (vp.palavras_chave as string[]).join(', ')
       : ''
@@ -61,35 +62,42 @@ serve(async (req) => {
       .filter(Boolean)
 
     const memoriaCtx = temasRecentes.length
-      ? `\nTEMAS JÁ POSTADOS (não repetir, nem ângulo similar): ${temasRecentes.map((t, i) => `${i + 1}. "${t}"`).join('; ')}`
+      ? `\nTEMAS JÁ POSTADOS (não repetir nem ângulo similar):\n${temasRecentes.map((t, i) => `${i + 1}. "${t}"`).join('\n')}`
       : ''
 
     // ── System prompt ─────────────────────────────────────────────────
-    const systemPrompt = `Você é um estrategista de pauta para Instagram no mercado brasileiro. Seu trabalho é gerar ideias de carrossel que param o scroll, geram salvamento e fazem o criador se sentir representado no tema sugerido.
+    const systemPrompt = `Você é um estrategista de conteúdo sênior especializado em carrosseis virais para Instagram no Brasil. Você conhece profundamente psicologia de feed, gatilhos de salvamento e o que faz um criador de nicho crescer organicamente.
 
-Retorne APENAS JSON válido. Sem markdown. Sem explicação.`
+Retorne APENAS JSON válido. Sem markdown. Sem texto fora do JSON.`
 
-    const userPrompt = `Gere 10 ideias de carrossel para o seguinte criador:
+    const userPrompt = `Gere 10 ideias de carrossel para este criador:
 
-Nicho: ${niche}
-Tom de voz: ${tomVoz}
-${personalidade ? `Personalidade: ${personalidade}` : ''}
-${palavrasChave ? `Palavras-chave do posicionamento: ${palavrasChave}` : ''}
+NICHO: ${niche}
+TOM DE VOZ: ${tomVoz}
+${personalidade ? `PERSONALIDADE: ${personalidade}` : ''}
+${palavrasChave ? `POSICIONAMENTO (palavras que usa): ${palavrasChave}` : ''}
+${oQueIrrita ? `O QUE ELE ACHA QUE O MERCADO ERRA (use como ângulo ou ponto de vista): "${oQueIrrita}"` : ''}
 ${memoriaCtx}
 
-REGRAS:
-- Cada ideia precisa ter um ângulo específico, não genérico. "Os erros de iniciantes" é genérico. "O erro que cometi no mês 3 que me fez perder 200 seguidores em um dia" é específico.
-- O titulo é o tema completo como será passado para geração (2 a 15 palavras). Não é o título do slide — é o assunto a ser desenvolvido em carrossel.
-- O hook é uma prévia de como ficaria o título da capa (máximo 6 palavras, cria lacuna cognitiva, sem ponto final).
-- O tipo classifica a psicologia por trás do hook. Escolha um: curiosity_gap, pattern_interrupt, identity_mirror, revelation, social_proof, urgency.
-- Os temas devem variar entre os 6 tipos para cobrir diferentes emoções do feed.
-- Nunca use título com "Como", "Dicas", "Aprenda", "Descubra", "X motivos".
-- Nunca sugira algo semelhante ao que já foi postado (lista acima).
+REGRAS OBRIGATÓRIAS:
+1. ESPECIFICIDADE: Cada ideia precisa de ângulo específico e situacional. RUIM: "Os erros de iniciantes". BOM: "O erro silencioso que fez meu negócio estagnar por 8 meses sem eu perceber".
+2. HOOK (título da capa): máx 8 palavras, cria lacuna cognitiva forte, termina sem ponto final. Deve causar curiosidade imediata ou reconhecimento doloroso.
+3. TITULO: o tema completo que será desenvolvido em carrossel (10 a 20 palavras). É a briefing para a IA gerar o conteúdo — deve ser rico, específico e contextualizado.
+4. CONTEXTO: 1 frase (máx 18 palavras) explicando por que esse tema para o scroll AGORA — qual dor, desejo ou crença ele ativa nesse nicho.
+5. TIPO: classifica a psicologia: curiosity_gap | pattern_interrupt | identity_mirror | revelation | social_proof | urgency
+6. VARIEDADE: use os 6 tipos distribuídos nas 10 ideias. Não repita tipo mais de 2x seguidas.
+7. PROIBIDO: títulos com "Como", "Dicas para", "Aprenda", "Descubra", "X motivos que". São genéricos demais.
+8. Nunca sugira algo com ângulo similar ao que já foi postado (lista acima).
 
 Retorne este JSON exato:
 {
   "temas": [
-    { "titulo": "string com o tema completo", "hook": "string do hook da capa (max 6 palavras)", "tipo": "curiosity_gap|pattern_interrupt|identity_mirror|revelation|social_proof|urgency" }
+    {
+      "titulo": "tema completo e rico para briefing da IA (10-20 palavras)",
+      "hook": "manchete da capa provocativa (max 8 palavras)",
+      "contexto": "por que para o scroll nesse nicho (max 18 palavras)",
+      "tipo": "curiosity_gap|pattern_interrupt|identity_mirror|revelation|social_proof|urgency"
+    }
   ]
 }`
 
@@ -102,7 +110,7 @@ Retorne este JSON exato:
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1024,
+        max_tokens: 2048,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }],
       }),
@@ -117,7 +125,7 @@ Retorne este JSON exato:
     const claudeData = await res.json()
     const raw = claudeData.content?.[0]?.text ?? ''
 
-    let parsed: { temas: Array<{ titulo: string; hook: string; tipo: string }> }
+    let parsed: { temas: Array<{ titulo: string; hook: string; contexto: string; tipo: string }> }
     try {
       const clean = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
       parsed = JSON.parse(clean)
