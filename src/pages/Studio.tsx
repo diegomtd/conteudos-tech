@@ -1406,6 +1406,7 @@ function StatePreview({
   const [selectedEl, setSelectedEl] = useState<'titulo' | 'corpo' | null>(null)
   const [dragId, setDragId] = useState<string | null>(null)
   const [dragOverId, setDragOverId] = useState<string | null>(null)
+  const [activePanel, setActivePanel] = useState<'texto' | 'imagem' | 'estilo'>('texto')
   const [showSchedule, setShowSchedule] = useState(false)
   const [scheduleDate, setScheduleDate] = useState('')
   const [avatarMode, setAvatarMode] = useState<'url' | 'upload'>('url')
@@ -1884,12 +1885,18 @@ function StatePreview({
   // keep currentSlideIdRef in sync for title drag closure
   useEffect(() => { currentSlideIdRef.current = current?.id }, [current])
 
-  // close template section when element is selected
+  // quando seleciona elemento, vai pro painel TEXTO e fecha template
   useEffect(() => {
     if (selectedEl) {
       setSecTemplate(false)
+      setActivePanel('texto')
     }
   }, [selectedEl])
+
+  const handleSelectEl = (el: 'titulo' | 'corpo' | null) => {
+    setSelectedEl(el)
+    if (el) setActivePanel('texto')
+  }
 
   // auto-save slides_json com debounce 2s
   // slideStyle replaced by getSlideContainerStyle in the motion.div below
@@ -2389,9 +2396,32 @@ function StatePreview({
             </div>
           </div>
 
+          {/* ── Panel switcher ─────────────────────────────────── */}
+          <div style={{ display: 'flex', borderBottom: `1px solid ${B}`, flexShrink: 0 }}>
+            {([
+              { id: 'texto',  label: 'TEXTO',  color: '#00D4FF' },
+              { id: 'imagem', label: 'IMAGEM', color: '#C8FF00' },
+              { id: 'estilo', label: 'ESTILO', color: '#A855F7' },
+            ] as const).map(({ id, label, color }) => {
+              const sel = activePanel === id
+              return (
+                <button key={id} onClick={() => setActivePanel(id)} style={{
+                  flex: 1, height: 36, border: 'none', cursor: 'pointer',
+                  background: sel ? `${color}12` : 'transparent',
+                  borderBottom: `2px solid ${sel ? color : 'transparent'}`,
+                  color: sel ? color : 'rgba(242,242,247,0.35)',
+                  fontFamily: '"Bebas Neue", sans-serif', fontSize: 11, letterSpacing: 1.4,
+                  transition: 'all 0.15s',
+                }}>
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+
           {/* ─ CONTEÚDO ─ */}
-          {current && (
-            <div style={{ borderBottom: `1px solid ${B}`, padding: '14px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {activePanel === 'texto' && current && (
+            <div style={{ borderBottom: `1px solid ${B}`, padding: '14px 12px', display: 'flex', flexDirection: 'column', gap: 10, borderLeft: '2px solid #00D4FF22' }}>
 
               {/* Undo / Redo */}
               <div style={{ display: 'flex', gap: 4 }}>
@@ -2654,7 +2684,7 @@ function StatePreview({
           )}
 
           {/* ─ Section 3: IMAGEM DE FUNDO ─ */}
-          {current && (
+          {activePanel === 'imagem' && current && (
             <CollapsibleSection title="IMAGEM DE FUNDO" isOpen={secImagem} onToggle={() => setSecImagem(v => !v)}>
               {/* Toggle Exibir imagem */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -2939,8 +2969,8 @@ function StatePreview({
           )}
 
           {/* ─ Section 4: ESTILO DO TEXTO ─ */}
-          {current && (
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '16px 12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {activePanel === 'texto' && current && (
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '16px 12px 14px', display: 'flex', flexDirection: 'column', gap: 8, borderLeft: '2px solid #00D4FF22' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   {selectedEl && (
@@ -3105,8 +3135,8 @@ function StatePreview({
           )}
 
           {/* ─ Section 5: DESTAQUE DE PALAVRAS ─ */}
-          {current && (
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '14px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {activePanel === 'texto' && current && (
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '14px 12px', display: 'flex', flexDirection: 'column', gap: 8, borderLeft: '2px solid #00D4FF22' }}>
               <span style={{ fontSize: 10, color: M, fontFamily: ff, fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase' }}>Destaque de palavras</span>
               {(() => {
                 const splitWords = (txt: string) => [...new Set(
@@ -3206,8 +3236,8 @@ function StatePreview({
           )}
 
           {/* ─ Section 6: BADGE DE PERFIL ─ */}
-          {current && (
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '16px 12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {activePanel === 'estilo' && current && (
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '16px 12px 14px', display: 'flex', flexDirection: 'column', gap: 10, borderLeft: '2px solid #A855F722' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: 10, color: current.profileBadgeEnabled ? A : M, fontFamily: ff, fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase' }}>@ Badge de perfil</span>
                 <button
@@ -3353,8 +3383,8 @@ function StatePreview({
           )}
 
           {/* ─ Section 7: KIT VISUAL ─ */}
-          {current && (
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '16px 12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {activePanel === 'estilo' && current && (
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '16px 12px 14px', display: 'flex', flexDirection: 'column', gap: 8, borderLeft: '2px solid #A855F722' }}>
               <span style={{ fontSize: 10, color: A, fontFamily: ff, fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase' }}>Kit visual do perfil</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 {profileColor && (
@@ -3379,7 +3409,7 @@ function StatePreview({
           )}
 
           {/* ─ Section 8: TEMPLATE ─ */}
-          <CollapsibleSection title="TEMPLATE" isOpen={secTemplate} onToggle={() => setSecTemplate(v => !v)}>
+          {activePanel === 'estilo' && <CollapsibleSection title="TEMPLATE" isOpen={secTemplate} onToggle={() => setSecTemplate(v => !v)}>
             {(() => {
               return (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -3405,10 +3435,10 @@ function StatePreview({
                 </div>
               )
             })()}
-          </CollapsibleSection>
+          </CollapsibleSection>}
 
           {/* ─ Section 6: LEGENDA ─ */}
-          <CollapsibleSection
+          {activePanel === 'estilo' && <CollapsibleSection
             title="LEGENDA"
             isOpen={secLegenda}
             onToggle={() => setSecLegenda(v => !v)}
@@ -3424,7 +3454,7 @@ function StatePreview({
               onFocus={(e) => { e.target.style.borderColor = 'rgba(200,255,0,0.3)' }}
               onBlur={(e) => { e.target.style.borderColor = B }}
             />
-          </CollapsibleSection>
+          </CollapsibleSection>}
 
         </div>
 
@@ -3556,7 +3586,7 @@ function StatePreview({
                           imageStyle={imageStyle}
                           scale={500/1080}
                           selectedEl={selectedEl}
-                          onSelectEl={setSelectedEl}
+                          onSelectEl={handleSelectEl}
                           onTitleMouseDown={(e) => {
                             if (selectedEl !== 'titulo') return
                             e.preventDefault()
@@ -3706,7 +3736,7 @@ function StatePreview({
                           scale={gs}
                           hasWatermark={hasWatermark}
                           selectedEl={activeSlide === idx ? selectedEl : null}
-                          onSelectEl={isActive ? setSelectedEl : undefined}
+                          onSelectEl={isActive ? handleSelectEl : undefined}
                           onBodyWordClick={isActive ? (word) => {
                             const highlighted = slide.highlightedWords ?? []
                             const newHighlighted = highlighted.includes(word)
