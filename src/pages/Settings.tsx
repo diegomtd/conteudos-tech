@@ -56,6 +56,17 @@ const FONTS = [
   { label: 'Oswald',           value: 'Oswald, sans-serif' },
 ]
 
+const ANGULOS = [
+  { id: 'tendencias',  label: 'Tendências da semana',        icon: '📈', desc: 'O que está viral agora — liga ao nicho' },
+  { id: 'historico',   label: 'Personagens históricos',      icon: '👤', desc: 'Figuras famosas como gancho de entrada' },
+  { id: 'dados',       label: 'Dados e fatos chocantes',     icon: '📊', desc: 'Estatísticas e números que param o scroll' },
+  { id: 'noticias',    label: 'Notícias e eventos recentes', icon: '📰', desc: 'Fato do momento linkado ao seu nicho' },
+  { id: 'revelacao',   label: 'Revelação contraintuitiva',   icon: '💡', desc: 'O oposto do que o mercado tradicional diz' },
+  { id: 'provocacao',  label: 'Provocação e polêmica',       icon: '⚡', desc: 'Questionar crenças estabelecidas no nicho' },
+  { id: 'caso_real',   label: 'Caso real com resultado',     icon: '🔁', desc: 'Exemplo concreto com números ou desfecho' },
+  { id: 'bastidor',    label: 'Bastidor e processo',         icon: '🎭', desc: 'Por trás das câmeras — humaniza e conecta' },
+]
+
 const PLAN_LABELS: Record<Plan, string> = {
   free: 'FREE', construtor: 'CONSTRUTOR', escala: 'ESCALA', agencia: 'AGÊNCIA',
 }
@@ -263,16 +274,26 @@ function TabVoz({ profile, userId }: { profile: Profile; userId: string }) {
   const [proibidas,    setProibidas]    = useState<string[]>((vp.palavras_proibidas as string[]) ?? [])
   const [definidoras,  setDefinidoras]  = useState<string[]>((vp.palavras_definidoras as string[]) ?? [])
   const [exemplo,      setExemplo]      = useState((vp.exemplo_texto as string) ?? '')
+  const [angulos,      setAngulos]      = useState<string[]>((vp.angulos as string[]) ?? [])
+  const [comoConectar, setComoConectar] = useState((vp.como_conectar as string) ?? '')
   const [cor,          setCor]          = useState(vk.cor ?? '#C8FF00')
   const [estilo,       setEstilo]       = useState(vk.estilo ?? 'dark_cinematic')
   const [fonte,        setFonte]        = useState(vk.fonte ?? '"Bebas Neue", sans-serif')
   const [saving,       setSaving]       = useState(false)
 
+  const toggleAngulo = (id: string) =>
+    setAngulos(prev => prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id])
+
   const save = async () => {
     setSaving(true)
+    // Spread vp para preservar campos gerados pela IA (tom_extraido, personalidade, o_que_irrita, etc.)
     const { error } = await supabase.from('profiles').update({
-      voice_profile: { tom, palavras_proibidas: proibidas, palavras_definidoras: definidoras, exemplo_texto: exemplo },
-      visual_kit:    { cor, estilo, fonte },
+      voice_profile: {
+        ...vp,
+        tom, palavras_proibidas: proibidas, palavras_definidoras: definidoras,
+        exemplo_texto: exemplo, angulos, como_conectar: comoConectar,
+      },
+      visual_kit: { cor, estilo, fonte },
     }).eq('user_id', userId)
     setSaving(false)
     if (error) { toast.error('Erro ao salvar'); return }
@@ -319,6 +340,63 @@ function TabVoz({ profile, userId }: { profile: Profile; userId: string }) {
           style={{ ...inputSt, resize: 'vertical', lineHeight: 1.6, padding: '10px 14px' }}
           onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(200,255,0,0.4)' }}
           onBlur={(e)  => { e.currentTarget.style.borderColor = B }} />
+      </div>
+
+      {/* Estratégia de conteúdo */}
+      <div style={{ borderTop: `1px solid ${B}`, paddingTop: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div>
+          <p style={{ fontFamily: ffd, fontSize: 14, color: A, margin: '0 0 4px', letterSpacing: 1 }}>ESTRATÉGIA DE CONTEÚDO</p>
+          <p style={{ fontFamily: ff, fontSize: 12, color: M, margin: 0, lineHeight: 1.5 }}>
+            Selecione os ângulos de gancho que você usa para criar conteúdo. A IA vai aplicá-los automaticamente ao sugerir pautas.
+          </p>
+        </div>
+
+        {/* Ângulos de gancho */}
+        <div>
+          <p style={{ fontFamily: ff, fontSize: 12, color: M, margin: '0 0 10px' }}>Ângulos que você usa para criar hooks</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            {ANGULOS.map(({ id, label, icon, desc }) => {
+              const sel = angulos.includes(id)
+              return (
+                <button key={id} onClick={() => toggleAngulo(id)} style={{
+                  background: sel ? 'rgba(0,212,255,0.06)' : S2,
+                  border: `1.5px solid ${sel ? A : B}`,
+                  borderRadius: 10, padding: '11px 13px',
+                  cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
+                  display: 'flex', alignItems: 'flex-start', gap: 10,
+                }}>
+                  <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0, marginTop: 1 }}>{icon}</span>
+                  <div>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: sel ? A : T, fontFamily: ff, margin: '0 0 3px' }}>{label}</p>
+                    <p style={{ fontSize: 10, color: M, fontFamily: ff, margin: 0, lineHeight: 1.4 }}>{desc}</p>
+                  </div>
+                  {sel && (
+                    <span style={{ marginLeft: 'auto', flexShrink: 0, color: A, fontSize: 14, lineHeight: 1 }}>✓</span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Como conecta ao produto */}
+        <div>
+          <p style={{ fontFamily: ff, fontSize: 12, color: M, margin: '0 0 6px' }}>
+            Como você conecta os temas ao seu produto ou posicionamento
+          </p>
+          <textarea
+            value={comoConectar}
+            onChange={e => setComoConectar(e.target.value)}
+            rows={3}
+            placeholder={`Ex: "Uso o tema em alta como gancho de entrada e conecto ao processo de criação de conteúdo sem depender de tráfego pago — meu produto resolve isso."`}
+            style={{ ...inputSt, resize: 'vertical', lineHeight: 1.6, padding: '10px 14px' }}
+            onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(0,212,255,0.4)' }}
+            onBlur={(e)  => { e.currentTarget.style.borderColor = B }}
+          />
+          <p style={{ fontFamily: ff, fontSize: 11, color: M, margin: '6px 0 0', lineHeight: 1.4 }}>
+            A IA usa isso para garantir que cada pauta sugerida tenha um ângulo que leva ao seu produto.
+          </p>
+        </div>
       </div>
 
       {/* Cor */}

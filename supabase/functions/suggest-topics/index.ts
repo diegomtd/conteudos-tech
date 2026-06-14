@@ -56,6 +56,25 @@ serve(async (req) => {
     const palavrasChave = Array.isArray(vp.palavras_chave)
       ? (vp.palavras_chave as string[]).join(', ')
       : ''
+    const angulos = Array.isArray(vp.angulos) ? (vp.angulos as string[]) : []
+    const comoConectar = (vp.como_conectar as string) || ''
+
+    const ANGULO_LABELS: Record<string, string> = {
+      tendencias: 'tendências e assuntos virais da semana no Brasil',
+      historico:  'personagens históricos ou figuras famosas como gancho de entrada',
+      dados:      'dados, estatísticas e fatos chocantes que param o scroll',
+      noticias:   'notícias e eventos recentes linkados ao nicho',
+      revelacao:  'revelação contraintuitiva — o oposto do que o mercado tradicional diz',
+      provocacao: 'provocação e polêmica — questionar crenças estabelecidas no nicho',
+      caso_real:  'casos reais com resultados concretos e números',
+      bastidor:   'bastidor e processo pessoal do criador',
+    }
+    const angulosCtx = angulos.length > 0
+      ? `\nÂNGULOS DE GANCHO QUE O CRIADOR PREFERE USAR:\n${angulos.map(a => `- ${ANGULO_LABELS[a] ?? a}`).join('\n')}\nPrioritize esses ângulos na geração. Distribua entre eles nas 10 ideias.`
+      : ''
+    const conectarCtx = comoConectar
+      ? `\nCOMO ELE CONECTA OS TEMAS AO SEU PRODUTO/POSICIONAMENTO: "${comoConectar}"\nCada pauta sugerida deve ter um ângulo natural para essa conexão.`
+      : ''
 
     const temasRecentes = ((recentRes.data ?? []) as Array<{ tema: string }>)
       .map((c) => c.tema)
@@ -77,6 +96,8 @@ TOM DE VOZ: ${tomVoz}
 ${personalidade ? `PERSONALIDADE: ${personalidade}` : ''}
 ${palavrasChave ? `POSICIONAMENTO (palavras que usa): ${palavrasChave}` : ''}
 ${oQueIrrita ? `O QUE ELE ACHA QUE O MERCADO ERRA (use como ângulo ou ponto de vista): "${oQueIrrita}"` : ''}
+${angulosCtx}
+${conectarCtx}
 ${memoriaCtx}
 
 REGRAS OBRIGATÓRIAS:
