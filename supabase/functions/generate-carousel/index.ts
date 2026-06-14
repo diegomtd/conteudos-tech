@@ -123,13 +123,13 @@ serve(async (req) => {
     const tomVoz             = tomExtraido || (typeof vp.tom === 'string' ? vp.tom : tom)
 
     const ANGULO_LABELS: Record<string, string> = {
-      tendencias: 'tendências e assuntos virais da semana',
-      historico:  'personagens históricos ou figuras famosas como gancho',
-      dados:      'dados, estatísticas e fatos chocantes',
-      noticias:   'notícias e eventos recentes do mundo real',
+      tendencias: 'padrão comportamental recorrente no nicho (formato de tendência, sem inventar eventos ou fatos específicos)',
+      historico:  'personagem histórico ou figura amplamente conhecida como analogia atemporal',
+      dados:      'dado ou estatística que o criador conhece de verdade (nunca inventar números)',
+      noticias:   'formato jornalístico aplicado a verdade do nicho — sem inventar notícias, empresas, datas ou eventos',
       revelacao:  'revelação contraintuitiva — contra o senso comum do mercado',
-      provocacao: 'provocação e polêmica — questionar crenças do nicho',
-      caso_real:  'caso real com resultado concreto e números',
+      provocacao: 'provocação e polêmica — questionar crenças estabelecidas no nicho',
+      caso_real:  'caso real vivido pelo criador ou situação genérica sem inventar nomes, empresas ou números falsos',
       bastidor:   'bastidor e processo pessoal do criador',
     }
     const angulosCtx = angulos.length > 0
@@ -208,6 +208,7 @@ PROIBIDO em qualquer slide:
 - Contraste artificial: "Não foi X. Foi Y." / "O problema nunca foi X. Foi Y."
 - Aforismos redondos demais que parecem frase de calendário
 - Linguagem genérica de IA: qualquer frase que possa ter sido escrita por qualquer pessoa sobre qualquer assunto
+- INVENTAR fatos, notícias, datas, nomes de empresas, valores financeiros ou eventos recentes — você não tem acesso à internet. Se não sabe se é real, não use. Prefira verdades atemporais ou princípios do nicho.
 
 ━━━ IDENTIDADE DO CRIADOR ━━━
 

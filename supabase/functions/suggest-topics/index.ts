@@ -60,13 +60,13 @@ serve(async (req) => {
     const comoConectar = (vp.como_conectar as string) || ''
 
     const ANGULO_LABELS: Record<string, string> = {
-      tendencias: 'tendências e assuntos virais da semana no Brasil',
-      historico:  'personagens históricos ou figuras famosas como gancho de entrada',
-      dados:      'dados, estatísticas e fatos chocantes que param o scroll',
-      noticias:   'notícias e eventos recentes linkados ao nicho',
+      tendencias: 'padrão ou comportamento que está em alta no nicho — formato de tendência, sem inventar eventos ou fatos do dia',
+      historico:  'personagem histórico ou figura amplamente conhecida como analogia atemporal para o nicho',
+      dados:      'dado ou estatística atemporal que choca — nunca inventar números, só usar se for real e verificável',
+      noticias:   'formato jornalístico aplicado a verdades do nicho — sem inventar notícias, eventos, datas ou empresas específicas',
       revelacao:  'revelação contraintuitiva — o oposto do que o mercado tradicional diz',
       provocacao: 'provocação e polêmica — questionar crenças estabelecidas no nicho',
-      caso_real:  'casos reais com resultados concretos e números',
+      caso_real:  'caso real ou situação genérica plausível — sem inventar nomes de empresas, pessoas ou números falsos',
       bastidor:   'bastidor e processo pessoal do criador',
     }
     const angulosCtx = angulos.length > 0
@@ -86,6 +86,8 @@ serve(async (req) => {
 
     // ── System prompt ─────────────────────────────────────────────────
     const systemPrompt = `Você é um estrategista de conteúdo sênior especializado em carrosseis virais para Instagram no Brasil. Você conhece profundamente psicologia de feed, gatilhos de salvamento e o que faz um criador de nicho crescer organicamente.
+
+IMPORTANTE: Você NÃO tem acesso à internet. Nunca invente notícias, eventos recentes, datas, valores financeiros ou fatos do dia. Sugira temas atemporais ou padrões do nicho que funcionem independentemente de quando forem publicados. Se o ângulo for "tendência" ou "notícia", aplique o FORMATO — não o conteúdo real de uma notícia inventada.
 
 Retorne APENAS JSON válido. Sem markdown. Sem texto fora do JSON.`
 
