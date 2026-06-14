@@ -4247,9 +4247,10 @@ export default function Studio() {
 
       <div style={{
         flex: 1, paddingTop: 56,
-        display: 'flex', alignItems: appState !== 'preview' ? 'center' : 'stretch',
+        display: 'flex', alignItems: appState !== 'preview' ? 'flex-start' : 'stretch',
         justifyContent: appState !== 'preview' ? 'center' : 'stretch',
-        overflow: 'hidden',
+        overflowY: appState !== 'preview' ? 'auto' : 'hidden',
+        overflowX: 'hidden',
       }}>
         <AnimatePresence mode="wait">
           {/* Loading spinner ao abrir carrossel do banco */}
@@ -4266,7 +4267,7 @@ export default function Studio() {
             </div>
           )}
           {!loadingCarousel && appState === 'input' && (
-            <div style={{ width: '100%', maxWidth: 640, padding: '40px 24px' }}>
+            <div style={{ width: '100%', maxWidth: 640, padding: '40px 24px', margin: '0 auto' }}>
               <StateInput temaInit={temaFromURL} onGenerate={handleGenerate} />
             </div>
           )}
