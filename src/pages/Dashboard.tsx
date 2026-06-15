@@ -17,7 +17,15 @@ type CarouselWithCover = {
   status: string
   created_at: string
   exported_at?: string | null
+  collection_id?: string | null
   carousel_slides?: { bg_image_url: string | null; position: number }[] | null
+}
+
+type Collection = {
+  id: string
+  name: string
+  color: string
+  created_at: string
 }
 
 // ─── Design tokens — Apple Dark ───────────────────────────────────
@@ -371,6 +379,12 @@ export default function Dashboard() {
   const [filterMonth, setFilterMonth]       = useState<string>('')
   const [deleteTarget, setDeleteTarget]     = useState<string | null>(null)
   const [deletingId, setDeletingId]         = useState<string | null>(null)
+  const [collections, setCollections]           = useState<Collection[]>([])
+  const [activeCollection, setActiveCollection] = useState<string | null>(null)
+  const [showNewCollection, setShowNewCollection] = useState(false)
+  const [newCollName, setNewCollName]           = useState('')
+  const [newCollColor, setNewCollColor]         = useState('#C8FF00')
+  const [moveMenuId, setMoveMenuId]             = useState<string | null>(null)
 
   const toggleSidebar = () => {
     setSidebarOpen(prev => {
@@ -392,7 +406,7 @@ export default function Dashboard() {
         supabase.from('profiles').select('*').eq('user_id', user!.id).single(),
         supabase.from('carousels').select('*', { count: 'exact', head: true }).eq('user_id', user!.id),
         supabase.from('carousels')
-          .select('id, tema, status, created_at, exported_at, carousel_slides(bg_image_url, position)')
+          .select('id, tema, status, created_at, exported_at, collection_id, carousel_slides(bg_image_url, position)')
           .eq('user_id', user!.id)
           .order('created_at', { ascending: false })
           .limit(50),
@@ -420,6 +434,13 @@ export default function Dashboard() {
           .single()
         setTrends(trendData as WeeklyTrend | null)
       }
+
+      const { data: collData } = await supabase
+        .from('collections')
+        .select('*')
+        .eq('user_id', user!.id)
+        .order('created_at', { ascending: true })
+      setCollections((collData as Collection[]) ?? [])
 
       setLoading(false)
     }
@@ -472,13 +493,54 @@ export default function Dashboard() {
     setDeleteTarget(null)
   }
 
+  const handleCreateCollection = async () => {
+    const name = newCollName.trim()
+    if (!name || !user) return
+    const { data, error } = await supabase
+      .from('collections')
+      .insert({ user_id: user.id, name, color: newCollColor })
+      .select()
+      .single()
+    if (!error && data) {
+      setCollections(prev => [...prev, data as Collection])
+      setNewCollName('')
+      setNewCollColor('#C8FF00')
+      setShowNewCollection(false)
+    }
+  }
+
+  const handleDeleteCollection = async (id: string) => {
+    const { error } = await supabase.from('collections').delete().eq('id', id)
+    if (!error) {
+      setCollections(prev => prev.filter(c => c.id !== id))
+      setRecentCarousels(prev => prev.map(c =>
+        c.collection_id === id ? { ...c, collection_id: null } : c
+      ))
+      if (activeCollection === id) setActiveCollection(null)
+    }
+  }
+
+  const handleMoveToCollection = async (carouselId: string, collectionId: string | null) => {
+    const { error } = await supabase
+      .from('carousels')
+      .update({ collection_id: collectionId })
+      .eq('id', carouselId)
+    if (!error) {
+      setRecentCarousels(prev => prev.map(c =>
+        c.id === carouselId ? { ...c, collection_id: collectionId } : c
+      ))
+    }
+    setMoveMenuId(null)
+  }
+
   // ── Derived values ─────────────────────────────────────────────
   const months = [...new Set(recentCarousels.map(c => c.created_at.slice(0, 7)))].sort().reverse()
 
   const filteredCarousels = recentCarousels.filter(c => {
-    const matchSearch = searchQuery === '' || c.tema.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchMonth  = filterMonth === '' || c.created_at.startsWith(filterMonth)
-    return matchSearch && matchMonth
+    const matchSearch     = searchQuery === '' || c.tema.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchMonth      = filterMonth === '' || c.created_at.startsWith(filterMonth)
+    const matchCollection = activeCollection === null || c.collection_id === activeCollection
+    return matchSearch && matchMonth && matchCollection
   })
 
   const plan         = profile?.plan ?? 'free'
@@ -860,6 +922,105 @@ export default function Dashboard() {
                 )}
               </div>
             )}
+
+            {/* Linha 3: pastas/coleções */}
+            {!loading && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                {/* Pill "Todos" */}
+                <button
+                  onClick={() => setActiveCollection(null)}
+                  style={{
+                    height: 26, padding: '0 12px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                    background: activeCollection === null ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.04)',
+                    color: activeCollection === null ? T : M,
+                    fontFamily: ff, fontSize: 11, transition: 'all 0.15s',
+                  }}
+                >
+                  Todos
+                </button>
+
+                {/* Pill por coleção */}
+                {collections.map(col => (
+                  <div key={col.id} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <button
+                      onClick={() => setActiveCollection(activeCollection === col.id ? null : col.id)}
+                      style={{
+                        height: 26, padding: '0 10px 0 8px', borderRadius: 20, border: 'none', cursor: 'pointer',
+                        background: activeCollection === col.id ? `${col.color}22` : 'rgba(255,255,255,0.04)',
+                        color: activeCollection === col.id ? col.color : M,
+                        fontFamily: ff, fontSize: 11, display: 'flex', alignItems: 'center', gap: 5,
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: col.color, flexShrink: 0 }} />
+                      {col.name}
+                      <span
+                        onClick={e => { e.stopPropagation(); handleDeleteCollection(col.id) }}
+                        style={{ marginLeft: 2, opacity: 0.4, fontSize: 10, cursor: 'pointer', lineHeight: 1 }}
+                        title="Excluir pasta"
+                      >✕</span>
+                    </button>
+                  </div>
+                ))}
+
+                {/* Botão nova pasta */}
+                {!showNewCollection ? (
+                  <button
+                    onClick={() => setShowNewCollection(true)}
+                    style={{
+                      height: 26, padding: '0 10px', borderRadius: 20,
+                      border: '1px dashed rgba(255,255,255,0.15)', background: 'transparent',
+                      color: M, fontFamily: ff, fontSize: 11, cursor: 'pointer',
+                    }}
+                  >
+                    + pasta
+                  </button>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <input
+                      autoFocus
+                      placeholder="Nome da pasta"
+                      value={newCollName}
+                      onChange={e => setNewCollName(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') handleCreateCollection(); if (e.key === 'Escape') setShowNewCollection(false) }}
+                      style={{
+                        height: 26, padding: '0 8px', borderRadius: 7, width: 130,
+                        background: 'rgba(255,255,255,0.06)', border: `1px solid rgba(255,255,255,0.12)`,
+                        color: T, fontFamily: ff, fontSize: 11, outline: 'none',
+                      }}
+                    />
+                    {(['#C8FF00','#00D4FF','#F59E0B','#A855F7','#EF4444','#22C55E'] as const).map(c => (
+                      <span
+                        key={c}
+                        onClick={() => setNewCollColor(c)}
+                        style={{
+                          width: 14, height: 14, borderRadius: '50%', background: c, cursor: 'pointer',
+                          outline: newCollColor === c ? `2px solid ${c}` : 'none', outlineOffset: 2,
+                        }}
+                      />
+                    ))}
+                    <button
+                      onClick={handleCreateCollection}
+                      style={{
+                        height: 26, padding: '0 10px', borderRadius: 7, border: 'none',
+                        background: newCollColor, color: '#000', fontFamily: ff, fontSize: 11, cursor: 'pointer',
+                      }}
+                    >
+                      Criar
+                    </button>
+                    <button
+                      onClick={() => { setShowNewCollection(false); setNewCollName('') }}
+                      style={{
+                        height: 26, padding: '0 8px', borderRadius: 7, border: 'none',
+                        background: 'rgba(255,255,255,0.06)', color: M, fontFamily: ff, fontSize: 11, cursor: 'pointer',
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {loading ? (
@@ -930,10 +1091,21 @@ export default function Dashboard() {
                         {!coverUrl && <span style={{ fontFamily: ffd, fontSize: 13, color: 'rgba(255,255,255,0.2)' }}>{i + 1}</span>}
                       </div>
 
-                      {/* Tema */}
-                      <span style={{ fontFamily: ff, fontSize: 13, color: T, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {tema}
-                      </span>
+                      {/* Tema + badge de pasta */}
+                      <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
+                        {c.collection_id && (() => {
+                          const col = collections.find(x => x.id === c.collection_id)
+                          return col ? (
+                            <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 3, height: 18, padding: '0 6px', borderRadius: 10, background: `${col.color}18`, border: `1px solid ${col.color}33`, fontFamily: ff, fontSize: 10, color: col.color, whiteSpace: 'nowrap' }}>
+                              <span style={{ width: 5, height: 5, borderRadius: '50%', background: col.color }} />
+                              {col.name}
+                            </span>
+                          ) : null
+                        })()}
+                        <span style={{ fontFamily: ff, fontSize: 13, color: T, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {tema}
+                        </span>
+                      </div>
 
                       {isConfirming ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
@@ -956,6 +1128,43 @@ export default function Dashboard() {
                             style={{ opacity: 0, transition: 'opacity 0.15s', background: 'none', border: `1px solid rgba(255,255,255,0.07)`, borderRadius: 5, width: 26, height: 26, cursor: 'pointer', color: M, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             ↺
                           </button>
+                          {collections.length > 0 && (
+                            <div style={{ position: 'relative' }}>
+                              <button className="action-btn" onClick={e => { e.stopPropagation(); setMoveMenuId(moveMenuId === c.id ? null : c.id) }}
+                                title="Mover para pasta"
+                                style={{ opacity: 0, transition: 'opacity 0.15s', background: 'none', border: `1px solid rgba(255,255,255,0.07)`, borderRadius: 5, width: 26, height: 26, cursor: 'pointer', color: M, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                📁
+                              </button>
+                              {moveMenuId === c.id && (
+                                <div onClick={e => e.stopPropagation()} style={{
+                                  position: 'absolute', right: 0, top: 30, zIndex: 100,
+                                  background: '#1A1A1A', border: '1px solid rgba(255,255,255,0.1)',
+                                  borderRadius: 10, padding: 6, minWidth: 160,
+                                  boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                                }}>
+                                  <div
+                                    onClick={() => handleMoveToCollection(c.id, null)}
+                                    style={{ padding: '6px 10px', borderRadius: 6, cursor: 'pointer', fontFamily: ff, fontSize: 12, color: c.collection_id ? M : T, background: c.collection_id ? 'transparent' : 'rgba(255,255,255,0.06)' }}
+                                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+                                    onMouseLeave={e => e.currentTarget.style.background = c.collection_id ? 'transparent' : 'rgba(255,255,255,0.06)'}
+                                  >
+                                    Sem pasta
+                                  </div>
+                                  {collections.map(col => (
+                                    <div key={col.id}
+                                      onClick={() => handleMoveToCollection(c.id, col.id)}
+                                      style={{ padding: '6px 10px', borderRadius: 6, cursor: 'pointer', fontFamily: ff, fontSize: 12, color: c.collection_id === col.id ? col.color : T, display: 'flex', alignItems: 'center', gap: 8, background: c.collection_id === col.id ? `${col.color}15` : 'transparent' }}
+                                      onMouseEnter={e => e.currentTarget.style.background = `${col.color}15`}
+                                      onMouseLeave={e => e.currentTarget.style.background = c.collection_id === col.id ? `${col.color}15` : 'transparent'}
+                                    >
+                                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: col.color, flexShrink: 0 }} />
+                                      {col.name}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
                           <button className="action-btn" onClick={e => { e.stopPropagation(); setDeleteTarget(c.id) }}
                             title="Excluir"
                             style={{ opacity: 0, transition: 'opacity 0.15s', background: 'none', border: `1px solid rgba(255,69,58,0.2)`, borderRadius: 5, width: 26, height: 26, cursor: 'pointer', color: '#FF453A', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
