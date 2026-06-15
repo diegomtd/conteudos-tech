@@ -43,6 +43,8 @@ interface FormData {
   intensidadeFundo: number
   // step 2
   irritacao: string
+  angulos: string[]
+  comoConectar: string
   // step 4
   exemploTexto: string
   voiceAnalysis: VoiceAnalysis | null
@@ -167,6 +169,17 @@ function normalizeNicho(n: string) {
   return n.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 }
 
+const ANGULO_OPTIONS = [
+  { slug: 'revelacao',  label: '\ud83d\udca1 Revela\u00e7\u00e3o',    desc: 'O oposto do que o mercado diz' },
+  { slug: 'provocacao', label: '\ud83d\udd25 Provoca\u00e7\u00e3o',   desc: 'Questionar cren\u00e7as do nicho' },
+  { slug: 'dados',      label: '\ud83d\udcca Dado que choca', desc: 'Estat\u00edstica que surpreende' },
+  { slug: 'caso_real',  label: '\ud83c\udfaf Caso real',    desc: 'Situa\u00e7\u00e3o espec\u00edfica e plaus\u00edvel' },
+  { slug: 'bastidor',   label: '\ud83c\udfac Bastidor',     desc: 'Seu processo por dentro' },
+  { slug: 'tendencias', label: '\ud83d\udcc8 Tend\u00eancia',    desc: 'Padr\u00e3o em alta no nicho' },
+  { slug: 'historico',  label: '\ud83d\udcda Anal\u00f3gico',    desc: 'Figura hist\u00f3rica como analogia' },
+  { slug: 'noticias',   label: '\ud83d\udcf0 Not\u00edcia',      desc: 'Fato real linkado ao nicho' },
+]
+
 // ─── Step 1 ───────────────────────────────────────────────────
 function Step1({ data, onChange }: { data: FormData; onChange: (d: Partial<FormData>) => void }) {
   return (
@@ -256,6 +269,57 @@ function Step2({ data, onChange }: { data: FormData; onChange: (d: Partial<FormD
           style={{
             ...inputSt, resize: 'none', lineHeight: 1.6,
             padding: '12px 14px',
+          }}
+          onFocus={(e) => { e.target.style.borderColor = A }}
+          onBlur={(e) => { e.target.style.borderColor = B }}
+        />
+      </div>
+
+      {/* Ângulos de gancho preferidos */}
+      <div style={sectionSt}>
+        <label style={labelSt}>
+          Que tipo de gancho você prefere usar?
+          <span style={{ color: M, fontWeight: 400, marginLeft: 6 }}>(escolha até 3)</span>
+        </label>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
+          {ANGULO_OPTIONS.map(a => {
+            const sel = data.angulos.includes(a.slug)
+            const maxed = data.angulos.length >= 3 && !sel
+            return (
+              <button key={a.slug} type="button" disabled={maxed} onClick={() => {
+                const next = sel
+                  ? data.angulos.filter(x => x !== a.slug)
+                  : [...data.angulos, a.slug]
+                onChange({ angulos: next })
+              }} style={{
+                background: sel ? 'rgba(0,212,255,0.08)' : S2,
+                border: `1.5px solid ${sel ? A : B}`,
+                borderRadius: 10, padding: '10px 12px',
+                cursor: maxed ? 'not-allowed' : 'pointer',
+                textAlign: 'left', opacity: maxed ? 0.4 : 1,
+                transition: 'all 0.15s',
+              }}>
+                <p style={{ margin: '0 0 2px', fontSize: 13, color: sel ? A : T, fontFamily: ff }}>{a.label}</p>
+                <p style={{ margin: 0, fontSize: 11, color: M, fontFamily: ff }}>{a.desc}</p>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Como conecta ao produto */}
+      <div style={sectionSt}>
+        <label style={labelSt}>
+          Como você costuma conectar seu conteúdo ao que vende?
+          <span style={{ color: M, fontWeight: 400, marginLeft: 6 }}>(opcional)</span>
+        </label>
+        <textarea
+          value={data.comoConectar}
+          onChange={(e) => onChange({ comoConectar: e.target.value })}
+          placeholder="Ex: mostro o problema, depois menciono meu método/produto como solução natural"
+          rows={2}
+          style={{
+            ...inputSt, resize: 'none', lineHeight: 1.6, padding: '12px 14px',
           }}
           onFocus={(e) => { e.target.style.borderColor = A }}
           onBlur={(e) => { e.target.style.borderColor = B }}
@@ -679,6 +743,7 @@ export default function Onboarding() {
   const [step, setStep] = useState(1)
   const [dir, setDir] = useState(1)
   const [saving, setSaving] = useState(false)
+  const [finished, setFinished] = useState(false)
   const [error, setError] = useState('')
   const [plan, setPlan] = useState<string>('free')
   const [agencyPrompt, setAgencyPrompt] = useState(false)
@@ -696,7 +761,7 @@ export default function Onboarding() {
     tom: '', palavrasProibidas: [], palavrasChave: [],
     cor: '#C8FF00', estilo: 'dark_cinematic', fonte: 'Bebas Neue',
     tamanhoTitulo: 'medio', posicaoTexto: 'base', intensidadeFundo: 60,
-    irritacao: '', exemploTexto: '', voiceAnalysis: null, primeiraTema: '',
+    irritacao: '', angulos: [], comoConectar: '', exemploTexto: '', voiceAnalysis: null, primeiraTema: '',
   })
 
   const update = (d: Partial<FormData>) => setForm((p) => ({ ...p, ...d }))
@@ -732,6 +797,8 @@ export default function Onboarding() {
           palavras_chave: form.palavrasChave,
           exemplo_texto: form.exemploTexto,
           o_que_irrita: form.irritacao || null,
+          angulos: form.angulos.length > 0 ? form.angulos : null,
+          como_conectar: form.comoConectar || null,
           ...(form.voiceAnalysis ? {
             tom_extraido: form.voiceAnalysis.tom,
             ritmo: form.voiceAnalysis.ritmo,
@@ -755,7 +822,10 @@ export default function Onboarding() {
       if (plan === 'agencia') {
         setAgencyPrompt(true)
       } else {
-        navigate(`/studio?tema=${encodeURIComponent(form.primeiraTema.trim())}`)
+        setFinished(true)
+        setTimeout(() => {
+          navigate(`/studio?tema=${encodeURIComponent(form.primeiraTema.trim())}`)
+        }, 2800)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao salvar. Tente novamente.')
@@ -765,6 +835,101 @@ export default function Onboarding() {
 
   const meta = STEP_META[step - 1]
   const progress = (step / TOTAL) * 100
+
+  if (finished) {
+    const tomLabel = { provocador: 'Provocador', educativo: 'Educativo', bastidor: 'Bastidor', humor: 'Humor', inspiracional: 'Inspiracional' }[form.tom] ?? form.tom
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: BG, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 24px' }}>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          style={{ textAlign: 'center', maxWidth: 420 }}
+        >
+          {/* Check animado */}
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.2, type: 'spring', stiffness: 200, damping: 15 }}
+            style={{
+              width: 80, height: 80, borderRadius: '50%', margin: '0 auto 28px',
+              background: 'linear-gradient(135deg, #00D4FF22, #00D4FF11)',
+              border: '2px solid #00D4FF44',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 36,
+            }}
+          >
+            ✓
+          </motion.div>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 42, color: T, letterSpacing: 2, margin: '0 0 8px' }}
+          >
+            Perfil criado!
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.55 }}
+            style={{ fontFamily: ff, fontSize: 15, color: M, margin: '0 0 32px' }}
+          >
+            Tudo configurado para criar conteúdo do seu jeito.
+          </motion.p>
+
+          {/* Resumo do perfil */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.7 }}
+            style={{
+              background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 16, padding: '20px 24px', marginBottom: 32,
+              display: 'flex', flexDirection: 'column', gap: 12, textAlign: 'left',
+            }}
+          >
+            {[
+              { icon: '🎯', label: 'Nicho', val: form.niche },
+              { icon: '🎤', label: 'Tom de voz', val: tomLabel },
+              { icon: '🎨', label: 'Cor accent', val: (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ width: 12, height: 12, borderRadius: '50%', background: form.cor, display: 'inline-block' }} />
+                  {form.cor}
+                </span>
+              )},
+              ...(form.angulos.length > 0 ? [{ icon: '⚡', label: 'Ângulos favoritos', val: form.angulos.map(a => ANGULO_OPTIONS.find(o => o.slug === a)?.label ?? a).join('  ') }] : []),
+            ].map(row => (
+              <div key={row.label} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <span style={{ fontSize: 16 }}>{row.icon}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ fontFamily: ff, fontSize: 11, color: M, textTransform: 'uppercase', letterSpacing: 0.5 }}>{row.label}</span>
+                  <div style={{ fontFamily: ff, fontSize: 13, color: T, marginTop: 2 }}>{row.val}</div>
+                </div>
+              </div>
+            ))}
+          </motion.div>
+
+          {/* Spinner + texto */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.1 }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}
+          >
+            <div style={{
+              width: 16, height: 16, borderRadius: '50%',
+              border: '2px solid rgba(0,212,255,0.2)', borderTopColor: A,
+              animation: 'spin 0.7s linear infinite',
+            }} />
+            <span style={{ fontFamily: ff, fontSize: 13, color: M }}>Abrindo o Studio…</span>
+          </motion.div>
+        </motion.div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    )
+  }
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: BG, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 16px 48px' }}>
