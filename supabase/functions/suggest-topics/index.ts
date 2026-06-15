@@ -14,6 +14,50 @@ function json(data: unknown, status = 200) {
   })
 }
 
+// ── Google News RSS — sem API key, notícias reais em pt-BR ───────────
+async function fetchGoogleNews(niche: string): Promise<string> {
+  try {
+    const q = encodeURIComponent(`${niche} Brasil`)
+    const url = `https://news.google.com/rss/search?q=${q}&hl=pt-BR&gl=BR&ceid=BR:pt-419`
+
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ConteudOS/1.0)' },
+      signal: AbortSignal.timeout(5000),
+    })
+    if (!res.ok) return ''
+
+    const xml = await res.text()
+    const items = xml.match(/<item>[\s\S]*?<\/item>/g) ?? []
+
+    const headlines: string[] = []
+    for (const item of items.slice(0, 8)) {
+      const rawTitle = item.match(/<title>([\s\S]*?)<\/title>/)?.[1]
+        ?.replace(/<!\[CDATA\[|\]\]>/g, '')
+        ?.replace(/&amp;/g, '&')
+        ?.replace(/&lt;/g, '<')
+        ?.replace(/&gt;/g, '>')
+        ?.replace(/&quot;/g, '"')
+        ?.trim()
+      // Remove " - Nome da Fonte" no final
+      const title = rawTitle?.replace(/\s*-\s*[^-]{2,40}$/, '').trim()
+
+      const pubRaw = item.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1]?.trim()
+      const date = pubRaw
+        ? new Date(pubRaw).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+        : ''
+
+      if (title && title.length > 10) {
+        headlines.push(`- ${title}${date ? ` (${date})` : ''}`)
+      }
+    }
+
+    if (headlines.length === 0) return ''
+    return `\nNOTÍCIAS REAIS EM ALTA AGORA (fonte: Google News — use como gancho ou contexto real):\n${headlines.join('\n')}`
+  } catch {
+    return ''
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
@@ -31,7 +75,7 @@ serve(async (req) => {
     )
     if (authErr || !user) return json({ error: 'unauthorized' }, 401)
 
-    // ── Busca perfil + últimos temas usados em paralelo ──────────────
+    // ── Busca perfil + últimos temas + notícias em paralelo ──────────
     const [profileRes, recentRes] = await Promise.all([
       supabase
         .from('profiles')
@@ -59,18 +103,22 @@ serve(async (req) => {
     const angulos = Array.isArray(vp.angulos) ? (vp.angulos as string[]) : []
     const comoConectar = (vp.como_conectar as string) || ''
 
+    // ── Busca notícias em paralelo com processamento de dados ─────────
+    const newsCtx = await fetchGoogleNews(niche)
+    const hasNews = newsCtx.length > 0
+
     const ANGULO_LABELS: Record<string, string> = {
-      tendencias: 'padrão ou comportamento que está em alta no nicho — formato de tendência, sem inventar eventos ou fatos do dia',
-      historico:  'personagem histórico ou figura amplamente conhecida como analogia atemporal para o nicho',
-      dados:      'dado ou estatística atemporal que choca — nunca inventar números, só usar se for real e verificável',
-      noticias:   'formato jornalístico aplicado a verdades do nicho — sem inventar notícias, eventos, datas ou empresas específicas',
+      tendencias: 'tendência ou padrão comportamental quente no nicho — ancore em notícia real se disponível',
+      historico:  'personagem histórico ou figura amplamente conhecida como analogia atemporal',
+      dados:      'dado ou estatística real que choca — extraia de notícia se disponível, nunca invente',
+      noticias:   'notícia real linkada ao nicho — use APENAS fatos da lista de notícias fornecida',
       revelacao:  'revelação contraintuitiva — o oposto do que o mercado tradicional diz',
       provocacao: 'provocação e polêmica — questionar crenças estabelecidas no nicho',
-      caso_real:  'caso real ou situação genérica plausível — sem inventar nomes de empresas, pessoas ou números falsos',
+      caso_real:  'caso real ou situação plausível — sem inventar nomes, empresas ou números falsos',
       bastidor:   'bastidor e processo pessoal do criador',
     }
     const angulosCtx = angulos.length > 0
-      ? `\nÂNGULOS DE GANCHO QUE O CRIADOR PREFERE USAR:\n${angulos.map(a => `- ${ANGULO_LABELS[a] ?? a}`).join('\n')}\nPrioritize esses ângulos na geração. Distribua entre eles nas 10 ideias.`
+      ? `\nÂNGULOS DE GANCHO QUE O CRIADOR PREFERE USAR:\n${angulos.map(a => `- ${ANGULO_LABELS[a] ?? a}`).join('\n')}\nPrioritize esses ângulos. Distribua entre eles nas 10 ideias.`
       : ''
     const conectarCtx = comoConectar
       ? `\nCOMO ELE CONECTA OS TEMAS AO SEU PRODUTO/POSICIONAMENTO: "${comoConectar}"\nCada pauta sugerida deve ter um ângulo natural para essa conexão.`
@@ -87,7 +135,10 @@ serve(async (req) => {
     // ── System prompt ─────────────────────────────────────────────────
     const systemPrompt = `Você é um estrategista de conteúdo sênior especializado em carrosseis virais para Instagram no Brasil. Você conhece profundamente psicologia de feed, gatilhos de salvamento e o que faz um criador de nicho crescer organicamente.
 
-IMPORTANTE: Você NÃO tem acesso à internet. Nunca invente notícias, eventos recentes, datas, valores financeiros ou fatos do dia. Sugira temas atemporais ou padrões do nicho que funcionem independentemente de quando forem publicados. Se o ângulo for "tendência" ou "notícia", aplique o FORMATO — não o conteúdo real de uma notícia inventada.
+${hasNews
+  ? 'Você recebeu notícias REAIS e atuais do Google News. Use-as como gancho ou contexto quando fizer sentido para o nicho. Cite o fato real — não invente detalhes além do que está na lista.'
+  : 'Sugira temas atemporais ou padrões do nicho que funcionem independentemente de quando forem publicados. Nunca invente notícias, datas ou eventos específicos.'
+}
 
 Retorne APENAS JSON válido. Sem markdown. Sem texto fora do JSON.`
 
@@ -100,17 +151,19 @@ ${palavrasChave ? `POSICIONAMENTO (palavras que usa): ${palavrasChave}` : ''}
 ${oQueIrrita ? `O QUE ELE ACHA QUE O MERCADO ERRA (use como ângulo ou ponto de vista): "${oQueIrrita}"` : ''}
 ${angulosCtx}
 ${conectarCtx}
+${newsCtx}
 ${memoriaCtx}
 
 REGRAS OBRIGATÓRIAS:
 1. ESPECIFICIDADE: Cada ideia precisa de ângulo específico e situacional. RUIM: "Os erros de iniciantes". BOM: "O erro silencioso que fez meu negócio estagnar por 8 meses sem eu perceber".
 2. HOOK (título da capa): máx 8 palavras, cria lacuna cognitiva forte, termina sem ponto final. Deve causar curiosidade imediata ou reconhecimento doloroso.
-3. TITULO: o tema completo que será desenvolvido em carrossel (10 a 20 palavras). É a briefing para a IA gerar o conteúdo — deve ser rico, específico e contextualizado.
+3. TITULO: o tema completo que será desenvolvido em carrossel (10 a 20 palavras). É o briefing para a IA gerar o conteúdo — deve ser rico, específico e contextualizado.
 4. CONTEXTO: 1 frase (máx 18 palavras) explicando por que esse tema para o scroll AGORA — qual dor, desejo ou crença ele ativa nesse nicho.
 5. TIPO: classifica a psicologia: curiosity_gap | pattern_interrupt | identity_mirror | revelation | social_proof | urgency
 6. VARIEDADE: use os 6 tipos distribuídos nas 10 ideias. Não repita tipo mais de 2x seguidas.
 7. PROIBIDO: títulos com "Como", "Dicas para", "Aprenda", "Descubra", "X motivos que". São genéricos demais.
 8. Nunca sugira algo com ângulo similar ao que já foi postado (lista acima).
+${hasNews ? '9. Para temas baseados em notícia real: inclua no titulo o fato específico da notícia. O criador vai linkar aquele evento ao seu nicho/posicionamento.' : ''}
 
 Retorne este JSON exato:
 {
@@ -157,7 +210,7 @@ Retorne este JSON exato:
       return json({ error: 'parse_error', raw }, 502)
     }
 
-    return json(parsed)
+    return json({ ...parsed, _news: hasNews })
 
   } catch (err) {
     console.error('Unhandled:', err)

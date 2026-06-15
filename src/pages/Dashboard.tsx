@@ -365,6 +365,7 @@ export default function Dashboard() {
   const [loading, setLoading]               = useState(true)
   const [aiTopics, setAiTopics]             = useState<SuggestedTema[]>([])
   const [loadingTopics, setLoadingTopics]   = useState(false)
+  const [hasLiveNews, setHasLiveNews]       = useState(false)
 
   const toggleSidebar = () => {
     setSidebarOpen(prev => {
@@ -430,9 +431,10 @@ export default function Dashboard() {
       try {
         const raw = localStorage.getItem(TOPICS_CACHE_KEY)
         if (raw) {
-          const { temas, ts, uid } = JSON.parse(raw)
+          const { temas, ts, uid, news } = JSON.parse(raw)
           if (uid === user.id && Date.now() - ts < TOPICS_CACHE_TTL && Array.isArray(temas) && temas.length > 0) {
             setAiTopics(temas as SuggestedTema[])
+            setHasLiveNews(!!news)
             return
           }
         }
@@ -442,9 +444,10 @@ export default function Dashboard() {
     supabase.functions.invoke('suggest-topics').then(({ data }) => {
       if (data?.temas && Array.isArray(data.temas) && data.temas.length > 0) {
         setAiTopics(data.temas as SuggestedTema[])
+        setHasLiveNews(!!data._news)
         try {
           localStorage.setItem(TOPICS_CACHE_KEY, JSON.stringify({
-            temas: data.temas, ts: Date.now(), uid: user.id,
+            temas: data.temas, ts: Date.now(), uid: user.id, news: !!data._news,
           }))
         } catch { /* localStorage cheio */ }
       }
@@ -671,6 +674,16 @@ export default function Dashboard() {
                 <span style={{ fontFamily: ff, fontSize: 11, color: A, textTransform: 'uppercase', letterSpacing: 1.2, fontWeight: 600 }}>
                   {aiTopics.length > 0 ? 'IA personalizada para você' : 'sugestão de hoje'}
                 </span>
+                {hasLiveNews && (
+                  <span style={{
+                    fontSize: 9, fontFamily: ff, letterSpacing: 1, textTransform: 'uppercase',
+                    color: '#FF6B35', background: 'rgba(255,107,53,0.12)',
+                    border: '1px solid rgba(255,107,53,0.3)',
+                    padding: '2px 6px', borderRadius: 4,
+                  }}>
+                    🔴 AO VIVO
+                  </span>
+                )}
                 {!topicsLoading && (
                   <button
                     onClick={() => fetchTopics(true)}
