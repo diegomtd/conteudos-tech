@@ -764,7 +764,7 @@ function Editorial({ slide, index, total, selectedEl, onSelectEl, onBodyWordClic
       onClick: () => onSelectEl?.('corpo'),
       style: {
         fontSize: `${(slide.bodyFontSize ?? 26) * s}px`, margin: 0, zIndex: Z_CONTENT,
-        textAlign: 'left', width: '100%', fontFamily: ff,
+        textAlign: 'left', width: '100%',
         cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s),
       },
     }, onBodyWordClick)}
@@ -785,6 +785,7 @@ function Lista({ slide, index, total, selectedEl, onSelectEl, onBodyWordClick, o
   const color    = slide.textColor ?? _T
   const fw       = slide.fontWeightTitle === 'bold' ? 900 : 700
   const midCount = total - 2
+  const accent = slide.accentColor ?? A
 
   const ProgressDots = () => (
     <div style={{
@@ -794,7 +795,7 @@ function Lista({ slide, index, total, selectedEl, onSelectEl, onBodyWordClick, o
       {Array.from({ length: midCount }, (_, i) => (
         <span key={i} style={{
           width: `${5 * s}px`, height: `${5 * s}px`, borderRadius: '50%', display: 'inline-block',
-          backgroundColor: i === index - 1 ? A : 'rgba(255,255,255,0.2)',
+          backgroundColor: i === index - 1 ? accent : 'rgba(255,255,255,0.2)',
         }} />
       ))}
     </div>
@@ -803,7 +804,7 @@ function Lista({ slide, index, total, selectedEl, onSelectEl, onBodyWordClick, o
   if (isCapa) return <>
     <span style={{
       position: 'absolute', right: `${8 * s}px`, top: '50%', transform: 'translateY(-50%)',
-      fontFamily: bn, fontSize: `${160 * s}px`, color: A, opacity: 0.1, userSelect: 'none', lineHeight: 1,
+      fontFamily: bn, fontSize: `${160 * s}px`, color: accent, opacity: 0.1, userSelect: 'none', lineHeight: 1,
       zIndex: Z_CONTENT,
     }}>{midCount}</span>
     {renderTitleWithHighlights(slide.titulo, slide, {
@@ -841,7 +842,7 @@ function Lista({ slide, index, total, selectedEl, onSelectEl, onBodyWordClick, o
 
   return <>
     <span style={{
-      fontFamily: bn, fontSize: `${48 * s}px`, color: A, fontWeight: 900,
+      fontFamily: bn, fontSize: `${48 * s}px`, color: accent, fontWeight: 900,
       lineHeight: 1, margin: `0 0 ${4 * s}px`, zIndex: Z_CONTENT,
     }}>
       {String(index).padStart(2, '0')}
@@ -872,6 +873,7 @@ function Citacao({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown
   const isCapa = index === 0
   const color  = slide.textColor ?? _T
   const fw     = slide.fontWeightTitle === 'bold' ? 900 : 700
+  const accent = slide.accentColor ?? A
 
   return <>
     {/* Overlay — z-index: 1, above image */}
@@ -884,7 +886,7 @@ function Citacao({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown
     {isCapa ? <>
       <span style={{
         position: 'absolute', top: `${14 * s}px`, left: `${12 * s}px`,
-        fontFamily: bn, fontSize: `${70 * s}px`, color: A, opacity: 0.3, lineHeight: 1,
+        fontFamily: bn, fontSize: `${70 * s}px`, color: accent, opacity: 0.3, lineHeight: 1,
         zIndex: Z_CONTENT, userSelect: 'none',
       }}>"</span>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: Z_CONTENT, width: '100%' }}>
@@ -926,7 +928,7 @@ function Citacao({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown
       </div>
     ) : (
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: Z_CONTENT }}>
-        <div style={{ width: `${28 * s}px`, height: `${2 * s}px`, backgroundColor: A, marginBottom: `${10 * s}px` }} />
+        <div style={{ width: `${28 * s}px`, height: `${2 * s}px`, backgroundColor: accent, marginBottom: `${10 * s}px` }} />
         {renderTitleWithHighlights(slide.titulo, slide, {
           onClick: () => onSelectEl?.('titulo'),
           style: {
@@ -970,7 +972,7 @@ function Gancho({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown,
       borderRadius: `${3 * s}px`,
       marginBottom: `${14 * s}px`,
       zIndex: Z_CONTENT, display: 'inline-block', alignSelf: 'flex-start',
-    }}>{(slide as any).subtitulo || 'DESTAQUE'}</span>
+    }}>{slide.subtitle || 'DESTAQUE'}</span>
     {renderTitleWithHighlights(slide.titulo, slide, {
       onClick: () => onSelectEl?.('titulo'),
       onMouseDown: onTitleMouseDown,

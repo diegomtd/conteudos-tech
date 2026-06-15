@@ -2463,7 +2463,7 @@ function StatePreview({
                   {/* Campo SUBTÍTULO */}
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontFamily: 'DM Sans, sans-serif', textTransform: 'uppercase', letterSpacing: 0.5 }}>Subtítulo</span>
+                      <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontFamily: 'DM Sans, sans-serif', textTransform: 'uppercase', letterSpacing: 0.5 }}>{selectedTemplate === 'gancho' ? 'Texto do badge' : selectedTemplate === 'dados' ? 'Label do badge' : 'Subtítulo'}</span>
                       <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.2)', fontFamily: 'DM Sans, sans-serif' }}>{(current.subtitle ?? '').length}</span>
                     </div>
                     <textarea
@@ -2474,7 +2474,7 @@ function StatePreview({
                         saveFormatToDb(current.id, { subtitle: val })
                       }}
                       rows={2}
-                      placeholder="Linha de apoio abaixo do título..."
+                      placeholder={selectedTemplate === 'gancho' ? 'Ex: MARKETING DIGITAL' : selectedTemplate === 'dados' ? 'Ex: ESTATÍSTICA' : 'Linha de apoio abaixo do título...'}
                       style={{
                         width: '100%', background: '#131313',
                         border: '1px solid rgba(255,255,255,0.07)',
@@ -2514,7 +2514,7 @@ function StatePreview({
                   </div>
 
                   {/* CTA text — só no último slide */}
-                  {activeSlide === slides.length - 1 && (
+                  {(activeSlide === slides.length - 1 || (activeSlide === 0 && selectedTemplate === 'gancho')) && (
                     <div>
                       <span style={{ fontSize: 9, color: '#A855F7', fontFamily: 'DM Sans, sans-serif', display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>Texto do CTA</span>
                       <input type="text"
