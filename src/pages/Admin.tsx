@@ -248,6 +248,8 @@ function UserModal({ profile, onClose, onSaved }: {
   const [carouselsLimit, setCarouselsLimit] = useState(String(profile.carousels_limit ?? 0))
   const [saving, setSaving] = useState(false)
   const [resetting, setResetting] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [logs, setLogs] = useState<UsageLog[]>([])
   const [logsLoading, setLogsLoading] = useState(true)
   const [totalCost, setTotalCost] = useState(0)
@@ -312,6 +314,18 @@ function UserModal({ profile, onClose, onSaved }: {
     if (err) { setError(err.message); return }
     setSuccess('Contadores zerados')
     setTimeout(() => setSuccess(''), 2000)
+    onSaved()
+  }
+
+  async function deleteUser() {
+    setDeleting(true)
+    setError('')
+    const { error: err } = await supabase.functions.invoke('delete-user', {
+      body: { user_id: profile.user_id },
+    })
+    setDeleting(false)
+    if (err) { setError('Erro ao deletar: ' + err.message); return }
+    onClose()
     onSaved()
   }
 
@@ -550,6 +564,52 @@ function UserModal({ profile, onClose, onSaved }: {
           <Row label="Telegram" value={profile.telegram_chat_id ? 'Conectado' : 'Não'} />
           <Row label="Onboarding" value={profile.onboarding_completed ? 'Completo' : 'Pendente'} />
           <Row label="Membro desde" value={fmtDate(profile.created_at)} />
+        </div>
+
+        {/* Zona de perigo */}
+        <div style={{ borderTop: '1px solid rgba(255,69,58,0.2)', paddingTop: 16 }}>
+          {!confirmDelete ? (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              style={{
+                width: '100%', padding: '10px 0', borderRadius: 8,
+                border: '1px solid rgba(255,69,58,0.3)', background: 'rgba(255,69,58,0.06)',
+                color: '#FF453A', fontFamily: ff, fontSize: 13, cursor: 'pointer',
+              }}
+            >
+              Deletar conta permanentemente
+            </button>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <p style={{ fontFamily: ff, fontSize: 12, color: '#FF453A', margin: 0, textAlign: 'center' }}>
+                Isso apaga todos os dados do usuário. Confirma?
+              </p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  style={{
+                    flex: 1, padding: '9px 0', borderRadius: 8,
+                    border: `1px solid ${B}`, background: 'transparent',
+                    color: M, fontFamily: ff, fontSize: 13, cursor: 'pointer',
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={deleteUser}
+                  disabled={deleting}
+                  style={{
+                    flex: 1, padding: '9px 0', borderRadius: 8,
+                    border: 'none', background: '#FF453A',
+                    color: '#fff', fontFamily: ff, fontSize: 13, cursor: deleting ? 'default' : 'pointer',
+                    opacity: deleting ? 0.6 : 1,
+                  }}
+                >
+                  {deleting ? 'Deletando…' : 'Sim, deletar'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

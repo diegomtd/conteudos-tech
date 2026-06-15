@@ -385,6 +385,7 @@ export default function Dashboard() {
   const [newCollName, setNewCollName]           = useState('')
   const [newCollColor, setNewCollColor]         = useState('#C8FF00')
   const [moveMenuId, setMoveMenuId]             = useState<string | null>(null)
+  const [carouselPage, setCarouselPage]         = useState(0)
 
   const toggleSidebar = () => {
     setSidebarOpen(prev => {
@@ -542,6 +543,13 @@ export default function Dashboard() {
     const matchCollection = activeCollection === null || c.collection_id === activeCollection
     return matchSearch && matchMonth && matchCollection
   })
+
+  const CAROUSEL_PAGE_SIZE = 12
+  const totalCarouselPages = Math.ceil(filteredCarousels.length / CAROUSEL_PAGE_SIZE)
+  const paginatedCarousels = filteredCarousels.slice(carouselPage * CAROUSEL_PAGE_SIZE, (carouselPage + 1) * CAROUSEL_PAGE_SIZE)
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { setCarouselPage(0) }, [searchQuery, filterMonth, activeCollection])
 
   const plan         = profile?.plan ?? 'free'
   const exportsUsed  = profile?.exports_used_this_month ?? 0
@@ -1043,7 +1051,7 @@ export default function Dashboard() {
             )
           ) : viewMode === 'lista' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {filteredCarousels.map((c, i) => {
+              {paginatedCarousels.map((c, i) => {
                 const tema = c.tema.length > 65 ? c.tema.slice(0, 65) + '…' : c.tema
                 const statusColor = STATUS_COLOR[c.status] ?? '#555'
                 const coverUrl = c.carousel_slides?.find(s => s.position === 1)?.bg_image_url
@@ -1181,7 +1189,7 @@ export default function Dashboard() {
           ) : (
             /* MODO GRADE */
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-              {filteredCarousels.map((c, i) => {
+              {paginatedCarousels.map((c, i) => {
                 const tema = c.tema.length > 55 ? c.tema.slice(0, 55) + '…' : c.tema
                 const coverUrl = c.carousel_slides?.find(s => s.position === 1)?.bg_image_url
                 const isConfirming = deleteTarget === c.id
@@ -1255,6 +1263,35 @@ export default function Dashboard() {
                   </motion.div>
                 )
               })}
+            </div>
+          )}
+
+          {/* Paginação */}
+          {totalCarouselPages > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, paddingTop: 8 }}>
+              <button
+                onClick={() => setCarouselPage(p => Math.max(0, p - 1))}
+                disabled={carouselPage === 0}
+                style={{
+                  width: 32, height: 32, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)',
+                  background: carouselPage === 0 ? 'transparent' : 'rgba(255,255,255,0.04)',
+                  color: carouselPage === 0 ? 'rgba(255,255,255,0.2)' : '#F5F5F5',
+                  cursor: carouselPage === 0 ? 'default' : 'pointer', fontSize: 14,
+                }}
+              >‹</button>
+              <span style={{ fontFamily: '"DM Sans", sans-serif', fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
+                {carouselPage + 1} / {totalCarouselPages}
+              </span>
+              <button
+                onClick={() => setCarouselPage(p => Math.min(totalCarouselPages - 1, p + 1))}
+                disabled={carouselPage >= totalCarouselPages - 1}
+                style={{
+                  width: 32, height: 32, borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)',
+                  background: carouselPage >= totalCarouselPages - 1 ? 'transparent' : 'rgba(255,255,255,0.04)',
+                  color: carouselPage >= totalCarouselPages - 1 ? 'rgba(255,255,255,0.2)' : '#F5F5F5',
+                  cursor: carouselPage >= totalCarouselPages - 1 ? 'default' : 'pointer', fontSize: 14,
+                }}
+              >›</button>
             </div>
           )}
         </section>
