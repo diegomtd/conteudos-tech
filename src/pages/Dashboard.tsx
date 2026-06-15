@@ -366,6 +366,11 @@ export default function Dashboard() {
   const [aiTopics, setAiTopics]             = useState<SuggestedTema[]>([])
   const [loadingTopics, setLoadingTopics]   = useState(false)
   const [hasLiveNews, setHasLiveNews]       = useState(false)
+  const [viewMode, setViewMode]             = useState<'lista' | 'grade'>('lista')
+  const [searchQuery, setSearchQuery]       = useState('')
+  const [filterMonth, setFilterMonth]       = useState<string>('')
+  const [deleteTarget, setDeleteTarget]     = useState<string | null>(null)
+  const [deletingId, setDeletingId]         = useState<string | null>(null)
 
   const toggleSidebar = () => {
     setSidebarOpen(prev => {
@@ -390,7 +395,7 @@ export default function Dashboard() {
           .select('id, tema, status, created_at, exported_at, carousel_slides(bg_image_url, position)')
           .eq('user_id', user!.id)
           .order('created_at', { ascending: false })
-          .limit(12),
+          .limit(50),
         supabase.from('scheduled_posts')
           .select('*')
           .eq('user_id', user!.id)
@@ -456,7 +461,26 @@ export default function Dashboard() {
 
   useEffect(() => { fetchTopics() }, [user])
 
+  const handleDelete = async (id: string) => {
+    setDeletingId(id)
+    const { error } = await supabase.from('carousels').delete().eq('id', id)
+    if (!error) {
+      setRecentCarousels(prev => prev.filter(c => c.id !== id))
+      setCarouselsCount(prev => Math.max(0, prev - 1))
+    }
+    setDeletingId(null)
+    setDeleteTarget(null)
+  }
+
   // ── Derived values ─────────────────────────────────────────────
+  const months = [...new Set(recentCarousels.map(c => c.created_at.slice(0, 7)))].sort().reverse()
+
+  const filteredCarousels = recentCarousels.filter(c => {
+    const matchSearch = searchQuery === '' || c.tema.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchMonth  = filterMonth === '' || c.created_at.startsWith(filterMonth)
+    return matchSearch && matchMonth
+  })
+
   const plan         = profile?.plan ?? 'free'
   const exportsUsed  = profile?.exports_used_this_month ?? 0
   const exportsLimit = profile?.exports_limit ?? 1
@@ -767,17 +791,74 @@ export default function Dashboard() {
 
         {/* ── Recentes ─────────────────────────────────────────── */}
         <section>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <h2 style={{ fontFamily: ffd, fontSize: 18, color: T, margin: 0, letterSpacing: 1, fontWeight: 400 }}>
-              Recentes
-            </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
+            {/* Linha 1: título + botão novo */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontFamily: ffd, fontSize: 13, color: T, letterSpacing: 1, textTransform: 'uppercase' as const }}>
+                Conteúdos
+                {filteredCarousels.length > 0 && (
+                  <span style={{ fontFamily: ff, fontSize: 11, color: M, fontWeight: 400, letterSpacing: 0, textTransform: 'none' as const, marginLeft: 6 }}>
+                    {filteredCarousels.length}
+                  </span>
+                )}
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {/* Toggle lista/grade */}
+                <div style={{ display: 'flex', background: 'rgba(255,255,255,0.04)', borderRadius: 7, padding: 2, border: `1px solid rgba(255,255,255,0.07)` }}>
+                  {(['lista', 'grade'] as const).map(m => (
+                    <button key={m} onClick={() => setViewMode(m)} style={{
+                      width: 28, height: 22, border: 'none', borderRadius: 5, cursor: 'pointer',
+                      background: viewMode === m ? 'rgba(255,255,255,0.1)' : 'transparent',
+                      color: viewMode === m ? T : M, fontSize: 11, transition: 'all 0.15s',
+                    }}>
+                      {m === 'lista' ? '☰' : '⊞'}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => navigate('/studio')}
+                  style={{
+                    height: 28, padding: '0 12px', borderRadius: 7, border: `1px solid ${A}33`,
+                    background: `${A}10`, color: A, fontFamily: ff, fontSize: 12, cursor: 'pointer',
+                  }}
+                >
+                  + novo
+                </button>
+              </div>
+            </div>
+            {/* Linha 2: busca + filtro mês */}
             {!loading && recentCarousels.length > 0 && (
-              <button
-                onClick={() => navigate('/studio')}
-                style={{ background: 'none', border: 'none', color: A, fontFamily: ff, fontSize: 13, cursor: 'pointer', padding: 0 }}
-              >
-                + novo
-              </button>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input
+                  type="text"
+                  placeholder="Buscar por tema..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  style={{
+                    flex: 1, height: 32, padding: '0 10px', borderRadius: 7,
+                    background: 'rgba(255,255,255,0.04)', border: `1px solid rgba(255,255,255,0.07)`,
+                    color: T, fontFamily: ff, fontSize: 12, outline: 'none',
+                  }}
+                />
+                {months.length > 1 && (
+                  <select
+                    value={filterMonth}
+                    onChange={e => setFilterMonth(e.target.value)}
+                    style={{
+                      height: 32, padding: '0 8px', borderRadius: 7,
+                      background: '#0F0F0F', border: `1px solid rgba(255,255,255,0.07)`,
+                      color: filterMonth ? T : M, fontFamily: ff, fontSize: 11, cursor: 'pointer', outline: 'none',
+                    }}
+                  >
+                    <option value="">Todos</option>
+                    {months.map(m => {
+                      const [year, month] = m.split('-')
+                      const label = new Date(Number(year), Number(month) - 1).toLocaleString('pt-BR', { month: 'short', year: '2-digit' })
+                      return <option key={m} value={m}>{label}</option>
+                    })}
+                  </select>
+                )}
+              </div>
             )}
           </div>
 
@@ -791,68 +872,177 @@ export default function Dashboard() {
                 </div>
               ))}
             </div>
-          ) : recentCarousels.length === 0 ? (
-            <EmptyState onNew={() => navigate('/studio')} />
-          ) : (
+          ) : filteredCarousels.length === 0 ? (
+            searchQuery || filterMonth ? (
+              <div style={{ textAlign: 'center', padding: '24px 0', color: M, fontFamily: ff, fontSize: 13 }}>
+                Nenhum resultado
+              </div>
+            ) : (
+              <EmptyState onNew={() => navigate('/studio')} />
+            )
+          ) : viewMode === 'lista' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {recentCarousels.map((c, i) => {
-                const tema = c.tema.length > 72 ? c.tema.slice(0, 72) + '…' : c.tema
+              {filteredCarousels.map((c, i) => {
+                const tema = c.tema.length > 65 ? c.tema.slice(0, 65) + '…' : c.tema
                 const statusColor = STATUS_COLOR[c.status] ?? '#555'
                 const coverUrl = c.carousel_slides?.find(s => s.position === 1)?.bg_image_url
+                const isDeleting = deletingId === c.id
+                const isConfirming = deleteTarget === c.id
                 return (
-                  <motion.div
-                    key={c.id}
+                  <motion.div key={c.id}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.035, duration: 0.3 }}
-                    onClick={() => navigate(`/studio?carousel_id=${c.id}`)}
-                    style={{
-                      ...GLASS, borderRadius: 14, padding: '13px 18px',
-                      display: 'flex', alignItems: 'center', gap: 14,
-                      cursor: 'pointer', transition: 'border-color 0.15s, background 0.15s',
-                    }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)'
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
-                    }}
+                    transition={{ delay: i * 0.025, duration: 0.25 }}
+                    style={{ position: 'relative' }}
                   >
-                    {/* Thumbnail */}
-                    <div style={{
-                      width: 40, height: 40, borderRadius: 8, flexShrink: 0,
-                      backgroundImage: coverUrl ? `url(${coverUrl})` : undefined,
-                      backgroundSize: 'cover', backgroundPosition: 'center',
-                      background: coverUrl ? undefined : 'rgba(255,255,255,0.04)',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      {!coverUrl && (
-                        <span style={{ fontFamily: ffd, fontSize: 13, color: 'rgba(255,255,255,0.2)' }}>{i + 1}</span>
+                    <div
+                      onClick={() => !isConfirming && navigate(`/studio?carousel_id=${c.id}`)}
+                      style={{
+                        ...GLASS, borderRadius: 12, padding: '11px 14px',
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        cursor: isConfirming ? 'default' : 'pointer',
+                        transition: 'background 0.15s, border-color 0.15s',
+                        opacity: isDeleting ? 0.4 : 1,
+                        border: isConfirming ? `1px solid rgba(255,69,58,0.4)` : '1px solid rgba(255,255,255,0.07)',
+                      }}
+                      onMouseEnter={e => {
+                        if (!isConfirming) {
+                          e.currentTarget.style.background = 'rgba(255,255,255,0.06)'
+                          e.currentTarget.querySelectorAll<HTMLElement>('.action-btn').forEach(b => b.style.opacity = '1')
+                        }
+                      }}
+                      onMouseLeave={e => {
+                        if (!isConfirming) {
+                          e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+                          e.currentTarget.querySelectorAll<HTMLElement>('.action-btn').forEach(b => b.style.opacity = '0')
+                        }
+                      }}
+                    >
+                      {/* Thumbnail */}
+                      <div style={{
+                        width: 42, height: 42, borderRadius: 8, flexShrink: 0,
+                        backgroundImage: coverUrl ? `url(${coverUrl})` : undefined,
+                        backgroundSize: 'cover', backgroundPosition: 'center',
+                        background: coverUrl ? undefined : 'rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.06)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        {!coverUrl && <span style={{ fontFamily: ffd, fontSize: 13, color: 'rgba(255,255,255,0.2)' }}>{i + 1}</span>}
+                      </div>
+
+                      {/* Tema */}
+                      <span style={{ fontFamily: ff, fontSize: 13, color: T, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {tema}
+                      </span>
+
+                      {isConfirming ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                          <span style={{ fontFamily: ff, fontSize: 11, color: 'rgba(255,69,58,0.8)' }}>Excluir?</span>
+                          <button onClick={() => handleDelete(c.id)} style={{
+                            height: 24, padding: '0 10px', borderRadius: 5, border: 'none',
+                            background: '#FF453A', color: '#fff', fontFamily: ff, fontSize: 11, cursor: 'pointer', fontWeight: 600,
+                          }}>Sim</button>
+                          <button onClick={() => setDeleteTarget(null)} style={{
+                            height: 24, padding: '0 10px', borderRadius: 5,
+                            background: 'rgba(255,255,255,0.08)', border: 'none',
+                            color: M, fontFamily: ff, fontSize: 11, cursor: 'pointer',
+                          }}>Não</button>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                          <span style={{ fontFamily: ff, fontSize: 11, color: M }}>{relativeTime(c.created_at)}</span>
+                          <button className="action-btn" onClick={e => { e.stopPropagation(); navigate(`/studio?tema=${encodeURIComponent(c.tema)}`) }}
+                            title="Refazer com novo conteúdo"
+                            style={{ opacity: 0, transition: 'opacity 0.15s', background: 'none', border: `1px solid rgba(255,255,255,0.07)`, borderRadius: 5, width: 26, height: 26, cursor: 'pointer', color: M, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            ↺
+                          </button>
+                          <button className="action-btn" onClick={e => { e.stopPropagation(); setDeleteTarget(c.id) }}
+                            title="Excluir"
+                            style={{ opacity: 0, transition: 'opacity 0.15s', background: 'none', border: `1px solid rgba(255,69,58,0.2)`, borderRadius: 5, width: 26, height: 26, cursor: 'pointer', color: '#FF453A', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            ✕
+                          </button>
+                          <div style={{ width: 7, height: 7, borderRadius: '50%', background: statusColor, boxShadow: `0 0 6px ${statusColor}88` }} />
+                        </div>
                       )}
                     </div>
-
-                    {/* Tema */}
-                    <span style={{
-                      fontFamily: ff, fontSize: 14, color: T,
-                      flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>
-                      {tema}
-                    </span>
-
-                    {/* Tempo */}
-                    <span style={{ fontFamily: ff, fontSize: 12, color: M, flexShrink: 0 }}>
-                      {relativeTime(c.created_at)}
-                    </span>
-
-                    {/* Status dot */}
-                    <div style={{
-                      width: 7, height: 7, borderRadius: '50%',
-                      background: statusColor, flexShrink: 0,
-                      boxShadow: `0 0 6px ${statusColor}88`,
-                    }} />
+                  </motion.div>
+                )
+              })}
+            </div>
+          ) : (
+            /* MODO GRADE */
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+              {filteredCarousels.map((c, i) => {
+                const tema = c.tema.length > 55 ? c.tema.slice(0, 55) + '…' : c.tema
+                const coverUrl = c.carousel_slides?.find(s => s.position === 1)?.bg_image_url
+                const isConfirming = deleteTarget === c.id
+                const isDeleting = deletingId === c.id
+                return (
+                  <motion.div key={c.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.03, duration: 0.25 }}
+                    style={{ position: 'relative', opacity: isDeleting ? 0.4 : 1 }}
+                  >
+                    <div
+                      onClick={() => !isConfirming && navigate(`/studio?carousel_id=${c.id}`)}
+                      style={{
+                        ...GLASS, borderRadius: 12, overflow: 'hidden',
+                        cursor: isConfirming ? 'default' : 'pointer',
+                        border: isConfirming ? '1px solid rgba(255,69,58,0.4)' : '1px solid rgba(255,255,255,0.07)',
+                        transition: 'border-color 0.15s',
+                      }}
+                      onMouseEnter={e => {
+                        if (!isConfirming) {
+                          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.16)'
+                          e.currentTarget.querySelectorAll<HTMLElement>('.action-btn-g').forEach(b => b.style.opacity = '1')
+                        }
+                      }}
+                      onMouseLeave={e => {
+                        if (!isConfirming) {
+                          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'
+                          e.currentTarget.querySelectorAll<HTMLElement>('.action-btn-g').forEach(b => b.style.opacity = '0')
+                        }
+                      }}
+                    >
+                      {/* Thumbnail grande */}
+                      <div style={{
+                        width: '100%', aspectRatio: '4/5',
+                        backgroundImage: coverUrl ? `url(${coverUrl})` : undefined,
+                        backgroundSize: 'cover', backgroundPosition: 'center',
+                        background: coverUrl ? undefined : 'rgba(255,255,255,0.03)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        position: 'relative',
+                      }}>
+                        {!coverUrl && <span style={{ fontFamily: ffd, fontSize: 24, color: 'rgba(255,255,255,0.1)' }}>{i + 1}</span>}
+                        {!isConfirming && (
+                          <div style={{ position: 'absolute', top: 6, right: 6, display: 'flex', gap: 4 }}>
+                            <button className="action-btn-g" onClick={e => { e.stopPropagation(); navigate(`/studio?tema=${encodeURIComponent(c.tema)}`) }}
+                              title="Refazer"
+                              style={{ opacity: 0, transition: 'opacity 0.15s', width: 26, height: 26, borderRadius: 5, border: 'none', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', color: '#fff', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              ↺
+                            </button>
+                            <button className="action-btn-g" onClick={e => { e.stopPropagation(); setDeleteTarget(c.id) }}
+                              title="Excluir"
+                              style={{ opacity: 0, transition: 'opacity 0.15s', width: 26, height: 26, borderRadius: 5, border: 'none', background: 'rgba(255,69,58,0.7)', backdropFilter: 'blur(8px)', color: '#fff', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              ✕
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      {/* Info + ações */}
+                      <div style={{ padding: '10px 12px' }}>
+                        {isConfirming ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={e => e.stopPropagation()}>
+                            <span style={{ fontFamily: ff, fontSize: 11, color: 'rgba(255,69,58,0.8)', flex: 1 }}>Excluir?</span>
+                            <button onClick={() => handleDelete(c.id)} style={{ height: 22, padding: '0 8px', borderRadius: 4, border: 'none', background: '#FF453A', color: '#fff', fontFamily: ff, fontSize: 10, cursor: 'pointer', fontWeight: 600 }}>Sim</button>
+                            <button onClick={() => setDeleteTarget(null)} style={{ height: 22, padding: '0 8px', borderRadius: 4, background: 'rgba(255,255,255,0.08)', border: 'none', color: M, fontFamily: ff, fontSize: 10, cursor: 'pointer' }}>Não</button>
+                          </div>
+                        ) : (
+                          <span style={{ fontFamily: ff, fontSize: 12, color: M, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tema}</span>
+                        )}
+                      </div>
+                    </div>
                   </motion.div>
                 )
               })}
