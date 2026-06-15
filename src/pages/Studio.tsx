@@ -35,6 +35,7 @@ const TEMPLATES: { key: CarouselTemplate; icon: string; name: string; desc: stri
   { key: 'citacao',      icon: '💬', name: 'Citação',      desc: 'Frase de impacto centralizada. Para reflexões e provocações.' },
   { key: 'storytelling', icon: '🎬', name: 'Bastidor',     desc: 'Narrativa sequencial. Para contar histórias e casos reais.' },
   { key: 'dados',        icon: '📊', name: 'Dado Chocante',desc: 'Número ou estatística em destaque. Para dados que impressionam.' },
+  { key: 'gancho',       icon: '⚡', name: 'Gancho',       desc: 'Badge + barra accent + CTA pill. Para ganchos fortes.' },
 ]
 
 const TEMPLATE_GRADIENTS: Record<string, string> = {
@@ -44,6 +45,7 @@ const TEMPLATE_GRADIENTS: Record<string, string> = {
   citacao:      'linear-gradient(135deg,#0a0814,#1a0f2e)',
   storytelling: 'linear-gradient(135deg,#080614,#14060a)',
   dados:        'linear-gradient(135deg,#0a0a0a,#141408)',
+  gancho:       'linear-gradient(135deg,#0a0a08,#1a1a08)',
 }
 
 // ─── Mock slides ──────────────────────────────────────────────

@@ -9,6 +9,7 @@ export type CarouselTemplate =
   | 'citacao'
   | 'storytelling'
   | 'dados'
+  | 'gancho'
 
 export interface SlideData {
   titulo: string
@@ -572,11 +573,104 @@ function Storytelling({ slide, index, total, selectedEl, onSelectEl, onTitleMous
 }
 
 // ─── Template: DADO CHOCANTE ──────────────────────────────────
-function Dados(props: SlideRenderProps & { scale: number }) {
-  const { slide } = props
-  const accentColor = slide.accentColor ?? '#C8FF00'
-  const overrideSlide = { ...slide, textColor: accentColor }
-  return <Impacto {...props} slide={overrideSlide} />
+function Dados({ slide, index, total, selectedEl, onSelectEl, onBodyWordClick, onTitleWordClick, scale: s = 1 }: SlideRenderProps & { scale: number }) {
+  const isLast = index === total - 1
+  const isCapa = index === 0
+  const color  = slide.textColor ?? _T
+  const fw     = slide.fontWeightTitle === 'bold' ? 900 : 700
+  const accent = slide.accentColor ?? A
+
+  if (isCapa) return <>
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: Z_OVERLAY,
+      background: overlayGrad(slide.overlayOpacity ?? 70),
+      boxShadow: slide.borderVignette ? `inset 0 0 ${(slide.vignetteIntensity ?? 60) * 1.5}px rgba(0,0,0,0.8)` : 'none',
+    }} />
+    {/* Badge DADOS */}
+    <span style={{
+      fontFamily: bn, fontSize: `${9 * s}px`, color: accent,
+      letterSpacing: `${2 * s}px`, textTransform: 'uppercase' as const,
+      border: `1px solid ${accent}`, padding: `${2 * s}px ${8 * s}px`,
+      borderRadius: `${2 * s}px`, marginBottom: `${14 * s}px`,
+      zIndex: Z_CONTENT, display: 'inline-block', alignSelf: 'center',
+    }}>DADOS</span>
+    {renderTitleWithHighlights(slide.titulo, slide, {
+      onClick: () => onSelectEl?.('titulo'),
+      style: {
+        fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
+        color, textAlign: 'center', margin: 0, zIndex: Z_CONTENT,
+        cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
+      },
+    }, onTitleWordClick)}
+    {renderSubtitle(slide, s)}
+    {slide.corpo ? renderBodyWithHighlights(slide.corpo, slide, {
+      onClick: () => onSelectEl?.('corpo'),
+      style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, textAlign: 'center', margin: `${blockGap(slide, s)} 0 0`, zIndex: Z_CONTENT, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+    }, onBodyWordClick) : null}
+  </>
+
+  if (isLast) return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: `${6 * s}px`, zIndex: Z_CONTENT, width: '100%' }}>
+      <div style={{ position: 'absolute', inset: 0, zIndex: Z_OVERLAY, background: `rgba(0,0,0,${(slide.overlayOpacity ?? 65) / 100})` }} />
+      {renderTitleWithHighlights(slide.titulo, slide, {
+        onClick: () => onSelectEl?.('titulo'),
+        style: {
+          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
+          color, textAlign: 'center', margin: 0, zIndex: Z_CONTENT,
+          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
+        },
+      }, onTitleWordClick)}
+      {renderBodyWithHighlights(slide.corpo, slide, {
+        onClick: () => onSelectEl?.('corpo'),
+        style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, textAlign: 'center', margin: 0, zIndex: Z_CONTENT, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+      }, onBodyWordClick)}
+      <p style={{ fontSize: `${10 * s}px`, color: accent, fontFamily: ff, fontWeight: 600, margin: 0, zIndex: Z_CONTENT }}>
+        {slide.ctaText ?? 'Salve para não esquecer'}
+      </p>
+    </div>
+  )
+
+  // slides do meio — split: stat gigante em cima, corpo abaixo
+  return <>
+    <div style={{ position: 'absolute', inset: 0, zIndex: Z_OVERLAY, background: `rgba(8,8,8,0.85)` }} />
+    {/* metade superior: título/stat */}
+    <div style={{
+      position: 'absolute', top: 0, left: 0, right: 0, bottom: '50%',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      padding: `${16 * s}px ${16 * s}px 0`, zIndex: Z_CONTENT,
+    }}>
+      {renderTitleWithHighlights(slide.titulo, slide, {
+        onClick: () => onSelectEl?.('titulo'),
+        style: {
+          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 100) * s}px`, fontWeight: 900,
+          color: accent, textAlign: 'center', margin: 0, lineHeight: 0.9,
+          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
+        },
+      }, onTitleWordClick)}
+    </div>
+    {/* linha divisória */}
+    <div style={{
+      position: 'absolute', top: '50%', left: `${16 * s}px`, right: `${16 * s}px`,
+      height: '1px', backgroundColor: `${accent}66`, zIndex: Z_CONTENT,
+    }} />
+    {/* metade inferior: corpo */}
+    <div style={{
+      position: 'absolute', top: '50%', left: 0, right: 0, bottom: 0,
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      padding: `${8 * s}px ${16 * s}px ${16 * s}px`, zIndex: Z_CONTENT,
+    }}>
+      {renderBodyWithHighlights(slide.corpo, slide, {
+        onClick: () => onSelectEl?.('corpo'),
+        style: { fontSize: `${(slide.bodyFontSize ?? 24) * s}px`, textAlign: 'center', margin: 0, color, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+      }, onBodyWordClick)}
+    </div>
+    {/* número do slide */}
+    <span style={{
+      position: 'absolute', top: `${8 * s}px`, right: `${10 * s}px`,
+      fontFamily: bn, fontSize: `${13 * s}px`, color: accent,
+      opacity: 0.5, zIndex: Z_CONTENT, userSelect: 'none',
+    }}>{index + 1}</span>
+  </>
 }
 
 // ─── Template: EDITORIAL ──────────────────────────────────────
@@ -586,9 +680,27 @@ function Editorial({ slide, index, total, selectedEl, onSelectEl, onBodyWordClic
   const isCapa = index === 0
   const color  = slide.textColor ?? _T
   const fw     = slide.fontWeightTitle === 'bold' ? 900 : 700
+  const accent = slide.accentColor ?? A
+  const handle = slide.profileHandle ? slide.profileHandle.replace('@', '') : null
 
   if (isCapa) return <>
-    <div style={{ height: `${2 * s}px`, backgroundColor: A, marginBottom: `${18 * s}px`, zIndex: Z_CONTENT }} />
+    {/* overlay leve na capa */}
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: Z_OVERLAY,
+      background: overlayGrad(slide.overlayOpacity ?? 30),
+      boxShadow: slide.borderVignette ? `inset 0 0 ${(slide.vignetteIntensity ?? 60) * 1.5}px rgba(0,0,0,0.8)` : 'none',
+    }} />
+    {/* linha accent + handle */}
+    <div style={{ width: '100%', zIndex: Z_CONTENT }}>
+      <div style={{ height: `${2 * s}px`, backgroundColor: accent, width: '100%', marginBottom: `${10 * s}px` }} />
+      {handle && (
+        <p style={{
+          fontFamily: ff, fontSize: `${10 * s}px`, color: 'rgba(255,255,255,0.5)',
+          textAlign: 'center', margin: `0 0 ${14 * s}px`, letterSpacing: `${1 * s}px`,
+          zIndex: Z_CONTENT,
+        }}>@{handle}</p>
+      )}
+    </div>
     {renderTitleWithHighlights(slide.titulo, slide, {
       onClick: () => onSelectEl?.('titulo'),
       style: {
@@ -602,10 +714,13 @@ function Editorial({ slide, index, total, selectedEl, onSelectEl, onBodyWordClic
       onClick: () => onSelectEl?.('corpo'),
       style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: `${blockGap(slide, s)} 0 0`, zIndex: Z_CONTENT, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
     }, onBodyWordClick)}
+    {/* CTA deslize no bottom */}
     <p style={{
-      position: 'absolute', bottom: `${14 * s}px`, right: `${16 * s}px`,
-      fontSize: `${10 * s}px`, color: 'rgba(255,255,255,0.25)', fontFamily: ff, margin: 0, zIndex: Z_CONTENT,
-    }}>1/{total}</p>
+      position: 'absolute', bottom: `${14 * s}px`, left: 0, right: 0,
+      textAlign: 'center', fontSize: `${8 * s}px`, color: 'rgba(255,255,255,0.4)',
+      fontFamily: ff, letterSpacing: `${2 * s}px`, textTransform: 'uppercase' as const,
+      margin: 0, zIndex: Z_CONTENT,
+    }}>DESLIZE PARA CONHECER</p>
   </>
 
   if (isLast) return (
@@ -623,35 +738,42 @@ function Editorial({ slide, index, total, selectedEl, onSelectEl, onBodyWordClic
         onClick: () => onSelectEl?.('corpo'),
         style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
       }, onBodyWordClick)}
-      <div style={{ width: `${36 * s}px`, height: `${2 * s}px`, backgroundColor: A, marginTop: `${4 * s}px` }} />
+      <div style={{ width: `${36 * s}px`, height: `${2 * s}px`, backgroundColor: accent, marginTop: `${4 * s}px` }} />
     </div>
   )
 
+  // slides do meio — sem imagem, fundo sólido, título grande left, linha divisória, corpo abaixo
   return <>
-    <span style={{
-      position: 'absolute', left: `${-2 * s}px`, top: '50%', transform: 'translateY(-50%)',
-      fontFamily: bn, fontSize: `${100 * s}px`, color: A, opacity: 0.08, userSelect: 'none', lineHeight: 1,
-      zIndex: Z_CONTENT,
-    }}>{index}</span>
+    {/* título grande left-aligned */}
     {renderTitleWithHighlights(slide.titulo, slide, {
       onClick: () => onSelectEl?.('titulo'),
       style: {
-        fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
-        color, margin: `0 0 ${blockGap(slide, s)}`, zIndex: Z_CONTENT,
-        textAlign: slide.textAlign ?? 'left',
-        width: '100%',
+        fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 90) * s}px`, fontWeight: fw,
+        color, margin: `0 0 ${10 * s}px`, zIndex: Z_CONTENT,
+        textAlign: 'left', width: '100%', lineHeight: 0.95,
         cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
       },
     }, onTitleWordClick)}
+    {/* linha divisória accent */}
+    <div style={{
+      width: '100%', height: `${2 * s}px`, backgroundColor: accent,
+      marginBottom: `${10 * s}px`, zIndex: Z_CONTENT,
+    }} />
     {renderSubtitle(slide, s)}
     {renderBodyWithHighlights(slide.corpo, slide, {
       onClick: () => onSelectEl?.('corpo'),
-      style: { fontSize: `${(slide.bodyFontSize ?? 28) * s}px`, margin: 0, zIndex: Z_CONTENT, textAlign: slide.textAlign ?? 'left', width: '100%', cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+      style: {
+        fontSize: `${(slide.bodyFontSize ?? 26) * s}px`, margin: 0, zIndex: Z_CONTENT,
+        textAlign: 'left', width: '100%', fontFamily: ff,
+        cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s),
+      },
     }, onBodyWordClick)}
-    <div style={{
-      position: 'absolute', bottom: `${12 * s}px`, left: `${18 * s}px`, right: `${18 * s}px`,
-      height: 1, backgroundColor: 'rgba(255,255,255,0.07)', zIndex: Z_CONTENT,
-    }} />
+    {/* número do slide canto inferior direito */}
+    <span style={{
+      position: 'absolute', bottom: `${10 * s}px`, right: `${12 * s}px`,
+      fontFamily: bn, fontSize: `${28 * s}px`, color: accent,
+      opacity: 0.4, zIndex: Z_CONTENT, userSelect: 'none', lineHeight: 1,
+    }}>{String(index).padStart(2, '0')}</span>
   </>
 }
 
@@ -823,9 +945,129 @@ function Citacao({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown
   </>
 }
 
+// ─── Template: GANCHO ─────────────────────────────────────────
+
+function Gancho({ slide, index, total, selectedEl, onSelectEl, onTitleMouseDown, onBodyWordClick, onTitleWordClick, scale: s = 1 }: SlideRenderProps & { scale: number }) {
+  const isLast = index === total - 1
+  const isCapa = index === 0
+  const color  = slide.textColor ?? _T
+  const fw     = slide.fontWeightTitle === 'bold' ? 900 : 700
+  const accent = slide.accentColor ?? A
+
+  if (isCapa) return <>
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: Z_OVERLAY,
+      background: overlayGrad(slide.overlayOpacity ?? 60),
+      boxShadow: slide.borderVignette ? `inset 0 0 ${(slide.vignetteIntensity ?? 60) * 1.5}px rgba(0,0,0,0.8)` : 'none',
+    }} />
+    {/* Badge categoria */}
+    <span style={{
+      fontFamily: bn, fontSize: `${9 * s}px`, color: accent,
+      letterSpacing: `${1.5 * s}px`, textTransform: 'uppercase' as const,
+      border: `1px solid ${accent}`,
+      background: `${accent}26`,
+      padding: `${3 * s}px ${10 * s}px`,
+      borderRadius: `${3 * s}px`,
+      marginBottom: `${14 * s}px`,
+      zIndex: Z_CONTENT, display: 'inline-block', alignSelf: 'flex-start',
+    }}>{(slide as any).subtitulo || 'DESTAQUE'}</span>
+    {renderTitleWithHighlights(slide.titulo, slide, {
+      onClick: () => onSelectEl?.('titulo'),
+      onMouseDown: onTitleMouseDown,
+      style: {
+        fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
+        color, textAlign: 'left', margin: `0 0 auto`, zIndex: Z_CONTENT, flex: 1,
+        transform: slide.titlePos ? `translate(${slide.titlePos.x * s}px,${slide.titlePos.y * s}px)` : undefined,
+        cursor: onSelectEl ? (selectedEl === 'titulo' ? 'grab' : 'pointer') : 'default',
+        ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
+      },
+    }, onTitleWordClick)}
+    {renderBodyWithHighlights(slide.corpo, slide, {
+      onClick: () => onSelectEl?.('corpo'),
+      style: { fontSize: `${(slide.bodyFontSize ?? 26) * s}px`, textAlign: 'left', margin: `${8 * s}px 0`, zIndex: Z_CONTENT, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+    }, onBodyWordClick)}
+    {/* CTA pill bottom */}
+    <span style={{
+      fontFamily: bn, fontSize: `${10 * s}px`, color: '#000',
+      backgroundColor: accent, padding: `${5 * s}px ${14 * s}px`,
+      borderRadius: `${3 * s}px`, letterSpacing: `${1 * s}px`,
+      textTransform: 'uppercase' as const, zIndex: Z_CONTENT, alignSelf: 'flex-start',
+    }}>{slide.ctaText ?? 'SEGUE O FIO ›'}</span>
+  </>
+
+  if (isLast) return <>
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: Z_OVERLAY,
+      background: `rgba(0,0,0,${(slide.overlayOpacity ?? 65) / 100})`,
+    }} />
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: `${6 * s}px`, zIndex: Z_CONTENT, width: '100%' }}>
+      {renderTitleWithHighlights(slide.titulo, slide, {
+        onClick: () => onSelectEl?.('titulo'),
+        style: {
+          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
+          color, textAlign: 'center', margin: 0,
+          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
+        },
+      }, onTitleWordClick)}
+      {renderBodyWithHighlights(slide.corpo, slide, {
+        onClick: () => onSelectEl?.('corpo'),
+        style: { fontSize: `${(slide.bodyFontSize ?? 26) * s}px`, textAlign: 'center', margin: 0, cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s) },
+      }, onBodyWordClick)}
+      {/* CTA pill */}
+      <span style={{
+        fontFamily: bn, fontSize: `${10 * s}px`, color: '#000',
+        backgroundColor: accent, padding: `${6 * s}px ${18 * s}px`,
+        borderRadius: `${3 * s}px`, letterSpacing: `${1 * s}px`,
+        textTransform: 'uppercase' as const, zIndex: Z_CONTENT, marginTop: `${4 * s}px`,
+      }}>{slide.ctaText ?? 'SALVA E COMPARTILHA'}</span>
+    </div>
+  </>
+
+  // slides do meio: left accent bar + conteúdo com padding, número no canto superior direito
+  return <>
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: Z_OVERLAY,
+      background: `rgba(0,0,0,${(slide.overlayOpacity ?? 55) / 100})`,
+      boxShadow: slide.borderVignette ? `inset 0 0 ${(slide.vignetteIntensity ?? 60) * 1.5}px rgba(0,0,0,0.8)` : 'none',
+    }} />
+    {/* Left accent bar */}
+    <div style={{
+      position: 'absolute', left: 0, top: 0, bottom: 0,
+      width: `${4 * s}px`, backgroundColor: `${accent}B3`,
+      zIndex: Z_CONTENT,
+    }} />
+    {/* Número do slide */}
+    <span style={{
+      position: 'absolute', top: `${8 * s}px`, right: `${10 * s}px`,
+      fontFamily: bn, fontSize: `${18 * s}px`, color: accent,
+      opacity: 0.8, zIndex: Z_CONTENT, userSelect: 'none',
+    }}>{String(index).padStart(2, '0')}</span>
+    {/* Conteúdo com padding-left para a barra */}
+    <div style={{ paddingLeft: `${16 * s}px`, width: '100%', zIndex: Z_CONTENT }}>
+      {renderTitleWithHighlights(slide.titulo, slide, {
+        onClick: () => onSelectEl?.('titulo'),
+        style: {
+          fontFamily: titleFont(slide), fontSize: `${(slide.titleFontSize ?? 80) * s}px`, fontWeight: fw,
+          color, margin: `0 0 ${blockGap(slide, s)}`, textAlign: slide.textAlign ?? 'left', width: '100%',
+          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'titulo'), ...titleX(slide, s),
+        },
+      }, onTitleWordClick)}
+      {renderSubtitle(slide, s)}
+      {renderBodyWithHighlights(slide.corpo, slide, {
+        onClick: () => onSelectEl?.('corpo'),
+        style: {
+          fontSize: `${(slide.bodyFontSize ?? 26) * s}px`, margin: 0,
+          textAlign: slide.textAlign ?? 'left', width: '100%', fontFamily: ff,
+          cursor: onSelectEl ? 'pointer' : 'default', ...selBorder(selectedEl === 'corpo'), ...bodyX(slide, s),
+        },
+      }, onBodyWordClick)}
+    </div>
+  </>
+}
+
 // ─── Main export ──────────────────────────────────────────────
 
-const NO_BG_WALLPAPER: CarouselTemplate[] = []
+const NO_BG_WALLPAPER: CarouselTemplate[] = ['editorial']
 
 export function SlideRenderer(props: SlideRenderProps): React.ReactElement {
   const s = props.scale ?? 1
@@ -838,6 +1080,7 @@ export function SlideRenderer(props: SlideRenderProps): React.ReactElement {
       case 'citacao':       return <Citacao       {...props} scale={s} />
       case 'storytelling':  return <Storytelling  {...props} scale={s} />
       case 'dados':         return <Dados         {...props} scale={s} />
+      case 'gancho':        return <Gancho        {...props} scale={s} />
       default:              return <Impacto       {...props} scale={s} />
     }
   })()
