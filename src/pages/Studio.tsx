@@ -271,11 +271,11 @@ function Header({
 
 // ─── Tooltip chip wrapper ──────────────────────────────────────
 function TooltipChip({
-  label, active, onClick, tooltip,
-}: { label: string; active: boolean; onClick: () => void; tooltip: string }) {
+  label, active, onClick, tooltip, style: extraStyle,
+}: { label: string; active: boolean; onClick: () => void; tooltip: string; style?: React.CSSProperties }) {
   const [show, setShow] = useState(false)
   return (
-    <div style={{ position: 'relative', display: 'inline-block' }}>
+    <div style={{ position: 'relative', display: 'inline-block', ...extraStyle }}>
       <button
         onClick={onClick}
         onMouseEnter={() => setShow(true)}
@@ -329,10 +329,12 @@ function TooltipChip({
 
 // ─── Estado 1: Input ──────────────────────────────────────────
 function StateInput({
-  temaInit, onGenerate,
+  temaInit, onGenerate, maxSlidesAllowed = 15, carouselsLeft = 999,
 }: {
   temaInit: string
   onGenerate: (config: { tema: string; slides: number; tom: string; cta: string; template_id?: string; instructions?: string }) => void
+  maxSlidesAllowed?: number
+  carouselsLeft?: number
 }) {
   const [tema, setTema]           = useState(temaInit)
   const [slides, setSlides]       = useState(7)
@@ -718,15 +720,19 @@ function StateInput({
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 10, color: 'rgba(242,242,247,0.3)', fontFamily: ff, textTransform: 'uppercase', letterSpacing: 1.2, minWidth: 42 }}>Slides:</span>
-            {([5, 7, 10, 12, 15, 0] as const).map((n) => (
-              <TooltipChip
-                key={n}
-                label={n === 0 ? 'IA' : String(n)}
-                active={slides === n}
-                onClick={() => setSlides(n)}
-                tooltip={SLIDE_TOOLTIPS[n] ?? 'IA escolhe o ideal para o tema'}
-              />
-            ))}
+            {([5, 7, 10, 12, 15, 0] as const).map((n) => {
+              const blocked = n !== 0 && n > maxSlidesAllowed
+              return (
+                <TooltipChip
+                  key={n}
+                  label={n === 0 ? 'IA' : String(n)}
+                  active={slides === n}
+                  onClick={() => !blocked && setSlides(n)}
+                  tooltip={blocked ? `Plano permite até ${maxSlidesAllowed} slides. Faça upgrade.` : (SLIDE_TOOLTIPS[n] ?? 'IA escolhe o ideal para o tema')}
+                  style={blocked ? { opacity: 0.3, cursor: 'not-allowed' } : undefined}
+                />
+              )
+            })}
           </div>
         </div>
 
@@ -900,6 +906,13 @@ function StateInput({
           <Zap size={18} />
           ANALISAR E CRIAR CARROSSEL
         </button>
+        {carouselsLeft < 999 && (
+          <span style={{ fontFamily: ff, fontSize: 11, color: carouselsLeft <= 1 ? '#FF453A' : 'rgba(242,242,247,0.35)', textAlign: 'center' }}>
+            {carouselsLeft === 0
+              ? '⚠ Limite do plano atingido — faça upgrade para continuar'
+              : `${carouselsLeft} criação${carouselsLeft === 1 ? '' : 'ões'} restante${carouselsLeft === 1 ? '' : 's'} este mês`}
+          </span>
+        )}
         <span style={{ fontFamily: ff, fontSize: 12, color: M, textAlign: 'center' }}>
           Gera copy, aplica hacks virais e monta o carrossel em ~30 segundos
         </span>
@@ -3959,6 +3972,7 @@ export default function Studio() {
   const temaFromURL       = searchParams.get('tema') ?? ''
   const carouselIdFromURL = searchParams.get('carousel_id') ?? ''
   const { user } = useAuth()
+  const { maxSlides, carouselsRemaining } = usePlan()
 
   const [appState, setAppState] = useState<AppState>('input')
   const [generateConfig, setGenerateConfig] = useState<GenerateConfig | null>(null)
@@ -4113,9 +4127,13 @@ export default function Studio() {
   }, [carouselIdFromURL])
 
   const handleGenerate = useCallback((config: GenerateConfig) => {
+    if (carouselsRemaining === 0) {
+      toast.error('Limite do plano atingido. Acesse Configurações → Plano para fazer upgrade.')
+      return
+    }
     setGenerateConfig(config)
     setAppState('generating')
-  }, [])
+  }, [carouselsRemaining])
 
   const handleDone = useCallback((result: GenerateResult) => {
     setGenerateResult(result)
@@ -4282,7 +4300,7 @@ export default function Studio() {
           )}
           {!loadingCarousel && appState === 'input' && (
             <div style={{ width: '100%', maxWidth: 640, padding: '40px 24px', margin: '0 auto' }}>
-              <StateInput temaInit={temaFromURL} onGenerate={handleGenerate} />
+              <StateInput temaInit={temaFromURL} onGenerate={handleGenerate} maxSlidesAllowed={maxSlides} carouselsLeft={carouselsRemaining} />
             </div>
           )}
           {!loadingCarousel && appState === 'generating' && generateConfig && (

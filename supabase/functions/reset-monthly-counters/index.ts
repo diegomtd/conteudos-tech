@@ -13,6 +13,7 @@ serve(async (_req) => {
       .update({
         exports_used_this_month:    0,
         ai_images_used_this_month:  0,
+        carousels_used_this_month:  0,
       })
       .gte('id', '00000000-0000-0000-0000-000000000000') // filtra todos os registros
 
