@@ -747,7 +747,7 @@ export default function Landing() {
               initial={{ opacity: 0, scale: 0.94 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true, amount: 0.4 }}
               transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
             >
-              <img src="/images/recursos/imagem-ia.jpg" alt="IA Contextual"
+              <video src="/videos/VIDEO-DASH-COPY-IMAGEM.webm" autoPlay muted loop playsInline
                 style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             </motion.div>
           </div>
