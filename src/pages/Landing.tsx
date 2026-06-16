@@ -699,6 +699,9 @@ export default function Landing() {
               ) : activeFeature.id === 'export' ? (
                 <video src="/videos/Export-video.webm" autoPlay muted loop playsInline
                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              ) : activeFeature.id === 'venda' ? (
+                <video src="/videos/venda-organica.webm" autoPlay muted loop playsInline
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
               ) : (
                 <img src={activeFeature.img} alt={activeFeature.title}
                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
