@@ -109,7 +109,6 @@ const FEATURES = [
   { id: 'calendar',  label: 'Calendário', img: '/images/recursos/calendario.jpg',   title: 'Seu tabuleiro de conteúdo',    body: 'Visualize todos os carrosseis no calendário e organize sua presença digital por semana ou mês. Nunca mais posta no improviso.' },
   { id: 'export',    label: 'Export',     img: '/images/recursos/export.jpg',       title: 'Pronto pra postar',            body: 'Exporte cada slide como PNG em alta resolução (1080×1350). Ideal para Stories e Feed. Sem marca d\'água nos planos pagos.' },
   { id: 'venda',     label: 'Venda Orgânica', img: '/images/recursos/venda-organica.jpg', title: 'Seu produto, no momento certo', body: 'Cadastre o que você vende uma vez. A IA encaixa sua oferta no carrossel de forma natural — sem pitch direto, sem parecer anúncio. O conteúdo educa. O produto aparece quando faz sentido.' },
-  { id: 'workspace', label: 'Organização',  img: '/images/recursos/workspace.jpg',    title: 'Tudo no lugar, sem esforço',   body: 'Pastas para organizar por campanha, calendário visual por semana ou mês, busca e filtros. Para quem produz volume e não pode perder tempo achando o carrossel certo.' },
 ]
 
 const SLIDE_IMAGES = [
