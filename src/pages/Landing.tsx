@@ -696,6 +696,9 @@ export default function Landing() {
               ) : activeFeature.id === 'calendar' ? (
                 <video src="/videos/calendario.webm" autoPlay muted loop playsInline
                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              ) : activeFeature.id === 'export' ? (
+                <video src="/videos/Export-video.webm" autoPlay muted loop playsInline
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
               ) : (
                 <img src={activeFeature.img} alt={activeFeature.title}
                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
