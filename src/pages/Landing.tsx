@@ -274,10 +274,6 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk','DM Sans
 .slides-track{display:flex;gap:16px;width:max-content;}
 .slides-track.fwd{animation:marquee 20s linear infinite;}
 .slides-track.rev{animation:marqueeReverse 22s linear infinite;}
-/* dashboard video section */
-.dash-sec{padding:80px 24px;max-width:1100px;margin:0 auto;}
-.dash-video-wrap{border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.08);box-shadow:0 32px 80px rgba(0,0,0,.6);}
-.dash-video{width:100%;display:block;}
 @keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 @keyframes marqueeReverse{0%{transform:translateX(-50%)}100%{transform:translateX(0)}}
 .ws-card{width:180px;height:220px;border-radius:12px;background:var(--bg2);border:1px solid rgba(255,255,255,.06);flex-shrink:0;overflow:hidden;position:relative;display:flex;flex-direction:column;padding:14px;}
@@ -664,20 +660,6 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* dashboard video */}
-        <section className="dash-sec" id="dashboard">
-          <Reveal className="sec-hd">
-            <div className="sec-lbl">produto</div>
-            <h2>Seu <span className="gt2">dashboard</span> de conteúdo</h2>
-            <p>Todos os carrosseis, calendário e métricas num lugar só.</p>
-          </Reveal>
-          <Reveal delay={0.1}>
-            <div className="dash-video-wrap">
-              <video src="/videos/dashbord.webm" autoPlay muted loop playsInline className="dash-video" />
-            </div>
-          </Reveal>
-        </section>
-
         {/* recursos */}
         <section className="fs-sec" id="recursos">
           <Reveal className="sec-hd">
@@ -702,8 +684,13 @@ export default function Landing() {
               initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             >
-              <img src={activeFeature.img} alt={activeFeature.title}
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              {activeFeature.id === 'studio' ? (
+                <video src="/videos/dashbord.webm" autoPlay muted loop playsInline
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              ) : (
+                <img src={activeFeature.img} alt={activeFeature.title}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              )}
             </motion.div>
           </div>
           <div className="fs-mobile">
