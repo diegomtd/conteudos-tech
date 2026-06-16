@@ -17,6 +17,15 @@ const B   = 'rgba(255,255,255,0.07)'
 const ff  = 'DM Sans, sans-serif'
 const ffd = '"Bebas Neue", sans-serif'
 
+// ─── Types ────────────────────────────────────────────────────
+interface Produto {
+  id: string
+  nome: string
+  descricao: string
+  promessa: string
+  preco: string
+}
+
 // ─── Constants ────────────────────────────────────────────────
 type Tab = 'perfil' | 'voz' | 'telegram' | 'plano'
 
@@ -277,6 +286,9 @@ function TabVoz({ profile, userId }: { profile: Profile; userId: string }) {
   const [angulos,           setAngulos]           = useState<string[]>((vp.angulos as string[]) ?? [])
   const [comoConectar,      setComoConectar]      = useState((vp.como_conectar as string) ?? '')
   const [nichosSecundarios, setNichosSecundarios] = useState<string[]>((vp.nichos_secundarios as string[]) ?? [])
+  const [produtos, setProdutos] = useState<Produto[]>((vp.produtos as Produto[]) ?? [])
+  const [editingProdutoId, setEditingProdutoId] = useState<string | null>(null)
+  const [produtoForm, setProdutoForm] = useState<Omit<Produto, 'id'>>({ nome: '', descricao: '', promessa: '', preco: '' })
   const [cor,          setCor]          = useState(vk.cor ?? '#C8FF00')
   const [estilo,       setEstilo]       = useState(vk.estilo ?? 'dark_cinematic')
   const [fonte,        setFonte]        = useState(vk.fonte ?? '"Bebas Neue", sans-serif')
@@ -294,6 +306,7 @@ function TabVoz({ profile, userId }: { profile: Profile; userId: string }) {
         tom, palavras_proibidas: proibidas, palavras_definidoras: definidoras,
         exemplo_texto: exemplo, angulos, como_conectar: comoConectar,
         nichos_secundarios: nichosSecundarios,
+        produtos: produtos.length > 0 ? produtos : null,
       },
       visual_kit: { cor, estilo, fonte },
     }).eq('user_id', userId)
@@ -421,6 +434,89 @@ function TabVoz({ profile, userId }: { profile: Profile; userId: string }) {
         <p style={{ fontFamily: ff, fontSize: 11, color: M, margin: 0, lineHeight: 1.4 }}>
           A IA vai criar conteúdo sobre qualquer tema que você digitar — esses nichos ajudam nas sugestões de pauta.
         </p>
+      </div>
+
+      {/* Produtos e ofertas */}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <p style={{ fontFamily: ff, fontSize: 12, color: M, margin: 0 }}>Produtos e ofertas</p>
+          {editingProdutoId === null && (
+            <button
+              onClick={() => { setProdutoForm({ nome: '', descricao: '', promessa: '', preco: '' }); setEditingProdutoId('new') }}
+              style={{ height: 26, padding: '0 10px', borderRadius: 6, border: `1px solid ${B}`, background: S2, color: A, fontFamily: ff, fontSize: 11, cursor: 'pointer' }}
+            >+ Adicionar produto</button>
+          )}
+        </div>
+
+        {/* Lista de produtos */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {produtos.map((p) => (
+            <div key={p.id}>
+              {editingProdutoId === p.id ? (
+                <div style={{ background: S2, border: `1px solid rgba(200,255,0,0.25)`, borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <input placeholder="Nome do produto" value={produtoForm.nome} onChange={(e) => setProdutoForm(f => ({ ...f, nome: e.target.value }))}
+                    style={{ background: S, border: `1px solid ${B}`, borderRadius: 6, color: T, fontSize: 12, fontFamily: ff, padding: '7px 10px', outline: 'none', width: '100%', boxSizing: 'border-box' }} />
+                  <textarea placeholder="O que é (descrição breve)" value={produtoForm.descricao} onChange={(e) => setProdutoForm(f => ({ ...f, descricao: e.target.value }))} rows={2}
+                    style={{ background: S, border: `1px solid ${B}`, borderRadius: 6, color: T, fontSize: 12, fontFamily: ff, padding: '7px 10px', outline: 'none', width: '100%', boxSizing: 'border-box', resize: 'vertical' }} />
+                  <input placeholder="Transformação que entrega (promessa)" value={produtoForm.promessa} onChange={(e) => setProdutoForm(f => ({ ...f, promessa: e.target.value }))}
+                    style={{ background: S, border: `1px solid ${B}`, borderRadius: 6, color: T, fontSize: 12, fontFamily: ff, padding: '7px 10px', outline: 'none', width: '100%', boxSizing: 'border-box' }} />
+                  <input placeholder="Preço (ex: R$ 997)" value={produtoForm.preco} onChange={(e) => setProdutoForm(f => ({ ...f, preco: e.target.value }))}
+                    style={{ background: S, border: `1px solid ${B}`, borderRadius: 6, color: T, fontSize: 12, fontFamily: ff, padding: '7px 10px', outline: 'none', width: '100%', boxSizing: 'border-box' }} />
+                  <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                    <button onClick={() => setEditingProdutoId(null)} style={{ height: 28, padding: '0 10px', borderRadius: 6, border: `1px solid ${B}`, background: 'transparent', color: M, fontFamily: ff, fontSize: 11, cursor: 'pointer' }}>Cancelar</button>
+                    <button onClick={() => {
+                      setProdutos(prev => prev.map(x => x.id === p.id ? { ...produtoForm, id: p.id } : x))
+                      setEditingProdutoId(null)
+                    }} disabled={!produtoForm.nome.trim()} style={{ height: 28, padding: '0 10px', borderRadius: 6, border: 'none', background: A, color: '#000', fontFamily: ff, fontSize: 11, fontWeight: 700, cursor: 'pointer', opacity: produtoForm.nome.trim() ? 1 : 0.5 }}>Salvar</button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ background: S2, border: `1px solid ${B}`, borderRadius: 10, padding: '10px 14px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontFamily: ff, fontSize: 13, fontWeight: 700, color: T, margin: '0 0 2px' }}>{p.nome}</p>
+                    {p.promessa && <p style={{ fontFamily: ff, fontSize: 11, color: M, margin: 0, lineHeight: 1.4 }}>→ {p.promessa}</p>}
+                    {p.preco && <p style={{ fontFamily: ff, fontSize: 11, color: 'rgba(200,255,0,0.6)', margin: '2px 0 0' }}>{p.preco}</p>}
+                  </div>
+                  <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                    <button onClick={() => { setProdutoForm({ nome: p.nome, descricao: p.descricao, promessa: p.promessa, preco: p.preco }); setEditingProdutoId(p.id) }}
+                      style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid ${B}`, background: 'transparent', color: M, fontSize: 13, cursor: 'pointer' }}>✎</button>
+                    <button onClick={() => setProdutos(prev => prev.filter(x => x.id !== p.id))}
+                      style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid ${B}`, background: 'transparent', color: 'rgba(255,80,80,0.6)', fontSize: 13, cursor: 'pointer' }}>✕</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+
+          {/* Formulário de novo produto */}
+          {editingProdutoId === 'new' && (
+            <div style={{ background: S2, border: `1px solid rgba(200,255,0,0.25)`, borderRadius: 10, padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <input placeholder="Nome do produto *" value={produtoForm.nome} onChange={(e) => setProdutoForm(f => ({ ...f, nome: e.target.value }))}
+                style={{ background: S, border: `1px solid ${B}`, borderRadius: 6, color: T, fontSize: 12, fontFamily: ff, padding: '7px 10px', outline: 'none', width: '100%', boxSizing: 'border-box' }} />
+              <textarea placeholder="O que é (descrição breve)" value={produtoForm.descricao} onChange={(e) => setProdutoForm(f => ({ ...f, descricao: e.target.value }))} rows={2}
+                style={{ background: S, border: `1px solid ${B}`, borderRadius: 6, color: T, fontSize: 12, fontFamily: ff, padding: '7px 10px', outline: 'none', width: '100%', boxSizing: 'border-box', resize: 'vertical' }} />
+              <input placeholder="Transformação que entrega (promessa) *" value={produtoForm.promessa} onChange={(e) => setProdutoForm(f => ({ ...f, promessa: e.target.value }))}
+                style={{ background: S, border: `1px solid ${B}`, borderRadius: 6, color: T, fontSize: 12, fontFamily: ff, padding: '7px 10px', outline: 'none', width: '100%', boxSizing: 'border-box' }} />
+              <input placeholder="Preço (ex: R$ 997)" value={produtoForm.preco} onChange={(e) => setProdutoForm(f => ({ ...f, preco: e.target.value }))}
+                style={{ background: S, border: `1px solid ${B}`, borderRadius: 6, color: T, fontSize: 12, fontFamily: ff, padding: '7px 10px', outline: 'none', width: '100%', boxSizing: 'border-box' }} />
+              <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                <button onClick={() => setEditingProdutoId(null)} style={{ height: 28, padding: '0 10px', borderRadius: 6, border: `1px solid ${B}`, background: 'transparent', color: M, fontFamily: ff, fontSize: 11, cursor: 'pointer' }}>Cancelar</button>
+                <button onClick={() => {
+                  if (!produtoForm.nome.trim()) return
+                  const novo: Produto = { ...produtoForm, id: `p_${Date.now()}` }
+                  setProdutos(prev => [...prev, novo])
+                  setEditingProdutoId(null)
+                }} disabled={!produtoForm.nome.trim() || !produtoForm.promessa.trim()} style={{ height: 28, padding: '0 10px', borderRadius: 6, border: 'none', background: A, color: '#000', fontFamily: ff, fontSize: 11, fontWeight: 700, cursor: 'pointer', opacity: produtoForm.nome.trim() && produtoForm.promessa.trim() ? 1 : 0.5 }}>Adicionar</button>
+              </div>
+            </div>
+          )}
+
+          {produtos.length === 0 && editingProdutoId !== 'new' && (
+            <p style={{ fontFamily: ff, fontSize: 11, color: M, margin: 0, lineHeight: 1.4 }}>
+              Cadastre seus produtos para que a IA os incorpore naturalmente nos conteúdos com CTA de venda.
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Cor */}

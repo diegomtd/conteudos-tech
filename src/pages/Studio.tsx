@@ -142,7 +142,7 @@ const MESSAGES = [
 
 const CTA_OPTIONS = [
   'Engajamento', 'Salvar', 'Seguir', 'DM', 'Link na bio',
-  'Palavra mágica', 'Personalizado', 'Padrão do perfil',
+  'Palavra mágica', 'Personalizado', 'Venda de produto', 'Padrão do perfil',
 ]
 
 // ─── Presets de kit visual ────────────────────────────────────
@@ -332,7 +332,7 @@ function StateInput({
   temaInit, onGenerate, maxSlidesAllowed = 15, carouselsLeft = 999,
 }: {
   temaInit: string
-  onGenerate: (config: { tema: string; slides: number; tom: string; cta: string; template_id?: string; instructions?: string }) => void
+  onGenerate: (config: GenerateConfig) => void
   maxSlidesAllowed?: number
   carouselsLeft?: number
 }) {
@@ -354,6 +354,8 @@ function StateInput({
   } | null>(null)
   const [kitData, setKitData] = useState<{ cor: string; fonte: string } | null>(null)
   const [useKit, setUseKit] = useState(() => localStorage.getItem('conteudos_use_visual_kit') !== 'false')
+  const [produtos, setProdutos] = useState<ProdutoItem[]>([])
+  const [produtoId, setProdutoId] = useState<string>('')
 
   const { user } = useAuth()
 
@@ -378,6 +380,12 @@ function StateInput({
         const vk = data.visual_kit as Record<string, string> ?? {}
         if (vk.cor || vk.fonte) {
           setKitData({ cor: vk.cor ?? '#C8FF00', fonte: vk.fonte ?? '"Bebas Neue", sans-serif' })
+        }
+        const prods = (vp as Record<string, unknown>).produtos
+        if (Array.isArray(prods) && prods.length > 0) {
+          const list = prods as ProdutoItem[]
+          setProdutos(list)
+          setProdutoId(list[0].id)
         }
       })
   }, [user])
@@ -498,7 +506,7 @@ function StateInput({
         onChange={(e) => setTema(e.target.value)}
         onClick={(e) => e.stopPropagation()}
         placeholder="Ex: por que 97% das pessoas nunca atingem a meta que definem"
-        onKeyDown={(e) => { if (e.key === 'Enter' && canCreate) onGenerate({ tema, slides, tom, cta, template_id: selectedTpl, instructions: iaInstructions.trim() || undefined }) }}
+        onKeyDown={(e) => { if (e.key === 'Enter' && canCreate) onGenerate({ tema, slides, tom, cta, template_id: selectedTpl, instructions: iaInstructions.trim() || undefined, ...(cta === 'Venda de produto' && produtos.length > 0 ? { produto_selecionado: produtos.find(p => p.id === produtoId) ?? produtos[0] } : {}) }) }}
         style={{
           ...inputSt, width: '100%', height: 72, padding: '0 20px',
           fontSize: 17,
@@ -786,6 +794,26 @@ function StateInput({
           </div>
         </div>
 
+        {/* Seletor de produto — aparece quando CTA = Venda de produto */}
+        {cta === 'Venda de produto' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'rgba(200,255,0,0.04)', border: '1px solid rgba(200,255,0,0.15)', borderRadius: 8 }}>
+            <span style={{ fontSize: 10, color: 'rgba(200,255,0,0.6)', fontFamily: ff, textTransform: 'uppercase', letterSpacing: 1.2, whiteSpace: 'nowrap' }}>Produto:</span>
+            {produtos.length > 0 ? (
+              <select
+                value={produtoId}
+                onChange={(e) => setProdutoId(e.target.value)}
+                style={{ flex: 1, backgroundColor: S3, border: `1px solid rgba(200,255,0,0.2)`, borderRadius: 8, color: T, fontSize: 12, fontFamily: ff, padding: '6px 24px 6px 10px', outline: 'none', cursor: 'pointer', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23c8ff0088' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center' }}
+              >
+                {produtos.map((p) => <option key={p.id} value={p.id} style={{ backgroundColor: S3 }}>{p.nome}</option>)}
+              </select>
+            ) : (
+              <span style={{ fontSize: 11, color: 'rgba(200,255,0,0.5)', fontFamily: ff }}>
+                Configure seus produtos em <strong style={{ color: 'rgba(200,255,0,0.7)' }}>Configurações → Voz & Estilo</strong>
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Sugestões de temas */}
         <div>
           {suggestedTopics.length === 0 && (
@@ -884,7 +912,7 @@ function StateInput({
       {/* Botão principal */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
         <button
-          onClick={() => onGenerate({ tema, slides, tom, cta, template_id: selectedTpl, instructions: iaInstructions.trim() || undefined })}
+          onClick={() => onGenerate({ tema, slides, tom, cta, template_id: selectedTpl, instructions: iaInstructions.trim() || undefined, ...(cta === 'Venda de produto' && produtos.length > 0 ? { produto_selecionado: produtos.find(p => p.id === produtoId) ?? produtos[0] } : {}) })}
           disabled={!canCreate}
           style={{
             width: '100%', height: 60,
@@ -922,7 +950,8 @@ function StateInput({
 }
 
 // ─── Estado 2: Gerando ────────────────────────────────────────
-interface GenerateConfig { tema: string; slides: number; tom: string; cta: string; template_id?: string; instructions?: string }
+interface ProdutoItem { id: string; nome: string; descricao: string; promessa: string; preco?: string }
+interface GenerateConfig { tema: string; slides: number; tom: string; cta: string; template_id?: string; instructions?: string; produto_selecionado?: ProdutoItem }
 interface GenerateResult {
   carousel_id: string
   preview_token: string
@@ -981,6 +1010,7 @@ function StateGenerating({
             cta_tipo: config.cta,
             template_id: config.template_id,
             ...(config.instructions ? { instructions: config.instructions } : {}),
+            ...(config.produto_selecionado ? { produto_selecionado: config.produto_selecionado } : {}),
           },
         })
 

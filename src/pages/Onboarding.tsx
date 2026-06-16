@@ -14,9 +14,17 @@ const T  = '#F2F2F7'
 const M  = 'rgba(242,242,247,0.4)'
 const B  = 'rgba(255,255,255,0.07)'
 
-const TOTAL = 5
+const TOTAL = 6
 const ff = 'DM Sans, sans-serif'
 
+// ─── FormData ─────────────────────────────────────────────────
+interface Produto {
+  id: string
+  nome: string
+  descricao: string
+  promessa: string
+  preco: string
+}
 // ─── FormData ─────────────────────────────────────────────────
 interface VoiceAnalysis {
   tom: string
@@ -48,7 +56,9 @@ interface FormData {
   // step 4
   exemploTexto: string
   voiceAnalysis: VoiceAnalysis | null
-  // step 5
+  nichosSecundarios: string[]
+  produtos: Produto[]
+  // step 6
   primeiraTema: string
 }
 
@@ -213,6 +223,27 @@ function Step1({ data, onChange }: { data: FormData; onChange: (d: Partial<FormD
         <label style={labelSt}>Instagram <span style={{ color: M, fontWeight: 400 }}>(opcional)</span></label>
         <FocusInput value={data.instagramHandle} onChange={(e) => onChange({ instagramHandle: e.target.value })} placeholder="@seuperfil" />
       </div>
+
+      {data.niche && (
+        <div style={sectionSt}>
+          <label style={{ ...labelSt }}>Você também faz conteúdo sobre... <span style={{ color: M, fontWeight: 400 }}>(opcional)</span></label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {NICHES.filter(n => n.value !== 'outro' && n.value !== data.niche).map(n => {
+              const sel = data.nichosSecundarios.includes(n.value)
+              return (
+                <button key={n.value} type="button"
+                  onClick={() => onChange({ nichosSecundarios: sel ? data.nichosSecundarios.filter(x => x !== n.value) : [...data.nichosSecundarios, n.value] })}
+                  style={{ height: 32, padding: '0 12px', borderRadius: 20, border: `2px solid ${sel ? A : B}`, background: sel ? 'rgba(0,212,255,0.08)' : S2, color: sel ? A : M, fontFamily: ff, fontSize: 12, cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span>{n.emoji}</span> {n.label}
+                </button>
+              )
+            })}
+          </div>
+          <p style={{ fontSize: 11, color: M, fontFamily: ff, margin: 0, lineHeight: 1.5 }}>
+            A IA vai criar conteúdo sobre qualquer tema — isso ajuda a misturar nichos no seu posicionamento.
+          </p>
+        </div>
+      )}
     </div>
   )
 }
@@ -686,6 +717,84 @@ function Step5({ data, onChange }: { data: FormData; onChange: (d: Partial<FormD
   )
 }
 
+// ─── Step Produtos ────────────────────────────────────────────
+function StepProdutos({ data, onChange }: { data: FormData; onChange: (d: Partial<FormData>) => void }) {
+  const [form, setForm] = useState<Omit<Produto, 'id'>>({ nome: '', descricao: '', promessa: '', preco: '' })
+  const [adding, setAdding] = useState(false)
+
+  const addProduto = () => {
+    if (!form.nome.trim() || !form.promessa.trim()) return
+    const novo: Produto = { ...form, id: `p_${Date.now()}` }
+    onChange({ produtos: [...data.produtos, novo] })
+    setForm({ nome: '', descricao: '', promessa: '', preco: '' })
+    setAdding(false)
+  }
+
+  const removeProduto = (id: string) => onChange({ produtos: data.produtos.filter(p => p.id !== id) })
+
+  const fieldSt: React.CSSProperties = {
+    width: '100%', backgroundColor: S2, border: `1px solid ${B}`,
+    borderRadius: 8, padding: '9px 12px', color: T, fontSize: 13,
+    fontFamily: ff, outline: 'none', boxSizing: 'border-box',
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <p style={{ fontFamily: ff, fontSize: 13, color: M, margin: 0, lineHeight: 1.6 }}>
+        Cadastre os produtos ou serviços que você vende. A IA vai conectar seus conteúdos organicamente às suas ofertas — sem vender diretamente.
+      </p>
+
+      {/* Lista de produtos */}
+      {data.produtos.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {data.produtos.map((p) => (
+            <div key={p.id} style={{ background: S2, border: `1px solid ${B}`, borderRadius: 10, padding: '10px 14px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontFamily: ff, fontSize: 13, fontWeight: 700, color: T, margin: '0 0 2px' }}>{p.nome}</p>
+                <p style={{ fontFamily: ff, fontSize: 11, color: 'rgba(0,212,255,0.7)', margin: 0 }}>→ {p.promessa}</p>
+                {p.preco && <p style={{ fontFamily: ff, fontSize: 11, color: M, margin: '2px 0 0' }}>{p.preco}</p>}
+              </div>
+              <button onClick={() => removeProduto(p.id)}
+                style={{ width: 26, height: 26, borderRadius: 6, border: `1px solid ${B}`, background: 'transparent', color: 'rgba(255,80,80,0.6)', fontSize: 14, cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Formulário de adicionar */}
+      {adding ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, background: S2, border: `1px solid rgba(0,212,255,0.2)`, borderRadius: 12, padding: 14 }}>
+          <input placeholder="Nome do produto ou serviço *" value={form.nome} onChange={(e) => setForm(f => ({ ...f, nome: e.target.value }))} style={fieldSt} />
+          <textarea placeholder="O que é? (descrição breve)" value={form.descricao} onChange={(e) => setForm(f => ({ ...f, descricao: e.target.value }))} rows={2}
+            style={{ ...fieldSt, resize: 'vertical' as const }} />
+          <input placeholder="Qual transformação você entrega? *" value={form.promessa} onChange={(e) => setForm(f => ({ ...f, promessa: e.target.value }))} style={fieldSt} />
+          <input placeholder="Preço (ex: R$ 997)" value={form.preco} onChange={(e) => setForm(f => ({ ...f, preco: e.target.value }))} style={fieldSt} />
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <button onClick={() => { setAdding(false); setForm({ nome: '', descricao: '', promessa: '', preco: '' }) }}
+              style={{ height: 34, padding: '0 14px', borderRadius: 8, border: `1px solid ${B}`, background: 'transparent', color: M, fontFamily: ff, fontSize: 12, cursor: 'pointer' }}>Cancelar</button>
+            <PrimaryBtn onClick={addProduto} disabled={!form.nome.trim() || !form.promessa.trim()} style={{ height: 34, padding: '0 18px', fontSize: 13 }}>
+              Adicionar
+            </PrimaryBtn>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => setAdding(true)}
+          style={{ height: 44, border: `1px dashed ${B}`, borderRadius: 10, background: 'transparent', color: M, fontFamily: ff, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'border-color 0.15s' }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = A; e.currentTarget.style.color = A }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = B; e.currentTarget.style.color = M }}>
+          + Adicionar produto ou serviço
+        </button>
+      )}
+
+      {data.produtos.length === 0 && !adding && (
+        <p style={{ fontFamily: ff, fontSize: 11, color: M, margin: 0, textAlign: 'center' }}>
+          Você pode adicionar isso depois em Configurações → Voz & Estilo
+        </p>
+      )}
+    </div>
+  )
+}
+
 // ─── Agency prompt ────────────────────────────────────────────
 function AgencyPrompt({ tema, onSelf, onClient }: {
   tema: string; onSelf: () => void; onClient: () => void
@@ -728,6 +837,7 @@ const STEP_META = [
   { title: 'Como você fala?',                   subtitle: 'Escolha o jeito que mais parece você.' },
   { title: 'Como é a sua cara?',                subtitle: null },
   { title: 'Me dá uma amostra da sua escrita',  subtitle: 'Cole qualquer coisa que você escreveu — post, legenda, mensagem.' },
+  { title: 'O que você vende?',                 subtitle: 'A IA vai conectar seus conteúdos às suas ofertas de forma orgânica.' },
   { title: 'Tudo pronto.',                      subtitle: 'Sobre o que vamos criar seu primeiro carrossel?' },
 ]
 
@@ -761,7 +871,8 @@ export default function Onboarding() {
     tom: '', palavrasProibidas: [], palavrasChave: [],
     cor: '#C8FF00', estilo: 'dark_cinematic', fonte: 'Bebas Neue',
     tamanhoTitulo: 'medio', posicaoTexto: 'base', intensidadeFundo: 60,
-    irritacao: '', angulos: [], comoConectar: '', exemploTexto: '', voiceAnalysis: null, primeiraTema: '',
+    irritacao: '', angulos: [], comoConectar: '', exemploTexto: '', voiceAnalysis: null,
+    nichosSecundarios: [], produtos: [], primeiraTema: '',
   })
 
   const update = (d: Partial<FormData>) => setForm((p) => ({ ...p, ...d }))
@@ -779,7 +890,8 @@ export default function Onboarding() {
     if (step === 1) return form.displayName.trim().length > 0 && form.niche.length > 0
     if (step === 2) return form.tom.length > 0
     if (step === 4) return form.voiceAnalysis !== null  // só avança após análise (ou skip)
-    if (step === 5) return form.primeiraTema.trim().length > 0
+    if (step === 5) return true  // produtos é opcional / skippable
+    if (step === 6) return form.primeiraTema.trim().length > 0
     return true
   }
 
@@ -799,6 +911,8 @@ export default function Onboarding() {
           o_que_irrita: form.irritacao || null,
           angulos: form.angulos.length > 0 ? form.angulos : null,
           como_conectar: form.comoConectar || null,
+          nichos_secundarios: form.nichosSecundarios.length > 0 ? form.nichosSecundarios : null,
+          produtos: form.produtos.length > 0 ? form.produtos : null,
           ...(form.voiceAnalysis ? {
             tom_extraido: form.voiceAnalysis.tom,
             ritmo: form.voiceAnalysis.ritmo,
@@ -964,7 +1078,7 @@ export default function Onboarding() {
           <>
             {/* Header */}
             <div style={{ marginBottom: 28 }}>
-              {step === 5 ? (
+              {step === 6 ? (
                 <h1 style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 48, color: A, margin: '0 0 8px', letterSpacing: 2, lineHeight: 1 }}>
                   {meta.title}
                 </h1>
@@ -985,7 +1099,8 @@ export default function Onboarding() {
                 {step === 2 && <Step2 data={form} onChange={update} />}
                 {step === 3 && <Step3 data={form} onChange={update} />}
                 {step === 4 && <Step4 data={form} onChange={update} onSkip={() => go(5)} session={sessionToken} />}
-                {step === 5 && <Step5 data={form} onChange={update} />}
+                {step === 5 && <StepProdutos data={form} onChange={update} />}
+                {step === 6 && <Step5 data={form} onChange={update} />}
               </motion.div>
             </AnimatePresence>
 

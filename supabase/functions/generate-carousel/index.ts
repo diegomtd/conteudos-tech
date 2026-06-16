@@ -60,13 +60,14 @@ serve(async (req) => {
     if (!userId) return json({ error: 'unauthorized' }, 401)
 
     // ── Parse body ────────────────────────────────────────────────────
-    const { tema, tom, num_slides, cta_tipo, template_id, instructions } = await req.json() as {
+    const { tema, tom, num_slides, cta_tipo, template_id, instructions, produto_selecionado } = await req.json() as {
       tema: string
       tom: string
       num_slides: number
       cta_tipo: string
       template_id?: string
       instructions?: string
+      produto_selecionado?: { nome: string; descricao: string; promessa: string; preco?: string }
     }
 
     if (!tema?.trim()) return json({ error: 'tema_required' }, 400)
@@ -138,6 +139,13 @@ serve(async (req) => {
       : ''
     const conectarCtx = comoConectar
       ? `Como o criador conecta temas ao produto/posicionamento: "${comoConectar}"\nGaranta que o CTA e a narrativa do último slide apontem naturalmente para essa conexão.`
+      : ''
+
+    // ── Produto selecionado para CTA de venda ────────────────────────
+    const produtos = Array.isArray(vp.produtos) ? (vp.produtos as Array<Record<string, string>>) : []
+    const produtoAtivo = produto_selecionado ?? (produtos.length > 0 ? produtos[0] as { nome: string; descricao: string; promessa: string; preco?: string } : null)
+    const produtoCtx = produtoAtivo
+      ? `━━━ PRODUTO DO CRIADOR (use quando o CTA for de venda) ━━━\n\nProduto: ${produtoAtivo.nome}\nO que é: ${produtoAtivo.descricao}\nTransformação que entrega: ${produtoAtivo.promessa}${produtoAtivo.preco ? `\nInvestimento: ${produtoAtivo.preco}` : ''}\n\nREGRA DE VENDA ORGÂNICA: Nunca mencione o produto diretamente no conteúdo. O conteúdo entrega valor real sobre o tema. Apenas no slide do CTA, a narrativa deve apontar naturalmente para a transformação que o produto entrega — como um passo lógico para quem quer ir além. A frase do CTA conecta o insight do conteúdo à promessa do produto sem usar linguagem de venda.`
       : ''
 
     // ── Memória de contexto ───────────────────────────────────────────
@@ -224,6 +232,7 @@ ${palavrasProibidas ? `NUNCA usar (voz do criador): ${palavrasProibidas}` : ''}
 ${oQueIrrita ? `O que o criador acha que o mercado erra e ninguém fala (use como ângulo ou ponto de vista): "${oQueIrrita}"` : ''}
 ${angulosCtx ? angulosCtx : ''}
 ${conectarCtx ? conectarCtx : ''}
+${produtoCtx ? produtoCtx : ''}
 ${exemploTexto ? `Estilo de referência do criador:\n"${exemploTexto}"` : ''}
 Template atual: ${tplId} — adapte a densidade do texto ao template (impacto = mais curto e visceral; storytelling = mais narrativo; dados = dado primeiro, desenvolvimento depois)
 ${memoriaCtx}
