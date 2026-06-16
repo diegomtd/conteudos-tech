@@ -2955,16 +2955,33 @@ function StatePreview({
                     Aplicar fonte em todos
                   </button>
                 </div>
-                {/* Row 1: Size */}
-                <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end' }}>
-                  <div style={{ width: 58 }}>
-                    <span style={{ fontSize: 9, color: M, fontFamily: ff, display: 'block', marginBottom: 3 }}>Tam.</span>
-                    <input type="number" min={10} max={160}
-                      value={selectedEl === 'titulo' ? (current.titleFontSize ?? 80) : (current.bodyFontSize ?? 28)}
-                      onChange={(e) => updateSlideFormat(current.id, selectedEl === 'titulo' ? { titleFontSize: Number(e.target.value) } : { bodyFontSize: Number(e.target.value) })}
-                      style={{ width: '100%', backgroundColor: S3, border: `1px solid ${B}`, borderRadius: 6, color: T, fontFamily: ff, fontSize: 12, padding: '5px 4px', outline: 'none', textAlign: 'center', boxSizing: 'border-box' }}
-                    />
-                  </div>
+                {/* Row 1: Size — título e corpo independentes */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  {([
+                    { label: 'Título', key: 'titleFontSize' as const, def: 80, step: 4 },
+                    { label: 'Corpo',  key: 'bodyFontSize'  as const, def: 28, step: 2 },
+                  ]).map(({ label, key, def, step }) => {
+                    const val = (current[key as keyof typeof current] as number | undefined) ?? def
+                    return (
+                      <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <span style={{ fontSize: 9, color: M, fontFamily: ff, width: 30, flexShrink: 0, textTransform: 'uppercase' as const, letterSpacing: 0.3 }}>{label}</span>
+                        <button
+                          onClick={() => updateSlideFormat(current.id, { [key]: Math.max(key === 'bodyFontSize' ? 10 : 24, val - step) })}
+                          style={{ width: 22, height: 22, borderRadius: 5, background: S3, border: `1px solid ${B}`, color: T, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, lineHeight: 1 }}
+                        >−</button>
+                        <input type="number" min={10} max={200}
+                          value={val}
+                          onChange={(e) => updateSlideFormat(current.id, { [key]: Number(e.target.value) })}
+                          style={{ flex: 1, backgroundColor: S3, border: `1px solid ${B}`, borderRadius: 5, color: T, fontFamily: ff, fontSize: 11, padding: '4px 2px', outline: 'none', textAlign: 'center', boxSizing: 'border-box' }}
+                        />
+                        <button
+                          onClick={() => updateSlideFormat(current.id, { [key]: Math.min(200, val + step) })}
+                          style={{ width: 22, height: 22, borderRadius: 5, background: S3, border: `1px solid ${B}`, color: T, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, lineHeight: 1 }}
+                        >+</button>
+                        <span style={{ fontSize: 9, color: M, fontFamily: ff, width: 16, textAlign: 'right', flexShrink: 0 }}>px</span>
+                      </div>
+                    )
+                  })}
                 </div>
                 {/* Row 2: Weight + Italic + Align */}
                 <div style={{ display: 'flex', gap: 4 }}>
@@ -3397,9 +3414,9 @@ function StatePreview({
                   <button key={mode} onClick={() => setViewMode(mode)} style={{
                     height: 30, padding: '0 12px', display: 'flex', alignItems: 'center', gap: 5,
                     borderRadius: 6, fontSize: 11, fontFamily: ff, cursor: 'pointer',
-                    backgroundColor: sel ? 'rgba(200,255,0,0.1)' : 'transparent',
-                    border: `1px solid ${sel ? 'rgba(200,255,0,0.4)' : B}`,
-                    color: sel ? A : M, transition: 'all 0.15s',
+                    backgroundColor: sel ? 'rgba(200,255,0,0.1)' : 'rgba(255,255,255,0.06)',
+                    border: `1px solid ${sel ? 'rgba(200,255,0,0.4)' : 'rgba(255,255,255,0.15)'}`,
+                    color: sel ? A : T, transition: 'all 0.15s',
                   }}>
                     {icon} {label}
                   </button>
@@ -3726,9 +3743,9 @@ function StatePreview({
             <div style={{
               flex: 1,
               overflowX: 'auto',
-              overflowY: 'hidden',
+              overflowY: 'auto',
               display: 'flex',
-              alignItems: 'center',
+              alignItems: 'flex-start',
               gap: 16,
               padding: '24px 32px',
               backgroundColor: BG,
