@@ -270,12 +270,13 @@ function TabVoz({ profile, userId }: { profile: Profile; userId: string }) {
   const vp = (profile.voice_profile ?? {}) as Record<string, unknown>
   const vk = profile.visual_kit ?? { cor: '#C8FF00', estilo: 'dark_cinematic', fonte: '"Bebas Neue", sans-serif' }
 
-  const [tom,          setTom]          = useState((vp.tom as string) ?? '')
-  const [proibidas,    setProibidas]    = useState<string[]>((vp.palavras_proibidas as string[]) ?? [])
-  const [definidoras,  setDefinidoras]  = useState<string[]>((vp.palavras_definidoras as string[]) ?? [])
-  const [exemplo,      setExemplo]      = useState((vp.exemplo_texto as string) ?? '')
-  const [angulos,      setAngulos]      = useState<string[]>((vp.angulos as string[]) ?? [])
-  const [comoConectar, setComoConectar] = useState((vp.como_conectar as string) ?? '')
+  const [tom,               setTom]               = useState((vp.tom as string) ?? '')
+  const [proibidas,         setProibidas]         = useState<string[]>((vp.palavras_proibidas as string[]) ?? [])
+  const [definidoras,       setDefinidoras]       = useState<string[]>((vp.palavras_definidoras as string[]) ?? [])
+  const [exemplo,           setExemplo]           = useState((vp.exemplo_texto as string) ?? '')
+  const [angulos,           setAngulos]           = useState<string[]>((vp.angulos as string[]) ?? [])
+  const [comoConectar,      setComoConectar]      = useState((vp.como_conectar as string) ?? '')
+  const [nichosSecundarios, setNichosSecundarios] = useState<string[]>((vp.nichos_secundarios as string[]) ?? [])
   const [cor,          setCor]          = useState(vk.cor ?? '#C8FF00')
   const [estilo,       setEstilo]       = useState(vk.estilo ?? 'dark_cinematic')
   const [fonte,        setFonte]        = useState(vk.fonte ?? '"Bebas Neue", sans-serif')
@@ -292,6 +293,7 @@ function TabVoz({ profile, userId }: { profile: Profile; userId: string }) {
         ...vp,
         tom, palavras_proibidas: proibidas, palavras_definidoras: definidoras,
         exemplo_texto: exemplo, angulos, como_conectar: comoConectar,
+        nichos_secundarios: nichosSecundarios,
       },
       visual_kit: { cor, estilo, fonte },
     }).eq('user_id', userId)
@@ -398,6 +400,27 @@ function TabVoz({ profile, userId }: { profile: Profile; userId: string }) {
             A IA usa isso para garantir que cada pauta sugerida tenha um ângulo que leva ao seu produto.
           </p>
         </div>
+      </div>
+
+      {/* Nichos secundários */}
+      <div>
+        <p style={{ fontFamily: ff, fontSize: 12, color: M, margin: '0 0 6px' }}>
+          Outros nichos em que você cria conteúdo
+        </p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+          {NICHES.filter(n => n !== 'outro').map(n => {
+            const sel = nichosSecundarios.includes(n)
+            return (
+              <button key={n} onClick={() => setNichosSecundarios(prev => sel ? prev.filter(x => x !== n) : [...prev, n])}
+                style={{ height: 30, padding: '0 12px', borderRadius: 20, border: `1px solid ${sel ? 'rgba(200,255,0,0.5)' : B}`, background: sel ? 'rgba(200,255,0,0.1)' : S2, color: sel ? A : M, fontFamily: ff, fontSize: 12, cursor: 'pointer', transition: 'all 0.15s' }}>
+                {n.charAt(0).toUpperCase() + n.slice(1)}
+              </button>
+            )
+          })}
+        </div>
+        <p style={{ fontFamily: ff, fontSize: 11, color: M, margin: 0, lineHeight: 1.4 }}>
+          A IA vai criar conteúdo sobre qualquer tema que você digitar — esses nichos ajudam nas sugestões de pauta.
+        </p>
       </div>
 
       {/* Cor */}

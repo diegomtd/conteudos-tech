@@ -120,6 +120,7 @@ serve(async (req) => {
     const oQueIrrita         = typeof vp.o_que_irrita   === 'string' ? vp.o_que_irrita    : ''
     const angulos            = Array.isArray(vp.angulos) ? (vp.angulos as string[]) : []
     const comoConectar       = typeof vp.como_conectar  === 'string' ? vp.como_conectar  : ''
+    const nichosSecundarios  = Array.isArray(vp.nichos_secundarios) ? (vp.nichos_secundarios as string[]) : []
     const tomVoz             = tomExtraido || (typeof vp.tom === 'string' ? vp.tom : tom)
 
     const ANGULO_LABELS: Record<string, string> = {
@@ -212,7 +213,8 @@ PROIBIDO em qualquer slide:
 
 ━━━ IDENTIDADE DO CRIADOR ━━━
 
-Nicho: ${profile.niche ?? 'empreendedorismo'}
+Nicho principal do criador: ${profile.niche ?? 'empreendedorismo'}${nichosSecundarios.length > 0 ? `\nNichos secundários (o criador também cria conteúdo sobre): ${nichosSecundarios.join(', ')}` : ''}
+IMPORTANTE: o tema do carrossel define o assunto deste conteúdo específico. Se o tema for de um nicho diferente do principal, use a voz e identidade do criador, mas desenvolva o tema conforme solicitado — não force o retorno ao nicho principal.
 Tom de voz calibrado: ${tomVoz}
 ${ritmoVoz ? `Ritmo de escrita: ${ritmoVoz}` : ''}
 ${personalidadeVoz ? `Personalidade da voz: ${personalidadeVoz}` : ''}
@@ -266,7 +268,7 @@ Slide 1 deve ter corpo vazio (a capa só tem título). Todos os outros slides t�
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 4096,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }],
