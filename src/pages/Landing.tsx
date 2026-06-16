@@ -159,7 +159,7 @@ const CSS = `
   --muted:#8899AA;
   --r:    14px;
 }
-*{box-sizing:border-box;margin:0;padding:0;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 body{background:var(--bg);color:var(--text);font-family:'Space Grotesk','DM Sans',sans-serif;-webkit-font-smoothing:antialiased;}
 .lp-wrap{overflow-x:hidden;}
 
@@ -198,7 +198,7 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk','DM Sans
 .hero-stats{display:flex;gap:28px;margin-top:36px;padding-top:28px;border-top:1px solid rgba(255,255,255,.06);}
 .stat-num{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--c1);letter-spacing:.04em;}
 .stat-lbl{font-size:12px;color:var(--muted);}
-@media(max-width:900px){.hero{grid-template-columns:1fr;gap:40px;text-align:center;padding:60px 5%;}.hero-sub{max-width:none;}.hero-btns,.hero-stats{justify-content:center;}.hero-visual{display:none;}}
+@media(max-width:900px){.hero{grid-template-columns:1fr;gap:32px;text-align:center;padding:48px 5% 56px;}.hero-sub{max-width:none;}.hero-btns,.hero-stats{justify-content:center;}.hero-visual{max-width:100% !important;margin:0 auto;padding:20px 16px 24px;}.hero-shader{display:none;}.hero-sec-lbl{font-size:10px;letter-spacing:.05em;padding:5px 12px;white-space:nowrap;}}
 
 /* divider */
 .div{height:1px;background:linear-gradient(90deg,transparent,rgba(0,212,255,.15),transparent);margin:0 5%;}
@@ -244,6 +244,11 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk','DM Sans
 .plan-btn:hover{opacity:.85;transform:translateY(-1px);}
 @media(max-width:900px){.plans-grid{grid-template-columns:1fr 1fr;gap:16px;}.plan.pop{transform:none;}.plan.pop:hover{transform:translateY(-4px);}}
 @media(max-width:520px){.plans-grid{grid-template-columns:1fr;}}
+.plans2-mobile{display:none;}
+@media(max-width:768px){.plans2-desktop{display:none;}.plans2-mobile{display:block;}}
+.plans2-cta-box{max-width:400px;margin:0 auto;text-align:center;}
+.plans2-cta-box .plan{margin-bottom:20px;}
+.plans2-scroll-link{display:inline-flex;align-items:center;gap:6px;color:var(--c1);font-size:14px;font-weight:600;text-decoration:none;background:none;border:none;cursor:pointer;padding:0;}
 
 /* truth */
 .truth{padding:100px 5%;display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center;}
@@ -399,7 +404,7 @@ export default function Landing() {
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 20)
-    window.addEventListener('scroll', fn)
+    window.addEventListener('scroll', fn, { passive: true })
     return () => window.removeEventListener('scroll', fn)
   }, [])
 
@@ -418,7 +423,8 @@ export default function Landing() {
   // com o scroll virtual do Lenis (sem isso, pin/scrub ficam dessincronizados).
   useEffect(() => {
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (reduceMotion) return
+    const isTouch      = window.matchMedia('(pointer: coarse)').matches
+    if (reduceMotion || isTouch) return
 
     const lenis = new Lenis({
       duration: 1.05,
@@ -521,7 +527,7 @@ export default function Landing() {
             flexShrink: 0,
           }}>
             {/* Shader como fundo atmosférico */}
-            <div style={{ position: 'absolute', inset: 0, borderRadius: '20px', overflow: 'hidden', zIndex: 0, opacity: 0.5 }}>
+            <div className="hero-shader" style={{ position: 'absolute', inset: 0, borderRadius: '20px', overflow: 'hidden', zIndex: 0, opacity: 0.5 }}>
               <CyberneticGridShader />
             </div>
             {/* Vinheta para fundir com o fundo da página */}
@@ -786,22 +792,51 @@ export default function Landing() {
             <h2>Sem letra miúda. <span className="gt2">Comece grátis hoje.</span></h2>
             <p>Todos os planos incluem Studio, Calendário e Export PNG. Cancele quando quiser, sem perguntas.</p>
           </Reveal>
-          <RevealGroup className="plans-grid" gap={0.1}>
-            {PLANS.map(p => (
-              <motion.div className={`plan${p.pop ? ' pop' : ''}`} key={p.name + '2'} variants={fadeUp} whileHover={{ y: -6 }}>
-                {p.pop && <div className="plan-badge">MAIS POPULAR</div>}
-                <div className="plan-name">{p.name}</div>
-                <div className="plan-price-row">
-                  <div className="plan-price">{p.price}</div>
-                  {p.period && <div className="plan-period">{p.period}</div>}
-                </div>
-                <ul className="plan-features">{p.features.map(f => <li key={f}>{f}</li>)}</ul>
-                <Magnetic strength={26}>
+
+          {/* desktop: todos os planos */}
+          <div className="plans2-desktop">
+            <RevealGroup className="plans-grid" gap={0.1}>
+              {PLANS.map(p => (
+                <motion.div className={`plan${p.pop ? ' pop' : ''}`} key={p.name + '2'} variants={fadeUp} whileHover={{ y: -6 }}>
+                  {p.pop && <div className="plan-badge">MAIS POPULAR</div>}
+                  <div className="plan-name">{p.name}</div>
+                  <div className="plan-price-row">
+                    <div className="plan-price">{p.price}</div>
+                    {p.period && <div className="plan-period">{p.period}</div>}
+                  </div>
+                  <ul className="plan-features">{p.features.map(f => <li key={f}>{f}</li>)}</ul>
+                  <Magnetic strength={26}>
+                    <button className="plan-btn" onClick={() => navigate('/dashboard')}>{p.cta}</button>
+                  </Magnetic>
+                </motion.div>
+              ))}
+            </RevealGroup>
+          </div>
+
+          {/* mobile: só o plano popular + link para ver todos */}
+          <Reveal className="plans2-mobile">
+            <div className="plans2-cta-box">
+              {PLANS.filter(p => p.pop).map(p => (
+                <div className={`plan pop`} key={p.name + '-mob2'}>
+                  <div className="plan-badge">MAIS POPULAR</div>
+                  <div className="plan-name">{p.name}</div>
+                  <div className="plan-price-row">
+                    <div className="plan-price">{p.price}</div>
+                    {p.period && <div className="plan-period">{p.period}</div>}
+                  </div>
+                  <ul className="plan-features">{p.features.map(f => <li key={f}>{f}</li>)}</ul>
                   <button className="plan-btn" onClick={() => navigate('/dashboard')}>{p.cta}</button>
-                </Magnetic>
-              </motion.div>
-            ))}
-          </RevealGroup>
+                </div>
+              ))}
+              <button
+                className="plans2-scroll-link"
+                onClick={() => document.getElementById('planos')?.scrollIntoView({ behavior: 'smooth' })}
+              >
+                Ver todos os planos ↑
+              </button>
+            </div>
+          </Reveal>
+
           <Reveal delay={0.15}>
             <p style={{ textAlign: 'center', color: 'var(--muted)', maxWidth: '680px', margin: '32px auto 0', fontSize: '14px', lineHeight: 1.7 }}>
               Copy completa inclusa em cada carrossel gerado — o limite é de carrosseis por mês, nunca de texto.<br />
