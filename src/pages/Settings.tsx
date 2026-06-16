@@ -751,9 +751,12 @@ export default function Settings() {
 
   useEffect(() => {
     if (!user) return
-    supabase.from('profiles').select('*').eq('user_id', user.id).single().then(({ data }) => {
-      if (data) setProfile(data as Profile)
-      setLoading(false)
+    supabase.auth.refreshSession().then(() => {
+      supabase.from('profiles').select('*').eq('user_id', user.id).single().then(({ data, error }) => {
+        if (data) setProfile(data as Profile)
+        if (error) console.error('Settings profile fetch:', error.message)
+        setLoading(false)
+      })
     })
   }, [user])
 
@@ -764,7 +767,16 @@ export default function Settings() {
     </div>
   )
 
-  if (!profile || !user) return null
+  if (!user) return null
+
+  if (!profile) return (
+    <div style={{ minHeight: '100vh', background: BG, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+      <p style={{ color: M, fontFamily: ff }}>Erro ao carregar perfil. Tente recarregar a página.</p>
+      <button onClick={() => window.location.reload()} style={{ padding: '8px 20px', background: A, color: BG, border: 'none', borderRadius: 8, cursor: 'pointer', fontFamily: ff, fontWeight: 600 }}>
+        Recarregar
+      </button>
+    </div>
+  )
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: BG, fontFamily: ff }}>
