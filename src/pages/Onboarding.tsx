@@ -899,6 +899,9 @@ export default function Onboarding() {
     if (!user) return
     setSaving(true); setError('')
     try {
+      // garante token fresco antes de salvar
+      await supabase.auth.refreshSession()
+
       const { error: dbErr } = await supabase.from('profiles').update({
         display_name: form.displayName,
         instagram_handle: form.instagramHandle || null,
@@ -941,8 +944,11 @@ export default function Onboarding() {
           navigate(`/studio?tema=${encodeURIComponent(form.primeiraTema.trim())}`)
         }, 2800)
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao salvar. Tente novamente.')
+    } catch (err: unknown) {
+      const msg = err instanceof Error
+        ? err.message
+        : (err as { message?: string })?.message ?? 'Erro ao salvar. Tente novamente.'
+      setError(msg)
       setSaving(false)
     }
   }

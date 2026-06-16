@@ -45,9 +45,14 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Props
       .select('role, onboarding_completed')
       .eq('user_id', user.id)
       .single()
-      .then(({ data }) => {
-        setDbRole(data?.role ?? null)
-        setOnboardingCompleted(data?.onboarding_completed ?? false)
+      .then(({ data, error }) => {
+        if (error || !data) {
+          // fetch falhou — não redireciona pro onboarding (evita loop)
+          setOnboardingCompleted(null)
+        } else {
+          setDbRole(data.role ?? null)
+          setOnboardingCompleted(data.onboarding_completed ?? false)
+        }
         setProfileLoading(false)
       })
   }, [user])
