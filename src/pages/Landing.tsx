@@ -97,7 +97,7 @@ const PLANS = [
 ]
 
 const STEPS = [
-  { num: '01', title: 'Diga o que quer falar', body: 'Sem fórmula, sem prompt técnico — escreva o tema como você falaria com um amigo. A IA lê contexto, tom e objetivo sozinha.' },
+  { num: '01', title: 'Diga o que quer falar', body: 'Descreve o tema e o que você vende — uma vez. A IA lê o contexto, entende seu tom e sabe quando encaixar sua oferta. Sem fórmula, sem prompt técnico.' },
   { num: '02', title: 'Veja o carrossel nascer', body: 'Copy, título, corpo e imagem cinematográfica aparecem slide a slide, em tempo real — exatamente como você viu na demonstração acima.' },
   { num: '03', title: 'Ajuste, exporte, publique', body: 'Refine no Studio se quiser tocar em algo, baixe o ZIP em PNG 1080×1350 e poste direto — sem abrir mais nenhum app.' },
 ]
@@ -108,7 +108,8 @@ const FEATURES = [
   { id: 'studio',    label: 'Studio',     img: '/images/recursos/studio.jpg',       title: 'Editor visual completo',       body: 'Ajuste fonte, cor, tamanho, imagem, sobreposição e posição de cada slide. O que a IA gera é ponto de partida — você finaliza como quiser.' },
   { id: 'calendar',  label: 'Calendário', img: '/images/recursos/calendario.jpg',   title: 'Seu tabuleiro de conteúdo',    body: 'Visualize todos os carrosseis no calendário e organize sua presença digital por semana ou mês. Nunca mais posta no improviso.' },
   { id: 'export',    label: 'Export',     img: '/images/recursos/export.jpg',       title: 'Pronto pra postar',            body: 'Exporte cada slide como PNG em alta resolução (1080×1350). Ideal para Stories e Feed. Sem marca d\'água nos planos pagos.' },
-  { id: 'workspace', label: 'Workspace',  img: '/images/recursos/workspace.jpg',    title: 'Para times e agências',        body: 'Crie múltiplos workspaces para clientes diferentes. Cada workspace tem seu próprio calendário, carrosseis e configurações.' },
+  { id: 'venda',     label: 'Venda Orgânica', img: '/images/recursos/venda-organica.jpg', title: 'Seu produto, no momento certo', body: 'Cadastre o que você vende uma vez. A IA encaixa sua oferta no carrossel de forma natural — sem pitch direto, sem parecer anúncio. O conteúdo educa. O produto aparece quando faz sentido.' },
+  { id: 'workspace', label: 'Organização',  img: '/images/recursos/workspace.jpg',    title: 'Tudo no lugar, sem esforço',   body: 'Pastas para organizar por campanha, calendário visual por semana ou mês, busca e filtros. Para quem produz volume e não pode perder tempo achando o carrossel certo.' },
 ]
 
 const SLIDE_IMAGES = [
@@ -138,6 +139,8 @@ const FAQ_ITEMS = [
   { q: 'A imagem IA tem limite?',              a: 'Sim. Free: 3/mês. Construtor: 20. Escala: 60. Agência: 150. A geração de copy é o produto principal e está inclusa na cota de carrosseis. Você pode usar suas próprias imagens sem limite em todos os planos.' },
   { q: 'Posso cancelar a qualquer momento?',   a: 'Sim. Sem fidelidade, sem multa. Cancele pelo painel e o plano segue ativo até o fim do período pago.' },
   { q: 'Funciona para qualquer nicho?',        a: 'Sim. A IA foi calibrada para criadores de conteúdo, coaches, nutricionistas, designers, agências, e-commerce e qualquer perfil que queira crescer no Instagram.' },
+  { q: 'O que é venda orgânica?',              a: 'Você cadastra seus produtos ou serviços uma vez no onboarding. A partir daí, a IA aprende quando e como mencionar sua oferta dentro do carrossel — de forma natural, sem parecer anúncio. O conteúdo educa, o produto aparece no momento certo.' },
+  { q: 'Como funcionam as sugestões de pauta?', a: 'O ConteúdOS puxa tendências em tempo real via Google News e filtra pelo seu nicho. Você sempre tem sugestões fresquinhas no dashboard — nenhuma pauta é genérica, todas são contextualizadas pro que o seu público está acompanhando agora.' },
   { q: 'O que é o Studio?',                   a: 'É o editor visual do ConteúdOS. Depois que a IA gera os slides, você pode ajustar fonte, cor, tamanho de texto, imagem de fundo, opacidade de overlay e posição — tudo sem sair da plataforma.' },
   { q: 'Preciso instalar algo?',               a: 'Não. ConteúdOS roda 100% no navegador. Acesse de qualquer dispositivo, sem download.' },
   { q: 'O carrossel sai pronto pra postar?',   a: 'Sim. Exporte cada slide como PNG 1080×1350 — o formato ideal para feed e stories do Instagram. Sem marca d\'água nos planos pagos.' },
@@ -271,6 +274,10 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk','DM Sans
 .slides-track{display:flex;gap:16px;width:max-content;}
 .slides-track.fwd{animation:marquee 20s linear infinite;}
 .slides-track.rev{animation:marqueeReverse 22s linear infinite;}
+/* dashboard video section */
+.dash-sec{padding:80px 24px;max-width:1100px;margin:0 auto;}
+.dash-video-wrap{border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.08);box-shadow:0 32px 80px rgba(0,0,0,.6);}
+.dash-video{width:100%;display:block;}
 @keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 @keyframes marqueeReverse{0%{transform:translateX(-50%)}100%{transform:translateX(0)}}
 .ws-card{width:180px;height:220px;border-radius:12px;background:var(--bg2);border:1px solid rgba(255,255,255,.06);flex-shrink:0;overflow:hidden;position:relative;display:flex;flex-direction:column;padding:14px;}
@@ -494,11 +501,10 @@ export default function Landing() {
             <h1>
               Você descreve.<br />
               <span className="gt2">Ela constrói.</span><br />
-              Em tempo real.
+              Você vende.
             </h1>
             <p className="hero-sub">
-              O ConteúdOS acabou de montar esse carrossel ao vivo — sem Canva, sem prompt técnico, sem designer.
-              Você descreve o tema, ele escreve a copy, gera a imagem e entrega pronto pra postar.
+              O ConteúdOS acabou de montar esse carrossel ao vivo. Você descreve o tema, cadastra o que vende — e a IA escreve a copy, gera a imagem e encaixa sua oferta no momento certo, sem parecer anúncio. Pronto pra postar.
             </p>
             <div className="hero-btns">
               <Magnetic>
@@ -509,7 +515,7 @@ export default function Landing() {
             <div className="hero-stats">
               <div><div className="stat-num">3min</div><div className="stat-lbl">do tema ao slide pronto</div></div>
               <div><div className="stat-num">até 15</div><div className="stat-lbl">slides por carrossel</div></div>
-              <div><div className="stat-num">0</div><div className="stat-lbl">apps extras pra abrir</div></div>
+              <div><div className="stat-num">100%</div><div className="stat-lbl">no browser, sem instalar nada</div></div>
             </div>
           </motion.div>
           {/* ── HERO DIREITA: Shader + demo viva do produto rodando ── */}
@@ -593,8 +599,8 @@ export default function Landing() {
           <Reveal>
             <div className="truth-num">97%</div>
             <h2>Você posta.<br />Eles <span className="gt2">jogam outro jogo.</span></h2>
-            <p>97% dos perfis publicam no escuro — sem tema fixo, sem narrativa, sem sequência. O algoritmo nota essa falta de padrão e empurra pra baixo. Não é falta de talento: é falta de tabuleiro.</p>
-            <p>Os perfis que crescem pensam em peças que se conectam — cada carrossel puxa o próximo, constrói autoridade post a post. O ConteúdOS monta esse tabuleiro com você, com IA, em minutos.</p>
+            <p>97% dos perfis publicam no escuro — sem tema fixo, sem narrativa, sem conexão com o que vendem. O algoritmo nota essa falta de padrão e empurra pra baixo. Não é falta de talento: é falta de tabuleiro.</p>
+            <p>Os perfis que crescem e vendem pensam em peças que se conectam — cada carrossel educa, o produto aparece no momento certo, a audiência compra sem sentir que está sendo vendida. O ConteúdOS monta esse tabuleiro com você, com IA, em minutos.</p>
             <Magnetic><button className="btn-primary glow-orbit" onClick={() => navigate('/dashboard')}>Montar meu tabuleiro →</button></Magnetic>
           </Reveal>
           <Reveal delay={0.15}>
@@ -658,6 +664,20 @@ export default function Landing() {
           </div>
         </section>
 
+        {/* dashboard video */}
+        <section className="dash-sec" id="dashboard">
+          <Reveal className="sec-hd">
+            <div className="sec-lbl">produto</div>
+            <h2>Seu <span className="gt2">dashboard</span> de conteúdo</h2>
+            <p>Todos os carrosseis, calendário e métricas num lugar só.</p>
+          </Reveal>
+          <Reveal delay={0.1}>
+            <div className="dash-video-wrap">
+              <video src="/videos/dashbord.webm" autoPlay muted loop playsInline className="dash-video" />
+            </div>
+          </Reveal>
+        </section>
+
         {/* recursos */}
         <section className="fs-sec" id="recursos">
           <Reveal className="sec-hd">
@@ -705,16 +725,21 @@ export default function Landing() {
             <Reveal>
               <div className="sec-lbl">IA contextual</div>
               <h2 style={{ fontFamily: '"Bebas Neue",sans-serif', fontSize: 'clamp(36px,4vw,52px)', letterSpacing: '.02em', lineHeight: 1.05, marginBottom: '16px' }}>
-                Ela não improvisa.<br />Ela <span className="gt2">lê antes de gerar</span>
+                Ela não improvisa.<br />Ela <span className="gt2">conhece seu negócio</span>
               </h2>
+              <p style={{ color: 'var(--muted)', fontSize: '16px', lineHeight: 1.7, marginBottom: '16px' }}>
+                Antes de escrever uma linha ou desenhar um pixel, a IA lê o conteúdo real daquele slide — o título, o corpo, a intenção por trás. É por isso que a copy não soa genérica e a imagem conversa com o texto, em vez de competir com ele.
+              </p>
               <p style={{ color: 'var(--muted)', fontSize: '16px', lineHeight: 1.7, marginBottom: '28px' }}>
-                Antes de escrever uma linha ou desenhar um pixel, a IA lê o conteúdo real daquele slide específico — o título, o corpo, a intenção por trás. É por isso que a copy não soa genérica e a imagem realmente conversa com o texto, em vez de competir com ele.
+                E como a IA conhece seus produtos e seu nicho desde o onboarding, ela sabe quando e como encaixar sua oferta no conteúdo — sem pitch direto, sem quebrar o fluxo. O carrossel educa. A venda acontece.
               </p>
               <div className="ia-chips">
                 <div className="ia-chip">Claude Sonnet</div>
                 <div className="ia-chip">fal.ai Flux 2 Pro</div>
                 <div className="ia-chip">Contexto por slide</div>
                 <div className="ia-chip">Narrativa estratégica</div>
+                <div className="ia-chip">Venda orgânica</div>
+                <div className="ia-chip">Pautas ao vivo</div>
               </div>
             </Reveal>
             <motion.div className="fs-visual" style={{ padding: 0, overflow: 'hidden' }}
@@ -872,7 +897,7 @@ export default function Landing() {
             <h2>Daqui a <span className="gt2">3 minutos</span><br />seu primeiro carrossel pode estar pronto.</h2>
           </Reveal>
           <Reveal delay={0.12}>
-            <p>Sem cartão. Sem instalar nada. É só descrever o tema e ver a IA construir — do jeito que você acabou de ver lá em cima.</p>
+            <p>Sem cartão. Sem instalar nada. Você descreve o tema, cadastra o que vende — e a IA entrega o carrossel pronto, com sua oferta no lugar certo.</p>
           </Reveal>
           <Reveal delay={0.22}>
             <Magnetic strength={14}>
@@ -886,7 +911,7 @@ export default function Landing() {
           <div className="footer-top">
             <div className="footer-brand">
               <div className="footer-logo">ConteúdOS</div>
-              <p>Tabuleiro de conteúdo com IA para criadores que querem crescer de forma estratégica no Instagram.</p>
+              <p>IA que escreve, gera imagem e conecta seu produto ao conteúdo — sem Canva, sem designer, sem pitch direto.</p>
             </div>
             <div className="footer-col">
               <h5>Produto</h5>
