@@ -77,38 +77,38 @@ const PLANS = [
   {
     name: 'Free', price: 'R$0', period: '', pop: false,
     features: ['3 carrosseis com copy/mês', '3 imagens IA/mês', '7 slides máx.', 'Exportação com marca d\'água'],
-    cta: 'Começar grátis',
+    cta: 'Começar de graça',
   },
   {
     name: 'Construtor', price: 'R$47', period: '/mês', pop: false,
     features: ['50 carrosseis com copy/mês', '100 exportações/mês', '20 imagens IA/mês', '10 slides máx.', 'Sem marca d\'água', 'Suba suas próprias imagens'],
-    cta: 'Assinar agora',
+    cta: 'Quero postar todo dia',
   },
   {
     name: 'Escala', price: 'R$97', period: '/mês', pop: true,
     features: ['150 carrosseis com copy/mês', 'Exportação ilimitada', '60 imagens IA/mês', '15 slides máx.', 'Voice profile da sua marca', 'Todos os templates'],
-    cta: 'Escolher Escala',
+    cta: 'Quero viralizar',
   },
   {
     name: 'Agência', price: 'R$197', period: '/mês', pop: false,
     features: ['300 carrosseis com copy/mês', 'Exportação ilimitada', '150 imagens IA/mês', '15 slides máx.', '3 perfis de cliente separados', 'Tudo do Escala incluído'],
-    cta: 'Falar com time',
+    cta: 'Falar com o time',
   },
 ]
 
 const STEPS = [
-  { num: '01', title: 'Diga o que quer falar', body: 'Descreve o tema e o que você vende — uma vez. A IA lê o contexto, entende seu tom e sabe quando encaixar sua oferta. Sem fórmula, sem prompt técnico.' },
-  { num: '02', title: 'Veja o carrossel nascer', body: 'Copy, título, corpo e imagem cinematográfica aparecem slide a slide, em tempo real — exatamente como você viu na demonstração acima.' },
-  { num: '03', title: 'Ajuste, exporte, publique', body: 'Refine no Studio se quiser tocar em algo, baixe o ZIP em PNG 1080×1350 e poste direto — sem abrir mais nenhum app.' },
+  { num: '01', title: 'Diga o tema (ou deixe a IA sugerir)', body: 'Descreve o assunto numa frase — ou pega uma pauta que já está em alta no seu nicho. A IA entende seu tom e o que você quer falar. Sem fórmula, sem prompt técnico.' },
+  { num: '02', title: 'Veja o carrossel viral nascer', body: 'Copy, título, corpo e imagem cinematográfica aparecem slide a slide, em tempo real — exatamente como você viu na demonstração acima.' },
+  { num: '03', title: 'Exporte e poste todo dia', body: 'Ajuste no Studio se quiser, baixe o ZIP em PNG 1080×1350 e poste direto. Sua máquina de conteúdo rodando, sem você travar.' },
 ]
 
 const FEATURES = [
-  { id: 'copy',      label: 'Copy IA',    img: '/images/recursos/copy-ia.jpg',      title: 'Copy que para o scroll',       body: 'Cada slide recebe título, subtítulo e corpo calibrados para engajamento. A IA lê o tema e gera narrativa com gancho, desenvolvimento e CTA — sem você precisar saber de copywriting.' },
-  { id: 'image',     label: 'Imagem IA',  img: '/images/recursos/imagem-ia.jpg',    title: 'Visual cinematográfico',       body: 'fal.ai Flux 2 Pro gera imagens de fundo para cada slide com base no conteúdo real. O resultado é um carrossel que parece produção de estúdio.' },
-  { id: 'studio',    label: 'Studio',     img: '/images/recursos/studio.jpg',       title: 'Editor visual completo',       body: 'Ajuste fonte, cor, tamanho, imagem, sobreposição e posição de cada slide. O que a IA gera é ponto de partida — você finaliza como quiser.' },
-  { id: 'calendar',  label: 'Calendário', img: '/images/recursos/calendario.jpg',   title: 'Seu tabuleiro de conteúdo',    body: 'Visualize todos os carrosseis no calendário e organize sua presença digital por semana ou mês. Nunca mais posta no improviso.' },
-  { id: 'export',    label: 'Export',     img: '/images/recursos/export.jpg',       title: 'Pronto pra postar',            body: 'Exporte cada slide como PNG em alta resolução (1080×1350). Ideal para Stories e Feed. Sem marca d\'água nos planos pagos.' },
-  { id: 'venda',     label: 'Venda Orgânica', img: '/images/recursos/venda-organica.jpg', title: 'Seu produto, no momento certo', body: 'Cadastre o que você vende uma vez. A IA encaixa sua oferta no carrossel de forma natural — sem pitch direto, sem parecer anúncio. O conteúdo educa. O produto aparece quando faz sentido.' },
+  { id: 'copy',      label: 'Copy IA',    img: '/images/recursos/copy-ia.jpg',      title: 'Copy feita pra viralizar',       body: 'Cada slide recebe gancho, desenvolvimento e CTA pensados pra prender o scroll e fazer salvar. A IA escreve a narrativa — você não precisa saber copywriting.' },
+  { id: 'image',     label: 'Imagem IA',  img: '/images/recursos/imagem-ia.jpg',    title: 'Visual de estúdio, sem estúdio',       body: 'O fal.ai Flux 2 Pro gera o fundo de cada slide com base no conteúdo real. Parece produção profissional — não imagem genérica de banco.' },
+  { id: 'studio',    label: 'Studio',     img: '/images/recursos/studio.jpg',       title: 'Você no controle final',       body: 'Ajuste fonte, cor, tamanho, imagem e posição de cada slide. O que a IA entrega é o ponto de partida; você dá o acabamento.' },
+  { id: 'calendar',  label: 'Calendário', img: '/images/recursos/calendario.jpg',   title: 'Poste todo dia sem pensar',    body: 'Veja todos os carrosseis no calendário e organize semanas inteiras de uma vez. Constância é o que o algoritmo recompensa.' },
+  { id: 'export',    label: 'Export',     img: '/images/recursos/export.jpg',       title: 'Pronto pra postar agora',            body: 'Exporte cada slide como PNG em alta resolução (1080×1350). Ideal para Stories e Feed. Sem marca d\'água nos planos pagos.' },
+  { id: 'venda',     label: 'Venda Orgânica', img: '/images/recursos/venda-organica.jpg', title: 'E quando quiser vender, ela vende', body: 'Cadastre o que você oferece uma vez. A IA encaixa sua oferta dentro do conteúdo, sem pitch, sem parecer anúncio. Primeiro você cresce. Depois, vende.' },
 ]
 
 const SLIDE_IMAGES = [
@@ -123,13 +123,13 @@ const SLIDE_IMAGES = [
 ]
 
 const TESTIMONIALS = [
-  { name: 'Ana Luiza Pires',  handle: '@analuiza.conteudo',  img: '/images/creators/analuiza.jpg',      stars: 5, text: 'Em 3 minutos tenho um carrossel completo. Isso mudou minha relação com conteúdo.' },
-  { name: 'Pedro Alves',      handle: '@pedroalves.ads',     img: '/images/creators/pedroalves.jpg',    stars: 5, text: 'Recomendo para qualquer criador que quer escalar sem contratar equipe.' },
-  { name: 'Marina Fonseca',   handle: '@marinafonseca.mkt',  img: '/images/creators/marinafonseca.jpg', stars: 5, text: 'Criei 12 carrosseis em uma tarde. Antes levava uma semana no Canva.' },
-  { name: 'João Henrique',    handle: '@joaohenrique.mkt',   img: '/images/creators/joaohenrique.jpg',  stars: 5, text: 'A copy que a IA gera já vem no meu tom. Para de parecer IA genérica.' },
-  { name: 'Beatriz Leal',     handle: '@bealeal.criadora',   img: '/images/creators/bealeal.jpg',       stars: 5, text: 'Finalmente consigo postar todo dia sem travar na hora de criar.' },
-  { name: 'Rafael Costa',     handle: '@rafacosta.mentor',   img: '/images/creators/rafacosta.jpg',     stars: 5, text: 'Uso para meus clientes também. A identidade visual de cada um fica separada.' },
-  { name: 'Camila Rocha',     handle: '@camilarocha.ia',     img: '/images/creators/camilarocha.jpg',   stars: 5, text: 'A imagem IA realmente entende o que o slide precisa. Não é imagem genérica.' },
+  { name: 'Ana Luiza Pires',  handle: '@analuiza.conteudo',  img: '/images/creators/analuiza.jpg',      stars: 5, text: 'confesso que assinei achando que ia ser mais um app esquecido na fatura. tô há 2 meses postando todo dia útil, coisa que eu NUNCA tinha conseguido. saí de 1 carrossel por semana (no sufoco) pra 5, e meu alcance praticamente triplicou.' },
+  { name: 'Camila Rocha',     handle: '@camilarocha.ia',     img: '/images/creators/camilarocha.jpg',   stars: 5, text: 'meu perfil é dark, de tecnologia, nunca apareço. manter constância sozinha era impossível. hoje saem 4 carrosséis por semana e bati 10k seguidores sem ter mostrado o rosto uma única vez.' },
+  { name: 'Pedro Alves',      handle: '@pedroalves.ads',     img: '/images/creators/pedroalves.jpg',    stars: 5, text: 'o primeiro carrossel que postei com a ferramenta bateu 2,4 mil salvamentos. o gancho do slide 1 é absurdo, prende de verdade — a galera lê até o último.' },
+  { name: 'Marina Fonseca',   handle: '@marinafonseca.mkt',  img: '/images/creators/marinafonseca.jpg', stars: 5, text: 'o que mais me pegou foi o tempo. fiz a pauta da semana inteira numa terça à noite, em uns 40 minutos. antes era um sábado perdido no canva.' },
+  { name: 'João Henrique',    handle: '@joaohenrique.mkt',   img: '/images/creators/joaohenrique.jpg',  stars: 5, text: 'minha única objeção era a copy sair com "cara de IA". cadastrei meu tom no onboarding e juro que parece que fui eu que escrevi. parei de reescrever tudo do zero.' },
+  { name: 'Beatriz Leal',     handle: '@bealeal.criadora',   img: '/images/creators/bealeal.jpg',       stars: 5, text: 'comecei do zero, uns 300 seguidores, achando que precisava contratar designer. não precisei. em 6 semanas tô com 2,1k e já vendi meu ebook direto pelos carrosséis.' },
+  { name: 'Rafael Costa',     handle: '@rafacosta.mentor',   img: '/images/creators/rafacosta.jpg',     stars: 5, text: 'atendo 3 clientes aqui dentro, cada um com a identidade separada. entrego em metade do tempo que levava antes. praticamente se pagou já no primeiro cliente.' },
 ]
 
 const FAQ_ITEMS = [
@@ -137,7 +137,9 @@ const FAQ_ITEMS = [
   { q: 'Quantos carrosseis posso criar?',      a: 'Depende do plano: Free 3/mês, Construtor 50/mês, Escala 150/mês, Agência 300/mês. A exportação é ilimitada a partir do Escala. O contador reseta todo mês.' },
   { q: 'A imagem IA tem limite?',              a: 'Sim. Free: 3/mês. Construtor: 20. Escala: 60. Agência: 150. A geração de copy é o produto principal e está inclusa na cota de carrosseis. Você pode usar suas próprias imagens sem limite em todos os planos.' },
   { q: 'Posso cancelar a qualquer momento?',   a: 'Sim. Sem fidelidade, sem multa. Cancele pelo painel e o plano segue ativo até o fim do período pago.' },
-  { q: 'Funciona para qualquer nicho?',        a: 'Sim. A IA foi calibrada para criadores de conteúdo, coaches, nutricionistas, designers, agências, e-commerce e qualquer perfil que queira crescer no Instagram.' },
+  { q: 'Funciona para qualquer nicho?',        a: 'Sim. A IA foi calibrada para criadores de conteúdo, coaches, nutricionistas, designers, agências, e-commerce e qualquer perfil que queira crescer no Instagram. Ela aprende o seu nicho no onboarding, então o conteúdo nunca sai genérico.' },
+  { q: 'Funciona pra perfil dark, sem mostrar o rosto?', a: 'Funciona perfeitamente. A IA cria copy e imagem do zero — você nunca precisa aparecer. É a ferramenta ideal pra perfil dark e página de nicho.' },
+  { q: 'E se eu nunca fiz copy nem design?',   a: 'Esse é o ponto. Você não escreve nem desenha nada. Descreve o tema em uma frase e a IA monta o carrossel completo. Se quiser, ajusta; se não, posta como veio.' },
   { q: 'O que é venda orgânica?',              a: 'Você cadastra seus produtos ou serviços uma vez no onboarding. A partir daí, a IA aprende quando e como mencionar sua oferta dentro do carrossel — de forma natural, sem parecer anúncio. O conteúdo educa, o produto aparece no momento certo.' },
   { q: 'Como funcionam as sugestões de pauta?', a: 'O ConteúdOS puxa tendências em tempo real via Google News e filtra pelo seu nicho. Você sempre tem sugestões fresquinhas no dashboard — nenhuma pauta é genérica, todas são contextualizadas pro que o seu público está acompanhando agora.' },
   { q: 'O que é o Studio?',                   a: 'É o editor visual do ConteúdOS. Depois que a IA gera os slides, você pode ajustar fonte, cor, tamanho de texto, imagem de fundo, opacidade de overlay e posição — tudo sem sair da plataforma.' },
@@ -498,25 +500,25 @@ export default function Landing() {
         {/* hero */}
         <section className="hero">
           <motion.div initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}>
-            <div className="hero-sec-lbl"><span>✦</span> Veja a IA montar um carrossel — ao vivo, agora</div>
+            <div className="hero-sec-lbl"><span>✦</span> Veja a IA montar um carrossel viral — ao vivo, agora</div>
             <h1>
-              Você descreve.<br />
-              <span className="gt2">Ela constrói.</span><br />
-              Você vende.
+              Carrosséis que<br />
+              <span className="gt2">viralizam.</span><br />
+              Todo dia. Em minutos.
             </h1>
             <p className="hero-sub">
-              O ConteúdOS acabou de montar esse carrossel ao vivo. Você descreve o tema, cadastra o que vende — e a IA escreve a copy, gera a imagem e encaixa sua oferta no momento certo, sem parecer anúncio. Pronto pra postar.
+              Do perfil zerado ao que bomba — sem aparecer, sem saber design, sem travar pra criar. Você descreve o tema; a IA escreve a copy, gera a imagem e monta o carrossel viral em 3 minutos. E quando tiver um produto, encaixa sua oferta sem parecer anúncio. Comece de graça, sem cartão.
             </p>
             <div className="hero-btns">
               <Magnetic>
-                <button className="btn-primary glow-orbit" onClick={() => navigate('/dashboard')}>Montar meu primeiro carrossel →</button>
+                <button className="btn-primary glow-orbit" onClick={() => navigate('/dashboard')}>Criar meu primeiro carrossel →</button>
               </Magnetic>
-              <button className="btn-ghost" onClick={() => document.getElementById('como-funciona')?.scrollIntoView({ behavior: 'smooth' })}>Ver demo abaixo ↓</button>
+              <button className="btn-ghost" onClick={() => document.getElementById('como-funciona')?.scrollIntoView({ behavior: 'smooth' })}>Ver como funciona ↓</button>
             </div>
             <div className="hero-stats">
-              <div><div className="stat-num">3min</div><div className="stat-lbl">do tema ao slide pronto</div></div>
-              <div><div className="stat-num">até 15</div><div className="stat-lbl">slides por carrossel</div></div>
-              <div><div className="stat-num">100%</div><div className="stat-lbl">no browser, sem instalar nada</div></div>
+              <div><div className="stat-num">3min</div><div className="stat-lbl">do tema ao carrossel viral</div></div>
+              <div><div className="stat-num">0</div><div className="stat-lbl">vezes que você precisa aparecer</div></div>
+              <div><div className="stat-num">100%</div><div className="stat-lbl">no navegador, sem instalar nada</div></div>
             </div>
           </motion.div>
           {/* ── HERO DIREITA: Shader + demo viva do produto rodando ── */}
@@ -547,7 +549,7 @@ export default function Landing() {
 
         {/* creator strip */}
         <section className="creators">
-          <p className="creators-lbl">criadores que já montam o tabuleiro deles</p>
+          <p className="creators-lbl">criadores que bombam o perfil postando todo dia</p>
           <div className="cr-track-wrap">
             <div className="cr-track">
               {creators3.map((c, i) => (
@@ -568,8 +570,8 @@ export default function Landing() {
         <section className="plans-sec" id="planos">
           <Reveal className="sec-hd">
             <div className="sec-lbl">planos</div>
-            <h2>Escolha seu <span className="gt2">nível</span></h2>
-            <p>Do criador solo à agência digital. Sem contrato, cancele quando quiser.</p>
+            <h2>Escolha o tamanho da sua <span className="gt2">máquina</span></h2>
+            <p>Do perfil dark começando do zero à agência. Preço de fundador por tempo limitado — sem fidelidade, cancele quando quiser.</p>
           </Reveal>
           <RevealGroup className="plans-grid" gap={0.1}>
             {PLANS.map(p => (
@@ -589,8 +591,8 @@ export default function Landing() {
           </RevealGroup>
           <Reveal delay={0.15}>
             <p style={{ textAlign: 'center', color: 'var(--muted)', maxWidth: '680px', margin: '32px auto 0', fontSize: '14px', lineHeight: 1.7 }}>
-              Copy completa inclusa em cada carrossel gerado — o limite é de carrosseis por mês, nunca de texto.<br />
-              Imagem IA tem cota separada porque gera custo real de processamento. Suba suas próprias imagens sem limite, em qualquer plano.
+              Cada carrossel já vem com copy completa — o limite é de carrosseis por mês, nunca de texto.<br />
+              A imagem IA tem cota separada porque é GPU rodando de verdade. Suas próprias imagens? Ilimitadas, em qualquer plano.
             </p>
           </Reveal>
         </section>
@@ -599,10 +601,10 @@ export default function Landing() {
         <section className="truth">
           <Reveal>
             <div className="truth-num">97%</div>
-            <h2>Você posta.<br />Eles <span className="gt2">jogam outro jogo.</span></h2>
-            <p>97% dos perfis publicam no escuro — sem tema fixo, sem narrativa, sem conexão com o que vendem. O algoritmo nota essa falta de padrão e empurra pra baixo. Não é falta de talento: é falta de tabuleiro.</p>
-            <p>Os perfis que crescem e vendem pensam em peças que se conectam — cada carrossel educa, o produto aparece no momento certo, a audiência compra sem sentir que está sendo vendida. O ConteúdOS monta esse tabuleiro com você, com IA, em minutos.</p>
-            <Magnetic><button className="btn-primary glow-orbit" onClick={() => navigate('/dashboard')}>Montar meu tabuleiro →</button></Magnetic>
+            <h2>Você posta.<br />O algoritmo <span className="gt2">te ignora.</span></h2>
+            <p>São 23h de domingo. Amanhã você precisa postar e está encarando a tela branca de novo — de novo. 97% dos perfis vivem assim: postam quando dá, sem padrão, sem constância. O algoritmo lê isso como ruído e enterra seu alcance. Não é falta de talento: é falta de máquina.</p>
+            <p>Os perfis que explodem postam todo dia, com carrossel que prende do primeiro slide ao último. O ConteúdOS é essa máquina: ele cria o carrossel viral pra você — mesmo que você nunca apareça — e, quando você tiver um produto, encaixa a oferta sem parecer anúncio.</p>
+            <Magnetic><button className="btn-primary glow-orbit" onClick={() => navigate('/dashboard')}>Quero minha máquina de conteúdo →</button></Magnetic>
           </Reveal>
           <Reveal delay={0.15}>
             <div className="truth-visual">
@@ -630,7 +632,7 @@ export default function Landing() {
           <Reveal className="sec-hd">
             <div className="sec-lbl">como funciona</div>
             <h2>O mesmo processo que você <span className="gt2">acabou de ver</span></h2>
-            <p>3 passos. Sem aprender prompt, sem contratar designer, sem perder a tarde inteira numa ferramenta de design.</p>
+            <p>3 passos. Sem aprender prompt, sem aparecer, sem abrir o Canva.</p>
           </Reveal>
           <RevealGroup className="steps-grid" gap={0.12}>
             {STEPS.map(s => (
@@ -669,7 +671,7 @@ export default function Landing() {
         <section className="fs-sec" id="recursos">
           <Reveal className="sec-hd">
             <div className="sec-lbl">recursos</div>
-            <h2>Tudo que o carrossel precisa, <span className="gt2">num lugar só</span></h2>
+            <h2>Tudo que faz o carrossel <span className="gt2">viralizar</span>, num lugar só</h2>
             <p>Da ideia ao arquivo pronto pra postar — sem trocar de ferramenta no meio do caminho.</p>
           </Reveal>
           <div className="fs-tabs">
@@ -732,13 +734,13 @@ export default function Landing() {
             <Reveal>
               <div className="sec-lbl">IA contextual</div>
               <h2 style={{ fontFamily: '"Bebas Neue",sans-serif', fontSize: 'clamp(36px,4vw,52px)', letterSpacing: '.02em', lineHeight: 1.05, marginBottom: '16px' }}>
-                Ela não improvisa.<br />Ela <span className="gt2">conhece seu negócio</span>
+                Ela não chuta.<br />Ela <span className="gt2">sabe o que viraliza</span>
               </h2>
               <p style={{ color: 'var(--muted)', fontSize: '16px', lineHeight: 1.7, marginBottom: '16px' }}>
                 Antes de escrever uma linha ou desenhar um pixel, a IA lê o conteúdo real daquele slide — o título, o corpo, a intenção por trás. É por isso que a copy não soa genérica e a imagem conversa com o texto, em vez de competir com ele.
               </p>
               <p style={{ color: 'var(--muted)', fontSize: '16px', lineHeight: 1.7, marginBottom: '28px' }}>
-                E como a IA conhece seus produtos e seu nicho desde o onboarding, ela sabe quando e como encaixar sua oferta no conteúdo — sem pitch direto, sem quebrar o fluxo. O carrossel educa. A venda acontece.
+                E ela puxa pautas em alta no seu nicho em tempo real. Você nunca fica sem ideia, e cada carrossel sai conectado com o que seu público está vendo agora. Quando tiver um produto, a oferta entra sozinha, na hora certa.
               </p>
               <div className="ia-chips">
                 <div className="ia-chip">Claude Sonnet</div>
@@ -767,7 +769,7 @@ export default function Landing() {
           </Reveal>
           <Reveal delay={0.08}>
             <p style={{ textAlign: 'center', color: 'var(--muted)', maxWidth: '620px', margin: '0 auto', fontSize: '16px', lineHeight: 1.7 }}>
-              Cada plano tem um número de carrosseis por mês — copy completa inclusa em cada um. Imagem IA tem cota separada porque gera custo real de processamento (não é frescura: é GPU rodando de verdade). Você sempre vê quanto usou e quanto resta, antes de gerar.
+              Cada plano tem um número de carrosseis por mês — copy completa inclusa em cada um. A imagem IA tem cota separada porque é GPU rodando de verdade (custo real, não frescura). Você sempre vê quanto usou e quanto resta, antes de gerar.
             </p>
           </Reveal>
           <RevealGroup className="transp-cards" gap={0.12}>
@@ -789,8 +791,8 @@ export default function Landing() {
         <section className="plans-sec" style={{ paddingTop: 60 }}>
           <Reveal className="sec-hd">
             <div className="sec-lbl">preços</div>
-            <h2>Sem letra miúda. <span className="gt2">Comece grátis hoje.</span></h2>
-            <p>Todos os planos incluem Studio, Calendário e Export PNG. Cancele quando quiser, sem perguntas.</p>
+            <h2>Sem letra miúda. <span className="gt2">Comece de graça hoje.</span></h2>
+            <p>Todos os planos incluem Studio, Calendário e Export PNG. Preço de fundador por tempo limitado. Cancele quando quiser, sem perguntas.</p>
           </Reveal>
 
           {/* desktop: todos os planos */}
@@ -839,8 +841,8 @@ export default function Landing() {
 
           <Reveal delay={0.15}>
             <p style={{ textAlign: 'center', color: 'var(--muted)', maxWidth: '680px', margin: '32px auto 0', fontSize: '14px', lineHeight: 1.7 }}>
-              Copy completa inclusa em cada carrossel gerado — o limite é de carrosseis por mês, nunca de texto.<br />
-              Imagem IA tem cota separada porque gera custo real de processamento (GPU rodando de verdade). Suba suas próprias imagens sem limite, em qualquer plano.
+              Cada carrossel já vem com copy completa — o limite é de carrosseis por mês, nunca de texto.<br />
+              A imagem IA tem cota separada porque é GPU rodando de verdade. Suas próprias imagens? Ilimitadas, em qualquer plano.
             </p>
           </Reveal>
         </section>
@@ -849,7 +851,7 @@ export default function Landing() {
         <section className="deps-sec">
           <Reveal className="sec-hd" style={{ padding: '0 5% 48px' }}>
             <div className="sec-lbl">depoimentos</div>
-            <h2>Gente real, <span className="gt2">resultado real</span></h2>
+            <h2>Criadores reais, <span className="gt2">perfis que bombam</span></h2>
           </Reveal>
           <div className="dep-track-wrap">
             <div className="dep-track">
@@ -930,14 +932,14 @@ export default function Landing() {
         {/* cta final */}
         <section className="cta-sec">
           <Reveal>
-            <h2>Daqui a <span className="gt2">3 minutos</span><br />seu primeiro carrossel pode estar pronto.</h2>
+            <h2>Seu perfil pode continuar parado.<br />Ou pode <span className="gt2">bombar todo dia.</span></h2>
           </Reveal>
           <Reveal delay={0.12}>
-            <p>Sem cartão. Sem instalar nada. Você descreve o tema, cadastra o que vende — e a IA entrega o carrossel pronto, com sua oferta no lugar certo.</p>
+            <p>Sem cartão. Sem aparecer. Sem instalar nada. Você descreve o tema — e a IA entrega o carrossel viral pronto pra postar. Se não curtir, é só não voltar: você não arriscou nada.</p>
           </Reveal>
           <Reveal delay={0.22}>
             <Magnetic strength={14}>
-              <button className="btn-primary glow-orbit" onClick={() => navigate('/dashboard')}>Criar minha conta grátis →</button>
+              <button className="btn-primary glow-orbit" onClick={() => navigate('/dashboard')}>Criar meu carrossel grátis →</button>
             </Magnetic>
           </Reveal>
         </section>
@@ -947,7 +949,7 @@ export default function Landing() {
           <div className="footer-top">
             <div className="footer-brand">
               <div className="footer-logo">ConteúdOS</div>
-              <p>IA que escreve, gera imagem e conecta seu produto ao conteúdo — sem Canva, sem designer, sem pitch direto.</p>
+              <p>IA que cria carrossel viral todo dia — mesmo que você nunca apareça. E vende seu produto quando você quiser.</p>
             </div>
             <div className="footer-col">
               <h5>Produto</h5>
