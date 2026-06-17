@@ -29,23 +29,21 @@ type AppState = 'input' | 'generating' | 'preview'
 type CarouselTemplate = _CarouselTemplate
 
 const TEMPLATES: { key: CarouselTemplate; icon: string; name: string; desc: string }[] = [
-  { key: 'impacto',      icon: '⚡', name: 'Impacto',      desc: 'Título gigante, texto mínimo. Para ganchos que param o scroll.' },
-  { key: 'editorial',    icon: '📰', name: 'Editorial',    desc: 'Equilíbrio entre título e corpo. Para conteúdo educativo denso.' },
-  { key: 'lista',        icon: '📋', name: 'Lista',        desc: 'Cada slide = 1 item de lista numerado. Para "X coisas que..."' },
-  { key: 'citacao',      icon: '💬', name: 'Citação',      desc: 'Frase de impacto centralizada. Para reflexões e provocações.' },
-  { key: 'storytelling', icon: '🎬', name: 'Bastidor',     desc: 'Narrativa sequencial. Para contar histórias e casos reais.' },
-  { key: 'dados',        icon: '📊', name: 'Dado Chocante',desc: 'Número ou estatística em destaque. Para dados que impressionam.' },
-  { key: 'gancho',       icon: '⚡', name: 'Gancho',       desc: 'Badge + barra accent + CTA pill. Para ganchos fortes.' },
+  { key: 'impacto',   icon: '⚡', name: 'Impacto',       desc: 'Título gigante, texto mínimo. Para ganchos que param o scroll.' },
+  { key: 'editorial', icon: '📰', name: 'Editorial',     desc: 'Tipografia clean sem bg. Para conteúdo educativo e reflexivo.' },
+  { key: 'lista',     icon: '📋', name: 'Lista',         desc: 'Cada slide = 1 item numerado. Para "X razões", "X erros" e rankings.' },
+  { key: 'dados',     icon: '📊', name: 'Dado Chocante', desc: 'Número ou estatística em destaque. Para dados que impressionam.' },
+  { key: 'gancho',    icon: '🎯', name: 'Gancho',        desc: 'Badge + barra lateral + CTA pill. Para hooks fortes com chamada clara.' },
+  { key: 'moldura',   icon: '🖼', name: 'Moldura',       desc: 'Imagem em frame no centro. Texto acima e abaixo. Para provas e bastidores.' },
 ]
 
 const TEMPLATE_GRADIENTS: Record<string, string> = {
-  impacto:      'linear-gradient(135deg,#060d14,#1a2a3a)',
-  editorial:    'linear-gradient(135deg,#0a0a0a,#1a1a14)',
-  lista:        'linear-gradient(135deg,#060d14,#0f1e0f)',
-  citacao:      'linear-gradient(135deg,#0a0814,#1a0f2e)',
-  storytelling: 'linear-gradient(135deg,#080614,#14060a)',
-  dados:        'linear-gradient(135deg,#0a0a0a,#141408)',
-  gancho:       'linear-gradient(135deg,#0a0a08,#1a1a08)',
+  impacto:   'linear-gradient(135deg,#060d14,#1a2a3a)',
+  editorial: 'linear-gradient(135deg,#0a0a0a,#1a1a14)',
+  lista:     'linear-gradient(135deg,#060d14,#0f1e0f)',
+  dados:     'linear-gradient(135deg,#0a0a0a,#141408)',
+  gancho:    'linear-gradient(135deg,#0a0a08,#1a1a08)',
+  moldura:   'linear-gradient(135deg,#0a0a0a,#0f0a14)',
 }
 
 // ─── Mock slides ──────────────────────────────────────────────
@@ -3466,8 +3464,8 @@ function StatePreview({
             }}>
               {/* Instagram post mockup */}
               <div style={{
-                width: isMobile ? '100%' : 470,
-                maxWidth: isMobile ? 470 : undefined,
+                width: isMobile ? '100%' : 500,
+                maxWidth: isMobile ? 500 : undefined,
                 flexShrink: 0,
                 backgroundColor: '#0a0a0a',
                 border: '1px solid rgba(255,255,255,0.1)',
