@@ -76,23 +76,23 @@ const CREATORS = [
 const PLANS = [
   {
     name: 'Free', price: 'R$0', period: '', pop: false,
-    features: ['3 carrosseis com copy/mês', '3 imagens IA/mês', '7 slides máx.', 'Exportação com marca d\'água'],
+    features: ['3 carrosseis com copy/mês', '3 imagens IA/mês', '7 slides máx.', 'Upload de imagens ilimitado', 'Exportação com marca d\'água'],
     cta: 'Começar de graça',
   },
   {
     name: 'Construtor', price: 'R$47', period: '/mês', pop: false,
-    features: ['50 carrosseis com copy/mês', '100 exportações/mês', '20 imagens IA/mês', '10 slides máx.', 'Sem marca d\'água', 'Suba suas próprias imagens'],
+    features: ['50 carrosseis com copy/mês', 'Exportação ilimitada', '20 imagens IA/mês', '10 slides máx.', 'Sem marca d\'água', 'Upload de imagens ilimitado'],
     cta: 'Quero postar todo dia',
   },
   {
     name: 'Escala', price: 'R$97', period: '/mês', pop: true,
-    features: ['150 carrosseis com copy/mês', 'Exportação ilimitada', '60 imagens IA/mês', '15 slides máx.', 'Voice profile da sua marca', 'Todos os templates'],
+    features: ['150 carrosseis com copy/mês', 'Exportação ilimitada', '60 imagens IA/mês', '15 slides máx.', 'Sem marca d\'água', 'Voice profile (IA aprende seu tom)', 'Todos os templates'],
     cta: 'Quero viralizar',
   },
   {
     name: 'Agência', price: 'R$197', period: '/mês', pop: false,
-    features: ['300 carrosseis com copy/mês', 'Exportação ilimitada', '150 imagens IA/mês', '15 slides máx.', '3 perfis de cliente separados', 'Tudo do Escala incluído'],
-    cta: 'Falar com o time',
+    features: ['300 carrosseis com copy/mês', 'Exportação ilimitada', '150 imagens IA/mês', '15 slides máx.', 'Sem marca d\'água', '3 perfis de cliente separados', 'Tudo do Escala incluído'],
+    cta: 'Criar conta Agência →',
   },
 ]
 
@@ -103,12 +103,21 @@ const STEPS = [
 ]
 
 const FEATURES = [
-  { id: 'copy',      label: 'Copy IA',    img: '/images/recursos/copy-ia.jpg',      title: 'Copy feita pra viralizar',       body: 'Cada slide recebe gancho, desenvolvimento e CTA pensados pra prender o scroll e fazer salvar. A IA escreve a narrativa — você não precisa saber copywriting.' },
-  { id: 'image',     label: 'Imagem IA',  img: '/images/recursos/imagem-ia.jpg',    title: 'Visual de estúdio, sem estúdio',       body: 'O fal.ai Flux 2 Pro gera o fundo de cada slide com base no conteúdo real. Parece produção profissional — não imagem genérica de banco.' },
-  { id: 'studio',    label: 'Studio',     img: '/images/recursos/studio.jpg',       title: 'Você no controle final',       body: 'Ajuste fonte, cor, tamanho, imagem e posição de cada slide. O que a IA entrega é o ponto de partida; você dá o acabamento.' },
-  { id: 'calendar',  label: 'Calendário', img: '/images/recursos/calendario.jpg',   title: 'Poste todo dia sem pensar',    body: 'Veja todos os carrosseis no calendário e organize semanas inteiras de uma vez. Constância é o que o algoritmo recompensa.' },
-  { id: 'export',    label: 'Export',     img: '/images/recursos/export.jpg',       title: 'Pronto pra postar agora',            body: 'Exporte cada slide como PNG em alta resolução (1080×1350). Ideal para Stories e Feed. Sem marca d\'água nos planos pagos.' },
-  { id: 'venda',     label: 'Venda Orgânica', img: '/images/recursos/venda-organica.jpg', title: 'E quando quiser vender, ela vende', body: 'Cadastre o que você oferece uma vez. A IA encaixa sua oferta dentro do conteúdo, sem pitch, sem parecer anúncio. Primeiro você cresce. Depois, vende.' },
+  { id: 'copy',      label: 'Copy IA',    img: '/images/recursos/copy-ia.jpg',      title: 'Copy feita pra viralizar',       body: 'Cada slide recebe gancho, desenvolvimento e CTA calibrados pra prender o scroll e fazer salvar. O Voice Profile aprende seu tom no onboarding — o carrossel sai no seu jeito de escrever, não com cara de robô. Você não escreve nada; parece que você escreveu tudo.' },
+  { id: 'image',     label: 'Imagem IA',  img: '/images/recursos/imagem-ia.jpg',    title: 'Visual que nasce do conteúdo',  body: 'A imagem é gerada a partir do conteúdo real daquele slide — título, corpo e intenção. O visual conversa com o texto em vez de competir com ele. Nenhuma outra ferramenta faz isso: aqui, a imagem nasce do contexto, não de palavra-chave genérica.' },
+  { id: 'studio',    label: 'Studio',     img: '/images/recursos/studio.jpg',       title: 'Você no controle final',       body: 'Ajuste fonte, cor, tamanho, imagem e posição de cada slide. O que a IA entrega é o ponto de partida — você dá o acabamento sem sair da plataforma. Sem Canva, sem trocar de aba.' },
+  { id: 'calendar',  label: 'Calendário', img: '/images/recursos/calendario.jpg',   title: 'Poste todo dia sem pensar',    body: 'Veja todos os carrosseis no calendário e organize semanas inteiras de uma vez. Constância é o que o algoritmo recompensa — e aqui você tem o estoque pra isso.' },
+  { id: 'export',    label: 'Export',     img: '/images/recursos/export.jpg',       title: 'Pronto pra postar agora',      body: 'Exporte cada slide como PNG 1080×1350 — o formato exato do feed e stories do Instagram. Nos planos pagos, sem marca d\'água. Baixa e posta: é isso.' },
+  { id: 'venda',     label: 'Venda Orgânica', img: '/images/recursos/venda-organica.jpg', title: 'E quando quiser vender, ela vende', body: 'Cadastre seu produto uma vez. A IA sabe quando e como encaixar sua oferta dentro do carrossel — de forma natural, sem pitch, sem parecer anúncio. Nenhuma outra ferramenta de carrossel faz isso integrado: aqui, o conteúdo educa e a venda acontece no mesmo post.' },
+]
+
+const DIFERENCIAIS = [
+  { icon: '🎯', title: 'Imagem do conteúdo real', body: 'O visual é gerado a partir do texto de cada slide — título, intenção, tom. Conversa com a copy em vez de competir. Nenhum banco de imagem ou gerador genérico faz isso.' },
+  { icon: '🔄', title: 'Um fluxo, do zero ao PNG', body: 'Copy + imagem contextual + studio + export no mesmo lugar. Sem abrir Canva. Sem juntar peças de ferramentas diferentes. Do tema ao arquivo pronto em 3 minutos.' },
+  { icon: '🎙️', title: 'IA que aprende sua voz', body: 'O Voice Profile lê seu onboarding e calibra o tom. O carrossel sai no seu jeito de escrever — você para de reescrever copy com cara de robô.' },
+  { icon: '💰', title: 'Vende sem parecer anúncio', body: 'Cadastre seu produto uma vez. A IA encaixa a oferta no conteúdo de forma natural, sem pitch separado. Orgânico que educa e converte — integrado, não como campanha à parte.' },
+  { icon: '🌑', title: 'Perfil dark nativo', body: 'Você nunca precisa aparecer. Copy e imagem nascem do zero — ideal para página de nicho, perfil educacional, ou qualquer conta sem rosto.' },
+  { icon: '📡', title: 'Pautas do seu nicho, hoje', body: 'Tendências em tempo real filtradas pelo seu nicho. Você nunca olha pra tela branca sem saber o que postar — sempre tem conteúdo novo e relevante esperando.' },
 ]
 
 const SLIDE_IMAGES = [
@@ -390,6 +399,17 @@ body{background:var(--bg);color:var(--text);font-family:'Space Grotesk','DM Sans
 .glow-orbit:hover::before{opacity:1;animation:rotateAng 2.4s linear infinite;}
 @keyframes rotateAng{to{--ang:360deg}}
 
+/* diferenciais */
+.diff-sec{padding:100px 5%;background:linear-gradient(135deg,rgba(0,212,255,.02),rgba(99,102,241,.03));border-top:1px solid rgba(0,212,255,.06);border-bottom:1px solid rgba(0,212,255,.06);}
+.diff-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:1000px;margin:0 auto;}
+.diff-card{background:var(--bg2);border:1px solid rgba(255,255,255,.06);border-radius:20px;padding:28px 24px;transition:border-color .3s,transform .3s;}
+.diff-card:hover{border-color:rgba(0,212,255,.2);transform:translateY(-4px);}
+.diff-icon{font-size:26px;margin-bottom:14px;}
+.diff-card h4{font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:.04em;margin-bottom:8px;color:var(--text);}
+.diff-card p{color:var(--muted);font-size:14px;line-height:1.65;}
+@media(max-width:768px){.diff-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:480px){.diff-grid{grid-template-columns:1fr;}}
+
 /* 21dev placeholder */
 @keyframes gridPan{0%{background-position:0 0}100%{background-position:48px 48px}}
 @keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 8px #00D4FF}50%{opacity:.5;box-shadow:0 0 16px #00D4FF}}
@@ -472,7 +492,7 @@ export default function Landing() {
 
         {/* nav */}
         <nav className={`nav${scrolled ? ' scrolled' : ''}`}>
-          <div className="nav-logo">ConteúdOS</div>
+          <img src="/logo.png" alt="ConteúdOS" className="nav-logo" style={{ height: 32, borderRadius: 6, display: 'block' }} />
           <ul className="nav-links">
             <li><a href="#planos">Planos</a></li>
             <li><a href="#como-funciona">Como funciona</a></li>
@@ -507,7 +527,7 @@ export default function Landing() {
               Todo dia. Em minutos.
             </h1>
             <p className="hero-sub">
-              Do perfil zerado ao que bomba — sem aparecer, sem saber design, sem travar pra criar. Você descreve o tema; a IA escreve a copy, gera a imagem e monta o carrossel viral em 3 minutos. E quando tiver um produto, encaixa sua oferta sem parecer anúncio. Comece de graça, sem cartão.
+              Do perfil zerado ao que bomba — sem aparecer, sem saber design, sem travar pra criar. Você descreve o tema; a IA escreve a copy e gera a imagem de cada slide a partir do conteúdo real — não de banco genérico. Copy + imagem contextual + export num fluxo só: nenhuma outra ferramenta entrega isso integrado. Comece de graça, sem cartão.
             </p>
             <div className="hero-btns">
               <Magnetic>
@@ -625,6 +645,24 @@ export default function Landing() {
               </motion.div>
             </div>
           </Reveal>
+        </section>
+
+        {/* diferenciais únicos */}
+        <section className="diff-sec">
+          <Reveal className="sec-hd">
+            <div className="sec-lbl">por que o ConteúdOS</div>
+            <h2>O que a concorrência <span className="gt2">não entrega junto</span></h2>
+            <p>Copy isolada não basta. Imagem genérica não basta. Aqui tudo funciona integrado — do zero ao PNG, sem sair da plataforma.</p>
+          </Reveal>
+          <RevealGroup className="diff-grid" gap={0.08}>
+            {DIFERENCIAIS.map(d => (
+              <motion.div className="diff-card" key={d.title} variants={fadeUp} whileHover={{ y: -4, borderColor: 'rgba(0,212,255,.25)' }} transition={{ duration: 0.3 }}>
+                <div className="diff-icon">{d.icon}</div>
+                <h4>{d.title}</h4>
+                <p>{d.body}</p>
+              </motion.div>
+            ))}
+          </RevealGroup>
         </section>
 
         {/* como funciona */}
@@ -948,7 +986,7 @@ export default function Landing() {
         <footer className="footer">
           <div className="footer-top">
             <div className="footer-brand">
-              <div className="footer-logo">ConteúdOS</div>
+              <img src="/logo.png" alt="ConteúdOS" className="footer-logo" style={{ height: 36, borderRadius: 6, display: 'block', marginBottom: 12 }} />
               <p>IA que cria carrossel viral todo dia — mesmo que você nunca apareça. E vende seu produto quando você quiser.</p>
             </div>
             <div className="footer-col">

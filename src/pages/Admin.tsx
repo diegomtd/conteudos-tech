@@ -1271,9 +1271,7 @@ export default function Admin() {
       }}>
         {/* Logo */}
         <div style={{ padding: '24px 20px', borderBottom: `1px solid ${B}` }}>
-          <span style={{ fontFamily: ffd, fontSize: 22, color: T, letterSpacing: 1 }}>
-            Conteúd<span style={{ color: A }}>OS</span>
-          </span>
+          <img src="/logo.png" alt="ConteúdOS" style={{ height: 28, borderRadius: 6 }} />
           <span style={{
             display: 'block', fontFamily: ff, fontSize: 11, color: ERR,
             textTransform: 'uppercase', letterSpacing: 2, marginTop: 2,

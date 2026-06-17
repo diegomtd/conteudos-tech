@@ -175,9 +175,7 @@ export default function Preview() {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '0 24px', height: 56, flexShrink: 0,
       }}>
-        <span style={{ fontFamily: ffd, fontSize: 20, color: T, letterSpacing: 1 }}>
-          Conteúd<span style={{ color: A }}>OS</span>
-        </span>
+        <img src="/logo.png" alt="ConteúdOS" style={{ height: 26, borderRadius: 6 }} />
         <a
           href="https://conteudos.tech"
           target="_blank"

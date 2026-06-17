@@ -180,9 +180,7 @@ function Header({
       padding: '0 16px', gap: 0,
     }}>
       {/* Logo */}
-      <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 18, color: '#F5F5F5', letterSpacing: 1, marginRight: 20, flexShrink: 0 }}>
-        Conteúd<span style={{ color: A }}>OS</span>
-      </span>
+      <img src="/logo.png" alt="ConteúdOS" style={{ height: 28, marginRight: 20, flexShrink: 0, borderRadius: 6 }} />
       {/* Nav */}
       <button onClick={() => navigate('/dashboard')} style={{ height: 44, padding: '0 14px', background: 'none', border: 'none', color: 'rgba(255,255,255,0.45)', fontFamily: 'DM Sans, sans-serif', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, borderBottom: '2px solid transparent', transition: 'color 0.15s' }}
         onMouseEnter={e => e.currentTarget.style.color = '#F5F5F5'}

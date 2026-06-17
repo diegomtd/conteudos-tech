@@ -221,9 +221,7 @@ function Sidebar({
       }}>
         {open ? (
           <>
-            <span style={{ fontFamily: ffd, fontSize: 22, color: T, letterSpacing: 1 }}>
-              Conteúd <span style={{ color: A }}>OS</span>
-            </span>
+            <img src="/logo.png" alt="ConteúdOS" style={{ height: 28, borderRadius: 6 }} />
             <button onClick={onToggle} style={{ background: 'none', border: 'none', cursor: 'pointer', color: M, padding: 4, display: 'flex', alignItems: 'center' }}>
               <ChevronLeft size={18} />
             </button>

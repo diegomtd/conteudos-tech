@@ -20,8 +20,8 @@ export function useAuth() {
       setSession(session)
       setUser(session?.user ?? null)
 
-      if (event === 'SIGNED_OUT') {
-        navigate('/auth')
+      if (event === 'SIGNED_OUT' && window.location.pathname !== '/auth') {
+        navigate('/auth', { replace: true })
       }
 
       if (event === 'TOKEN_REFRESHED') {

@@ -751,12 +751,10 @@ export default function Settings() {
 
   useEffect(() => {
     if (!user) return
-    supabase.auth.refreshSession().then(() => {
-      supabase.from('profiles').select('*').eq('user_id', user.id).single().then(({ data, error }) => {
-        if (data) setProfile(data as Profile)
-        if (error) console.error('Settings profile fetch:', error.message)
-        setLoading(false)
-      })
+    supabase.from('profiles').select('*').eq('user_id', user.id).single().then(({ data, error }) => {
+      if (data) setProfile(data as Profile)
+      if (error) console.error('Settings profile fetch:', error.message)
+      setLoading(false)
     })
   }, [user])
 
@@ -790,9 +788,7 @@ export default function Settings() {
             style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: M, fontFamily: ff, fontSize: 13, padding: 0, marginBottom: 16 }}>
             <ChevronLeft size={14} /> Dashboard
           </button>
-          <span style={{ fontFamily: ffd, fontSize: 20, color: T, letterSpacing: 1 }}>
-            Conteúd<span style={{ color: A }}>OS</span>
-          </span>
+          <img src="/logo.png" alt="ConteúdOS" style={{ height: 26, borderRadius: 6 }} />
         </div>
 
         {/* Tabs */}

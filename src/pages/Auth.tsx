@@ -146,12 +146,7 @@ export default function Auth() {
       >
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 6 }}>
-          <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 40, color: '#E8F4FF', letterSpacing: 2 }}>
-            Conteúd
-          </span>
-          <span style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 40, color: ACCENT, letterSpacing: 2 }}>
-            OS
-          </span>
+          <img src="/logo.png" alt="ConteúdOS" style={{ width: 180, display: 'block', margin: '0 auto', borderRadius: 10 }} />
         </div>
 
         {/* Subtítulo */}
