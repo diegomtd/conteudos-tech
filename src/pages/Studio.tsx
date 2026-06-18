@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Copy, Download, Grid, Image, Link, Maximize2, Plus, Share2, Sparkles, Trash2, X, Zap } from 'lucide-react'
+import { Camera, Check, ChevronDown, ChevronLeft, ChevronRight, Copy, Download, Grid, Image, Maximize2, Plus, Share2, Sparkles, Trash2, X, Zap } from 'lucide-react'
 import { toast } from 'sonner'
 import { toPng, getFontEmbedCSS } from 'html-to-image'
 import JSZip from 'jszip'
@@ -337,11 +337,10 @@ function StateInput({
   const [tom, setTom]             = useState('Provocador')
   const [cta, setCta]             = useState('Engajamento')
   const [selectedTpl, setSelectedTpl] = useState<CarouselTemplate>('impacto')
-  const [viralOpen, setViralOpen] = useState(false)
   const [viralInput, setViralInput] = useState('')
   const [analyzingViral, setAnalyzingViral] = useState(false)
   const [loadingTopics, setLoadingTopics] = useState(false)
-  const [suggestedTopics, setSuggestedTopics] = useState<Array<{titulo: string; hook: string; tipo: string}>>([])
+  const [suggestedTopics, setSuggestedTopics] = useState<Array<{titulo: string; hook: string; tipo: string; contexto?: string}>>([])
   const [iaInstructions, setIaInstructions] = useState('')
   const [showIaInstructions, setShowIaInstructions] = useState(false)
   const [viralResult, setViralResult] = useState<{
@@ -352,6 +351,12 @@ function StateInput({
   const [useKit, setUseKit] = useState(() => localStorage.getItem('conteudos_use_visual_kit') !== 'false')
   const [produtos, setProdutos] = useState<ProdutoItem[]>([])
   const [produtoId, setProdutoId] = useState<string>('')
+
+  // Fase 1 — UI da central de ideias
+  const [origem, setOrigem] = useState<'paravoce' | 'modelar' | 'dozero'>('paravoce')
+  const [buscaTema, setBuscaTema] = useState('')
+  const [filtroTipo, setFiltroTipo] = useState<string | null>(null)
+  const [showAjustes, setShowAjustes] = useState(false)
 
   const { user } = useAuth()
 
@@ -394,6 +399,16 @@ function StateInput({
 
   const canCreate = tema.trim().length >= 4
 
+  const topicosFiltrados = suggestedTopics.filter(t => {
+    if (filtroTipo && t.tipo !== filtroTipo) return false
+    if (buscaTema.trim()) {
+      const q = buscaTema.trim().toLowerCase()
+      const alvo = `${t.titulo} ${t.hook ?? ''} ${t.contexto ?? ''}`.toLowerCase()
+      if (!alvo.includes(q)) return false
+    }
+    return true
+  })
+
   const SLIDE_TOOLTIPS: Record<number, string> = {
     5:  '5 slides — formato direto: capa, 3 pontos e CTA',
     7:  '7 slides — fluxo completo com capa, desenvolvimento e CTA',
@@ -407,6 +422,16 @@ function StateInput({
     Educativo:  'Ensina de forma clara e didática — ideal para autoridade',
     Bastidor:   'Mostra o processo por trás — humaniza e cria conexão',
     Humor:      'Usa leveza e ironia para comunicar — viraliza rápido',
+  }
+  const TIPO_COLORS: Record<string, string> = {
+    curiosity_gap: CYAN, pattern_interrupt: A,
+    identity_mirror: '#A855F7', revelation: '#F59E0B',
+    social_proof: '#10B981', urgency: '#EF4444',
+  }
+  const TIPO_LABELS: Record<string, string> = {
+    curiosity_gap: 'Curiosidade', pattern_interrupt: 'Quebra padrão',
+    identity_mirror: 'Espelho', revelation: 'Revelação',
+    social_proof: 'Prova social', urgency: 'Urgência',
   }
 
   const applyViral = async () => {
@@ -522,32 +547,37 @@ function StateInput({
         }}
       />
 
-      {/* Botão "Analisar conteúdo viral" */}
-      <div>
-        <button
-          onClick={() => setViralOpen(v => !v)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            background: viralOpen ? 'rgba(0,180,216,0.15)' : 'rgba(0,180,216,0.08)',
-            border: '1px solid #00B4D8',
-            borderRadius: viralOpen ? '10px 10px 0 0' : 10,
-            color: CYAN, fontFamily: ff, fontSize: 13,
-            padding: '10px 16px', cursor: 'pointer',
-            transition: 'background 0.15s',
-            width: '100%',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,180,216,0.18)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = viralOpen ? 'rgba(0,180,216,0.15)' : 'rgba(0,180,216,0.08)' }}
-        >
-          <Link size={15} />
-          Analisar conteúdo do YouTube ou Instagram
-          <span style={{ marginLeft: 'auto', opacity: 0.7, fontSize: 12 }}>
-            {viralOpen ? '▲' : '▼'}
-          </span>
-        </button>
+      {/* Seletor de origem — Fase 1 */}
+      <div style={{ display: 'flex', gap: 6, padding: 4, background: '#0D0D0D', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12 }}>
+        {([
+          { key: 'paravoce', label: '✦ Pra você' },
+          { key: 'modelar',  label: '🔗 Modelar' },
+          { key: 'dozero',   label: '✎ Do zero' },
+        ] as const).map(({ key, label }) => {
+          const sel = origem === key
+          return (
+            <button
+              key={key}
+              onClick={() => { setOrigem(key); if (key === 'dozero') document.getElementById('tema-input')?.focus() }}
+              style={{
+                flex: 1, padding: '9px 0', borderRadius: 9, cursor: 'pointer',
+                border: 'none', fontFamily: ff, fontSize: 13, letterSpacing: 0.5,
+                background: sel ? 'rgba(200,255,0,0.10)' : 'transparent',
+                color: sel ? A : M,
+                boxShadow: sel ? '0 0 12px rgba(200,255,0,0.10)' : 'none',
+                transition: 'background 0.15s, color 0.15s',
+              }}
+            >
+              {label}
+            </button>
+          )
+        })}
+      </div>
 
+      {/* Painel "Modelar" — controlado pela aba de origem */}
+      <div>
         <AnimatePresence>
-          {viralOpen && (
+          {origem === 'modelar' && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
@@ -557,8 +587,8 @@ function StateInput({
             >
               <div style={{
                 background: 'rgba(0,180,216,0.05)',
-                border: '1px solid #00B4D8', borderTop: 'none',
-                borderRadius: '0 0 10px 10px',
+                border: '1px solid #00B4D8',
+                borderRadius: 10,
                 padding: '20px 18px',
                 display: 'flex', flexDirection: 'column', gap: 14,
               }}>
@@ -633,6 +663,135 @@ function StateInput({
         </AnimatePresence>
       </div>
 
+      {/* Sugestões de temas — aba "Pra você" */}
+      {origem === 'paravoce' && (
+        <div>
+          {suggestedTopics.length === 0 && (
+            <button
+              onClick={() => handleSuggestTopics()}
+              disabled={loadingTopics}
+              style={{
+                background: loadingTopics ? 'rgba(200,255,0,0.03)' : 'rgba(200,255,0,0.05)',
+                border: `1px dashed rgba(200,255,0,0.22)`,
+                borderRadius: 10, padding: '14px 18px',
+                cursor: loadingTopics ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', gap: 12,
+                transition: 'all 0.2s', width: '100%', textAlign: 'left',
+              }}
+              onMouseEnter={e => { if (!loadingTopics) { e.currentTarget.style.borderColor = 'rgba(200,255,0,0.45)'; e.currentTarget.style.background = 'rgba(200,255,0,0.07)' } }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(200,255,0,0.22)'; e.currentTarget.style.background = 'rgba(200,255,0,0.05)' }}
+            >
+              {loadingTopics ? (
+                <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid rgba(200,255,0,0.15)', borderTop: `2px solid ${A}`, animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
+              ) : (
+                <span style={{ fontSize: 16, lineHeight: 1, flexShrink: 0 }}>✦</span>
+              )}
+              <div>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: A, fontFamily: ff }}>
+                  {loadingTopics ? 'Gerando ideias para o seu nicho...' : 'Não sei o que criar hoje'}
+                </p>
+                {!loadingTopics && (
+                  <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(200,255,0,0.5)', fontFamily: ff }}>
+                    A IA gera pautas baseadas no seu perfil e no que já postou
+                  </p>
+                )}
+              </div>
+            </button>
+          )}
+
+          {suggestedTopics.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <input
+                type="text"
+                value={buscaTema}
+                onChange={e => setBuscaTema(e.target.value)}
+                placeholder="Buscar nas pautas..."
+                style={{
+                  width: '100%', boxSizing: 'border-box', height: 38, padding: '0 12px',
+                  background: '#0D0D0D', border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 8, color: T, fontFamily: ff, fontSize: 13, outline: 'none',
+                }}
+                onFocus={e => { e.target.style.borderColor = 'rgba(200,255,0,0.4)' }}
+                onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.08)' }}
+              />
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {(['curiosity_gap','pattern_interrupt','identity_mirror','revelation','social_proof','urgency'] as const).map(tp => {
+                  const sel = filtroTipo === tp
+                  const c = TIPO_COLORS[tp]
+                  return (
+                    <button
+                      key={tp}
+                      onClick={() => setFiltroTipo(sel ? null : tp)}
+                      style={{
+                        fontSize: 9, fontFamily: ff, fontWeight: 700, letterSpacing: 0.5,
+                        textTransform: 'uppercase', borderRadius: 99, padding: '4px 9px',
+                        cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s',
+                        color: sel ? '#000' : c,
+                        background: sel ? c : `${c}11`,
+                        border: `1px solid ${c}${sel ? '' : '33'}`,
+                      }}
+                    >
+                      {TIPO_LABELS[tp]}
+                    </button>
+                  )
+                })}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 10, color: M, fontFamily: ff, textTransform: 'uppercase', letterSpacing: 1 }}>
+                  Pautas para o seu nicho — clique para usar
+                </span>
+                <button
+                  onClick={() => { setSuggestedTopics([]); setBuscaTema(''); setFiltroTipo(null); handleSuggestTopics(true) }}
+                  style={{ background: 'none', border: 'none', color: M, fontFamily: ff, fontSize: 11, cursor: 'pointer', padding: '2px 6px', borderRadius: 4, transition: 'color 0.15s' }}
+                  onMouseEnter={e => e.currentTarget.style.color = T}
+                  onMouseLeave={e => e.currentTarget.style.color = M}
+                >↺ Gerar novas</button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                {topicosFiltrados.slice(0, 10).map((t, i) => {
+                  const tipoColor = TIPO_COLORS[t.tipo] ?? M
+                  return (
+                    <div key={i} style={{ backgroundColor: '#0D0D0D', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 9, padding: '10px 14px', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'flex-start', gap: 10 }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(200,255,0,0.22)'; e.currentTarget.style.background = 'rgba(200,255,0,0.02)' }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; e.currentTarget.style.background = '#0D0D0D' }}
+                      onClick={() => { setTema(t.titulo); setSuggestedTopics([]) }}
+                    >
+                      <span style={{ fontSize: 10, color: M, fontFamily: ff, fontWeight: 700, paddingTop: 2, flexShrink: 0, width: 14 }}>{i + 1}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ margin: 0, fontSize: 12, color: T, fontFamily: ff, lineHeight: 1.4 }}>{t.titulo}</p>
+                        {t.hook && t.hook !== t.titulo && (
+                          <p style={{ margin: '3px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.35)', fontFamily: ff, fontStyle: 'italic' }}>
+                            Capa: "{t.hook}"
+                          </p>
+                        )}
+                      </div>
+                      {t.tipo && (
+                        <span style={{ flexShrink: 0, fontSize: 9, color: tipoColor, border: `1px solid ${tipoColor}22`, backgroundColor: `${tipoColor}11`, fontFamily: ff, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', borderRadius: 99, padding: '3px 7px', whiteSpace: 'nowrap', alignSelf: 'center' }}>
+                          {TIPO_LABELS[t.tipo] ?? t.tipo}
+                        </span>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+              {topicosFiltrados.length === 0 && (
+                <p style={{ fontSize: 12, color: M, fontFamily: ff, margin: '4px 0', textAlign: 'center' }}>
+                  Nenhuma pauta corresponde.{' '}
+                  <button
+                    onClick={() => { setBuscaTema(''); setFiltroTipo(null) }}
+                    style={{ background: 'none', border: 'none', color: A, fontFamily: ff, fontSize: 12, cursor: 'pointer', textDecoration: 'underline' }}
+                  >limpar filtros</button>
+                </p>
+              )}
+              <button onClick={() => { setSuggestedTopics([]); setBuscaTema(''); setFiltroTipo(null) }} style={{ background: 'none', border: 'none', color: M, fontFamily: ff, fontSize: 11, cursor: 'pointer', padding: '2px 0', textAlign: 'left', transition: 'color 0.15s', alignSelf: 'flex-start' }}
+                onMouseEnter={e => e.currentTarget.style.color = T}
+                onMouseLeave={e => e.currentTarget.style.color = M}
+              >← Fechar sugestões</button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Instruções para a IA */}
       <div>
         <button
@@ -684,8 +843,37 @@ function StateInput({
         </AnimatePresence>
       </div>
 
-      {/* ─── Configuração ─────────────────────────────────────── */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      {/* ─── Ajustes (recolhível) ───────────────────────────── */}
+      <div>
+        <button
+          onClick={() => setShowAjustes(v => !v)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+            background: 'none',
+            border: `1px solid ${showAjustes ? 'rgba(255,255,255,0.15)' : B}`,
+            borderRadius: showAjustes ? '8px 8px 0 0' : 8,
+            color: showAjustes ? T : M, fontFamily: ff, fontSize: 13,
+            padding: '9px 14px', cursor: 'pointer',
+            transition: 'border-color 0.15s, color 0.15s',
+          }}
+        >
+          ⚙ Ajustes (template, tom, slides, CTA)
+          <span style={{ marginLeft: 'auto', opacity: 0.6, fontSize: 11 }}>{showAjustes ? '▲' : '▼'}</span>
+        </button>
+        <AnimatePresence>
+          {showAjustes && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2, ease: 'easeInOut' }}
+              style={{ overflow: 'hidden' }}
+            >
+              <div style={{
+                display: 'flex', flexDirection: 'column', gap: 18,
+                border: '1px solid rgba(255,255,255,0.08)', borderTop: 'none',
+                borderRadius: '0 0 8px 8px', padding: '16px 14px',
+              }}>
 
         {/* TEMPLATE — 3 colunas compactas */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -810,98 +998,10 @@ function StateInput({
           </div>
         )}
 
-        {/* Sugestões de temas */}
-        <div>
-          {suggestedTopics.length === 0 && (
-            <button
-              onClick={() => handleSuggestTopics()}
-              disabled={loadingTopics}
-              style={{
-                background: loadingTopics ? 'rgba(200,255,0,0.03)' : 'rgba(200,255,0,0.05)',
-                border: `1px dashed rgba(200,255,0,0.22)`,
-                borderRadius: 10, padding: '14px 18px',
-                cursor: loadingTopics ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center', gap: 12,
-                transition: 'all 0.2s', width: '100%', textAlign: 'left',
-              }}
-              onMouseEnter={e => { if (!loadingTopics) { e.currentTarget.style.borderColor = 'rgba(200,255,0,0.45)'; e.currentTarget.style.background = 'rgba(200,255,0,0.07)' } }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(200,255,0,0.22)'; e.currentTarget.style.background = 'rgba(200,255,0,0.05)' }}
-            >
-              {loadingTopics ? (
-                <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid rgba(200,255,0,0.15)', borderTop: `2px solid ${A}`, animation: 'spin 0.7s linear infinite', flexShrink: 0 }} />
-              ) : (
-                <span style={{ fontSize: 16, lineHeight: 1, flexShrink: 0 }}>✦</span>
-              )}
-              <div>
-                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: A, fontFamily: ff }}>
-                  {loadingTopics ? 'Gerando ideias para o seu nicho...' : 'Não sei o que criar hoje'}
-                </p>
-                {!loadingTopics && (
-                  <p style={{ margin: '2px 0 0', fontSize: 11, color: 'rgba(200,255,0,0.5)', fontFamily: ff }}>
-                    A IA gera pautas baseadas no seu perfil e no que já postou
-                  </p>
-                )}
               </div>
-            </button>
+            </motion.div>
           )}
-
-          {suggestedTopics.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 10, color: M, fontFamily: ff, textTransform: 'uppercase', letterSpacing: 1 }}>
-                  Pautas para o seu nicho — clique para usar
-                </span>
-                <button
-                  onClick={() => { setSuggestedTopics([]); handleSuggestTopics() }}
-                  style={{ background: 'none', border: 'none', color: M, fontFamily: ff, fontSize: 11, cursor: 'pointer', padding: '2px 6px', borderRadius: 4, transition: 'color 0.15s' }}
-                  onMouseEnter={e => e.currentTarget.style.color = T}
-                  onMouseLeave={e => e.currentTarget.style.color = M}
-                >↺ Gerar novas</button>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                {suggestedTopics.slice(0, 10).map((t, i) => {
-                  const TIPO_COLORS: Record<string, string> = {
-                    curiosity_gap: CYAN, pattern_interrupt: A,
-                    identity_mirror: '#A855F7', revelation: '#F59E0B',
-                    social_proof: '#10B981', urgency: '#EF4444',
-                  }
-                  const TIPO_LABELS: Record<string, string> = {
-                    curiosity_gap: 'Curiosidade', pattern_interrupt: 'Quebra padrão',
-                    identity_mirror: 'Espelho', revelation: 'Revelação',
-                    social_proof: 'Prova social', urgency: 'Urgência',
-                  }
-                  const tipoColor = TIPO_COLORS[t.tipo] ?? M
-                  return (
-                    <div key={i} style={{ backgroundColor: '#0D0D0D', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 9, padding: '10px 14px', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'flex-start', gap: 10 }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(200,255,0,0.22)'; e.currentTarget.style.background = 'rgba(200,255,0,0.02)' }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; e.currentTarget.style.background = '#0D0D0D' }}
-                      onClick={() => { setTema(t.titulo); setSuggestedTopics([]) }}
-                    >
-                      <span style={{ fontSize: 10, color: M, fontFamily: ff, fontWeight: 700, paddingTop: 2, flexShrink: 0, width: 14 }}>{i + 1}</span>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ margin: 0, fontSize: 12, color: T, fontFamily: ff, lineHeight: 1.4 }}>{t.titulo}</p>
-                        {t.hook && t.hook !== t.titulo && (
-                          <p style={{ margin: '3px 0 0', fontSize: 10, color: 'rgba(255,255,255,0.35)', fontFamily: ff, fontStyle: 'italic' }}>
-                            Capa: "{t.hook}"
-                          </p>
-                        )}
-                      </div>
-                      {t.tipo && (
-                        <span style={{ flexShrink: 0, fontSize: 9, color: tipoColor, border: `1px solid ${tipoColor}22`, backgroundColor: `${tipoColor}11`, fontFamily: ff, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', borderRadius: 99, padding: '3px 7px', whiteSpace: 'nowrap', alignSelf: 'center' }}>
-                          {TIPO_LABELS[t.tipo] ?? t.tipo}
-                        </span>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-              <button onClick={() => setSuggestedTopics([])} style={{ background: 'none', border: 'none', color: M, fontFamily: ff, fontSize: 11, cursor: 'pointer', padding: '2px 0', textAlign: 'left', transition: 'color 0.15s', alignSelf: 'flex-start' }}
-                onMouseEnter={e => e.currentTarget.style.color = T}
-                onMouseLeave={e => e.currentTarget.style.color = M}
-              >← Fechar sugestões</button>
-            </div>
-          )}
-        </div>
+        </AnimatePresence>
       </div>
 
 
