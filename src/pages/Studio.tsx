@@ -346,6 +346,7 @@ function StateInput({
   const [viralResult, setViralResult] = useState<{
     tema?: string; hacks?: string[]; sugestao?: string
     resumo?: string; manual?: boolean
+    estrutura?: Array<{ papel: string; resumo: string }>
   } | null>(null)
   const [kitData, setKitData] = useState<{ cor: string; fonte: string } | null>(null)
   const [useKit, setUseKit] = useState(() => localStorage.getItem('conteudos_use_visual_kit') !== 'false')
@@ -466,6 +467,21 @@ function StateInput({
     } finally {
       setAnalyzingViral(false)
     }
+  }
+
+  const gerarComEstrutura = () => {
+    const est = viralResult?.estrutura
+    if (!est || est.length === 0) return
+    const n = Math.min(est.length, maxSlidesAllowed)
+    const estruturaInstr = `Siga EXATAMENTE esta estrutura de ${n} slides (um slide por item):\n` +
+      est.slice(0, n).map((s, i) => `${i + 1}. [${s.papel}] ${s.resumo}`).join('\n')
+    const instructions = [iaInstructions.trim(), estruturaInstr].filter(Boolean).join('\n\n')
+    onGenerate({
+      tema, slides: n, tom, cta, template_id: selectedTpl, instructions,
+      ...(cta === 'Venda de produto' && produtos.length > 0
+        ? { produto_selecionado: produtos.find(p => p.id === produtoId) ?? produtos[0] }
+        : {}),
+    })
   }
 
   const handleSuggestTopics = async (force = false) => {
@@ -650,6 +666,35 @@ function StateInput({
                     <p style={{ fontSize: 11, color: '#C8FF00', fontFamily: ff, margin: 0 }}>
                       Tema sugerido aplicado automaticamente
                     </p>
+
+                    {viralResult.estrutura && viralResult.estrutura.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+                        <span style={{ fontSize: 10, color: M, fontFamily: ff, textTransform: 'uppercase', letterSpacing: 1 }}>
+                          Estrutura do viral — {viralResult.estrutura.length} slides
+                        </span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          {viralResult.estrutura.map((s, i) => (
+                            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                              <span style={{ flexShrink: 0, fontSize: 9, fontFamily: ff, fontWeight: 700, color: CYAN, border: `1px solid rgba(99,102,241,0.4)`, borderRadius: 4, padding: '1px 5px', textTransform: 'uppercase', letterSpacing: 0.4, whiteSpace: 'nowrap' }}>
+                                {i + 1}. {s.papel}
+                              </span>
+                              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', fontFamily: ff, lineHeight: 1.4 }}>{s.resumo}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <button
+                          onClick={gerarComEstrutura}
+                          style={{
+                            marginTop: 4, width: '100%', background: A, color: '#000', border: 'none',
+                            borderRadius: 8, padding: '11px 0', cursor: 'pointer',
+                            fontFamily: ff, fontSize: 15, letterSpacing: 1,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                          }}
+                        >
+                          ✨ Gerar seguindo essa estrutura
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
                 {viralResult?.manual && (
