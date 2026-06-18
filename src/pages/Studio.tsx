@@ -1749,16 +1749,14 @@ function StatePreview({
   }
 
   const updateSlideFormat = (id: string, updates: Partial<Slide>) => {
-    setSlides((prev) => {
-      const before = prev.find(s => s.id === id)
-      if (before) {
-        const idx = slideHistoryIdx[id] ?? 0
-        const stack = (slideHistory[id] ?? []).slice(0, idx)
-        setSlideHistory(h => ({ ...h, [id]: [...stack, before].slice(-20) }))
-        setSlideHistoryIdx(hi => ({ ...hi, [id]: Math.min(idx + 1, 20) }))
-      }
-      return prev.map((s) => s.id === id ? { ...s, ...updates } : s)
-    })
+    const before = slides.find(s => s.id === id)
+    if (before) {
+      const idx = slideHistoryIdx[id] ?? 0
+      const stack = (slideHistory[id] ?? []).slice(0, idx)
+      setSlideHistory(h => ({ ...h, [id]: [...stack, before].slice(-20) }))
+      setSlideHistoryIdx(hi => ({ ...hi, [id]: Math.min(idx + 1, 20) }))
+    }
+    setSlides((prev) => prev.map((s) => s.id === id ? { ...s, ...updates } : s))
     const db = buildDbPayload(updates)
     if (Object.keys(db).length > 0) saveFormatToDb(id, db)
   }
@@ -1791,16 +1789,14 @@ function StatePreview({
     setSlides(p => p.map(s => s.id === id ? { ...s, vignetteIntensity: val } : s))
 
   const updateTitleStyle = (id: string, updates: Partial<Slide>) => {
-    setSlides(p => {
-      const prev = p.find(s => s.id === id)
-      if (prev) {
-        const idx = slideHistoryIdx[id] ?? 0
-        const stack = (slideHistory[id] ?? []).slice(0, idx)
-        setSlideHistory(h => ({ ...h, [id]: [...stack, prev].slice(-20) }))
-        setSlideHistoryIdx(hi => ({ ...hi, [id]: Math.min(idx + 1, 20) }))
-      }
-      return p.map(s => s.id === id ? { ...s, ...updates } : s)
-    })
+    const prev = slides.find(s => s.id === id)
+    if (prev) {
+      const idx = slideHistoryIdx[id] ?? 0
+      const stack = (slideHistory[id] ?? []).slice(0, idx)
+      setSlideHistory(h => ({ ...h, [id]: [...stack, prev].slice(-20) }))
+      setSlideHistoryIdx(hi => ({ ...hi, [id]: Math.min(idx + 1, 20) }))
+    }
+    setSlides(p => p.map(s => s.id === id ? { ...s, ...updates } : s))
     const db = buildDbPayload(updates)
     if (Object.keys(db).length > 0) saveFormatToDb(id, db)
   }
@@ -3092,7 +3088,7 @@ function StatePreview({
                   </div>
                 </div>
               )}
-              <div style={{ opacity: selectedEl ? 1 : 0.4, pointerEvents: selectedEl ? 'auto' : 'none', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {/* Pares de fonte — sistema MyPostFlow */}
                 <div>
                   <span style={{ fontSize: 9, color: M, fontFamily: ff, display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Par de fontes</span>
@@ -4467,8 +4463,8 @@ export default function Studio() {
 
       <div style={{
         flex: 1, paddingTop: 56,
-        display: 'flex', alignItems: appState !== 'preview' ? 'flex-start' : 'stretch',
-        justifyContent: appState !== 'preview' ? 'center' : 'stretch',
+        display: 'flex', flexDirection: 'column',
+        alignItems: appState !== 'preview' ? 'center' : 'stretch',
         overflowY: appState !== 'preview' ? 'auto' : 'hidden',
         overflowX: 'hidden',
       }}>
@@ -4497,7 +4493,7 @@ export default function Studio() {
             </div>
           )}
           {!loadingCarousel && appState === 'preview' && (
-            <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ width: '100%', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
               <StatePreview
                 onBack={() => setAppState('input')}
                 initialSlides={previewSlides.length > 0 ? previewSlides : MOCK_SLIDES}
