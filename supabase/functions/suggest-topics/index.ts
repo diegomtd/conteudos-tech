@@ -75,8 +75,8 @@ serve(async (req) => {
     )
     if (authErr || !user) return json({ error: 'unauthorized' }, 401)
 
-    // ── Busca perfil + últimos temas + notícias em paralelo ──────────
-    const [profileRes, recentRes] = await Promise.all([
+    // ── Busca perfil + últimos temas + avaliados em paralelo ──────────
+    const [profileRes, recentRes, perfRes] = await Promise.all([
       supabase
         .from('profiles')
         .select('niche, voice_profile')
@@ -88,6 +88,13 @@ serve(async (req) => {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(15),
+      supabase
+        .from('carousels')
+        .select('tema, tom, performance')
+        .eq('user_id', user.id)
+        .in('performance', ['alto', 'baixo'])
+        .order('created_at', { ascending: false })
+        .limit(20),
     ])
 
     const profile = profileRes.data ?? {}
@@ -132,6 +139,19 @@ serve(async (req) => {
       ? `\nTEMAS JÁ POSTADOS (não repetir nem ângulo similar):\n${temasRecentes.map((t, i) => `${i + 1}. "${t}"`).join('\n')}`
       : ''
 
+    // ── Aprendizado de performance: vencedores e fracos avaliados ─────
+    const avaliados = ((perfRes.data ?? []) as Array<{ tema: string; tom: string | null; performance: string }>)
+    const vencedores = avaliados.filter((c) => c.performance === 'alto' && c.tema)
+    const fracos = avaliados.filter((c) => c.performance === 'baixo' && c.tema)
+
+    const vencedoresCtx = vencedores.length
+      ? `\nTEMAS QUE BOMBARAM (este criador validou que funcionam — replique o ÂNGULO, o gatilho psicológico e o tom que fizeram engajar, NUNCA o tema literal):\n${vencedores.map((c, i) => `${i + 1}. "${c.tema}"${c.tom ? ` (tom: ${c.tom})` : ''}`).join('\n')}\nAo distribuir os 6 tipos nas 10 ideias, favoreça o padrão psicológico desses vencedores.`
+      : ''
+
+    const fracosCtx = fracos.length
+      ? `\nTEMAS QUE NÃO ENGAJARAM (evite repetir esse ângulo, gatilho e tom — não funcionaram com esta audiência):\n${fracos.map((c, i) => `${i + 1}. "${c.tema}"${c.tom ? ` (tom: ${c.tom})` : ''}`).join('\n')}`
+      : ''
+
     // ── System prompt ─────────────────────────────────────────────────
     const systemPrompt = `Você é um estrategista de conteúdo sênior especializado em carrosseis virais para Instagram no Brasil. Você conhece profundamente psicologia de feed, gatilhos de salvamento e o que faz um criador de nicho crescer organicamente.
 
@@ -153,6 +173,8 @@ ${angulosCtx}
 ${conectarCtx}
 ${newsCtx}
 ${memoriaCtx}
+${vencedoresCtx}
+${fracosCtx}
 
 REGRAS OBRIGATÓRIAS:
 1. ESPECIFICIDADE: Cada ideia precisa de ângulo específico e situacional. RUIM: "Os erros de iniciantes". BOM: "O erro silencioso que fez meu negócio estagnar por 8 meses sem eu perceber".

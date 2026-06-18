@@ -11,6 +11,8 @@ import type { Profile, ScheduledPost, WeeklyTrend } from '@/types'
 
 type SuggestedTema = { titulo: string; hook: string; contexto?: string; tipo: string }
 
+type Performance = 'alto' | 'medio' | 'baixo'
+
 type CarouselWithCover = {
   id: string
   tema: string
@@ -18,6 +20,7 @@ type CarouselWithCover = {
   created_at: string
   exported_at?: string | null
   collection_id?: string | null
+  performance?: Performance | null
   carousel_slides?: { bg_image_url: string | null; position: number }[] | null
 }
 
@@ -36,6 +39,64 @@ const M   = 'rgba(242,242,247,0.4)'
 const B   = 'rgba(255,255,255,0.07)'
 const ff  = 'DM Sans, sans-serif'
 const ffd = '"Bebas Neue", sans-serif'
+
+const PERF_META: Record<Performance, { label: string; color: string }> = {
+  alto:  { label: 'Bombou', color: '#10B981' },
+  medio: { label: 'Ok',     color: '#F59E0B' },
+  baixo: { label: 'Fraco',  color: '#EF4444' },
+}
+
+// Controle de avaliação de desempenho reutilizado nas views lista e grade
+function PerformanceControl({ value, onChange, onImage = false }: { value: Performance | null; onChange: (v: Performance | null) => void; onImage?: boolean }) {
+  const [open, setOpen] = useState(false)
+  const meta = value ? PERF_META[value] : null
+  return (
+    <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        title={meta ? `Desempenho: ${meta.label}` : 'Avaliar desempenho'}
+        style={{
+          width: 26, height: 26, borderRadius: 5, cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: meta ? `${meta.color}1A` : (onImage ? 'rgba(0,0,0,0.55)' : 'none'),
+          border: `1px solid ${meta ? `${meta.color}66` : (onImage ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.07)')}`,
+          backdropFilter: onImage ? 'blur(8px)' : undefined,
+        }}
+      >
+        {meta
+          ? <span style={{ width: 9, height: 9, borderRadius: '50%', background: meta.color, boxShadow: `0 0 6px ${meta.color}` }} />
+          : <span style={{ color: M, fontSize: 13, lineHeight: 1 }}>★</span>}
+      </button>
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 99 }} />
+          <div style={{ position: 'absolute', right: 0, top: 30, zIndex: 100, background: '#1A1A1A', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: 6, minWidth: 150, boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
+            {(['alto', 'medio', 'baixo'] as const).map(k => {
+              const m = PERF_META[k]; const sel = value === k
+              return (
+                <div key={k} onClick={() => { onChange(k); setOpen(false) }}
+                  style={{ padding: '6px 10px', borderRadius: 6, cursor: 'pointer', fontFamily: ff, fontSize: 12, color: sel ? m.color : T, display: 'flex', alignItems: 'center', gap: 8, background: sel ? `${m.color}15` : 'transparent' }}
+                  onMouseEnter={e => e.currentTarget.style.background = `${m.color}15`}
+                  onMouseLeave={e => e.currentTarget.style.background = sel ? `${m.color}15` : 'transparent'}
+                >
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, flexShrink: 0 }} />
+                  {m.label}
+                </div>
+              )
+            })}
+            {value && (
+              <div onClick={() => { onChange(null); setOpen(false) }}
+                style={{ padding: '6px 10px', borderRadius: 6, cursor: 'pointer', fontFamily: ff, fontSize: 12, color: M, borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: 2 }}
+                onMouseEnter={e => e.currentTarget.style.color = T}
+                onMouseLeave={e => e.currentTarget.style.color = M}
+              >Limpar avaliação</div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
 
 const GLASS = {
   background: 'rgba(255,255,255,0.04)',
@@ -405,7 +466,7 @@ export default function Dashboard() {
         supabase.from('profiles').select('*').eq('user_id', user!.id).single(),
         supabase.from('carousels').select('*', { count: 'exact', head: true }).eq('user_id', user!.id),
         supabase.from('carousels')
-          .select('id, tema, status, created_at, exported_at, collection_id, carousel_slides(bg_image_url, position)')
+          .select('id, tema, status, created_at, exported_at, collection_id, performance, carousel_slides(bg_image_url, position)')
           .eq('user_id', user!.id)
           .order('created_at', { ascending: false })
           .limit(50),
@@ -530,6 +591,16 @@ export default function Dashboard() {
       ))
     }
     setMoveMenuId(null)
+  }
+
+  const handleSetPerformance = async (id: string, value: Performance | null) => {
+    const prev = recentCarousels
+    setRecentCarousels(rs => rs.map(c => c.id === id ? { ...c, performance: value } : c))
+    const { error } = await supabase.from('carousels').update({ performance: value }).eq('id', id)
+    if (error) {
+      console.error('performance update failed', error)
+      setRecentCarousels(prev)
+    }
   }
 
   // ── Derived values ─────────────────────────────────────────────
@@ -1129,6 +1200,7 @@ export default function Dashboard() {
                       ) : (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                           <span style={{ fontFamily: ff, fontSize: 11, color: M }}>{relativeTime(c.created_at)}</span>
+                          <PerformanceControl value={c.performance ?? null} onChange={v => handleSetPerformance(c.id, v)} />
                           <button className="action-btn" onClick={e => { e.stopPropagation(); navigate(`/studio?tema=${encodeURIComponent(c.tema)}`) }}
                             title="Refazer com novo conteúdo"
                             style={{ opacity: 0, transition: 'opacity 0.15s', background: 'none', border: `1px solid rgba(255,255,255,0.07)`, borderRadius: 5, width: 26, height: 26, cursor: 'pointer', color: M, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1242,6 +1314,11 @@ export default function Dashboard() {
                               style={{ opacity: 0, transition: 'opacity 0.15s', width: 26, height: 26, borderRadius: 5, border: 'none', background: 'rgba(255,69,58,0.7)', backdropFilter: 'blur(8px)', color: '#fff', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               ✕
                             </button>
+                          </div>
+                        )}
+                        {!isConfirming && (
+                          <div style={{ position: 'absolute', top: 6, left: 6 }}>
+                            <PerformanceControl value={c.performance ?? null} onChange={v => handleSetPerformance(c.id, v)} onImage />
                           </div>
                         )}
                       </div>
