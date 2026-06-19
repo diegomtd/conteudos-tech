@@ -80,7 +80,6 @@ interface UsageLog {
 }
 
 interface ConfigRow {
-  id:       string
   category: string
   key:      string
   value:    string | null
@@ -968,28 +967,57 @@ function FinancialSection() {
 }
 
 // ─── Section: Configurações ───────────────────────────────────────
+// Mapa de labels legíveis por categoria__key (chaves = exatamente as do banco)
 const CONFIG_LABELS: Record<string, Record<string, string>> = {
-  cakto:    { url_construtor: 'URL Construtor', url_escala: 'URL Escala', url_agencia: 'URL Agência' },
-  telegram: { bot_token: 'Bot Token', admin_chat_id: 'Chat ID Admin' },
-  ia:       { text_model: 'Modelo de Texto', image_model: 'Modelo de Imagem', cost_per_1k_tokens: 'Custo por 1k tokens (R$)' },
-  geral:    { maintenance_mode: 'Modo manutenção (true/false)', site_url: 'URL do site' },
+  cakto:    {
+    url_construtor: 'URL Checkout — Construtor',
+    url_escala:     'URL Checkout — Escala',
+    url_agencia:    'URL Checkout — Agência',
+  },
+  telegram: {
+    telegram_bot_token:      'Bot Token',
+    telegram_notify_enabled: 'Notificações ativas (true/false)',
+  },
+  ia: {
+    anthropic_model:          'Modelo Claude (texto)',
+    fal_model:                'Modelo Fal.ai (imagem)',
+    cost_usd_per_input_token:  'Custo USD / token entrada',
+    cost_usd_per_output_token: 'Custo USD / token saída',
+    usd_brl_rate:              'Taxa câmbio USD → BRL',
+  },
+  geral: {
+    maintenance_mode: 'Modo manutenção (true/false)',
+    site_url:         'URL do site',
+  },
 }
 const CATEGORY_LABELS: Record<string, string> = {
   cakto: 'Cakto', telegram: 'Telegram', ia: 'IA', geral: 'Geral',
 }
 
+// Campos sensíveis mostram valor mascarado por padrão
+const SENSITIVE_PATTERN = /token|secret|api_key|password/i
+function isSensitive(key: string) { return SENSITIVE_PATTERN.test(key) }
+
+// Chave única por linha — a tabela usa (category, key) como PK composta
+function rowId(row: ConfigRow) { return `${row.category}__${row.key}` }
+
 function ConfigSection() {
-  const [configs, setConfigs] = useState<ConfigRow[]>([])
-  const [edits, setEdits] = useState<Record<string, string>>({})
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState<string | null>(null)
-  const [saved, setSaved] = useState<string | null>(null)
-  const [error, setError] = useState('')
+  const [configs,  setConfigs]  = useState<ConfigRow[]>([])
+  const [edits,    setEdits]    = useState<Record<string, string>>({})
+  const [revealed, setRevealed] = useState<Set<string>>(new Set())
+  const [loading,  setLoading]  = useState(true)
+  const [saving,   setSaving]   = useState<string | null>(null)
+  const [saved,    setSaved]    = useState<string | null>(null)
+  const [error,    setError]    = useState('')
 
   useEffect(() => {
     async function load() {
       setLoading(true)
-      const { data, error: err } = await supabase.from('system_config').select('*').order('category').order('key')
+      const { data, error: err } = await supabase
+        .from('system_config')
+        .select('category, key, value')
+        .order('category')
+        .order('key')
       setLoading(false)
       if (err) { setError(err.message); return }
       setConfigs(data ?? [])
@@ -998,16 +1026,30 @@ function ConfigSection() {
   }, [])
 
   async function save(row: ConfigRow) {
-    const newVal = edits[row.id] ?? row.value ?? ''
-    setSaving(row.id)
-    const { error: err } = await supabase.from('system_config').update({ value: newVal }).eq('id', row.id)
+    const id     = rowId(row)
+    const newVal = edits[id] ?? row.value ?? ''
+    setSaving(id)
+    const { error: err } = await supabase
+      .from('system_config')
+      .update({ value: newVal })
+      .eq('category', row.category)
+      .eq('key', row.key)
     setSaving(null)
     if (err) { setError(err.message); return }
-    setConfigs(prev => prev.map(c => c.id === row.id ? { ...c, value: newVal } : c))
-    delete edits[row.id]
-    setEdits({ ...edits })
-    setSaved(row.id)
+    setConfigs(prev => prev.map(c =>
+      c.category === row.category && c.key === row.key ? { ...c, value: newVal } : c
+    ))
+    setEdits(prev => { const next = { ...prev }; delete next[id]; return next })
+    setSaved(id)
     setTimeout(() => setSaved(null), 2000)
+  }
+
+  function toggleReveal(id: string) {
+    setRevealed(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
   }
 
   if (loading) return <Spinner />
@@ -1031,7 +1073,7 @@ function ConfigSection() {
       {Object.keys(grouped).length === 0 && (
         <div style={{ background: S, border: `1px solid ${B}`, borderRadius: 12, padding: '24px', textAlign: 'center' }}>
           <p style={{ fontFamily: ff, fontSize: 13, color: M, margin: 0 }}>
-            A tabela <code>system_config</code> não tem dados. Execute a migration 004 primeiro.
+            Nenhuma configuração encontrada no banco.
           </p>
         </div>
       )}
@@ -1045,37 +1087,75 @@ function ConfigSection() {
           </div>
           <div style={{ padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
             {rows.map(row => {
-              const label   = CONFIG_LABELS[category]?.[row.key] ?? row.key
-              const current = edits[row.id] ?? row.value ?? ''
-              const dirty   = edits[row.id] !== undefined && edits[row.id] !== row.value
+              const id        = rowId(row)
+              const label     = CONFIG_LABELS[category]?.[row.key] ?? row.key
+              const sensitive = isSensitive(row.key)
+              const isRevealed = revealed.has(id)
+              const current   = edits[id] ?? row.value ?? ''
+              const dirty     = edits[id] !== undefined && edits[id] !== (row.value ?? '')
+              const hasValue  = (row.value ?? '').length > 0
+
               return (
-                <div key={row.id} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <label style={{ fontFamily: ff, fontSize: 11, color: M, textTransform: 'uppercase', letterSpacing: 1 }}>
-                    {label}
-                  </label>
+                <div key={id} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <label style={{ fontFamily: ff, fontSize: 11, color: M, textTransform: 'uppercase', letterSpacing: 1 }}>
+                      {label}
+                    </label>
+                    {sensitive && hasValue && (
+                      <span style={{
+                        fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 3,
+                        background: 'rgba(200,255,0,0.1)', color: A, border: `1px solid ${A}40`,
+                        letterSpacing: 0.5,
+                      }}>
+                        CONFIGURADO
+                      </span>
+                    )}
+                  </div>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <input
-                      value={current}
-                      onChange={e => setEdits(prev => ({ ...prev, [row.id]: e.target.value }))}
+                      value={sensitive && !isRevealed && edits[id] === undefined
+                        ? (hasValue ? '••••••••••••••••' : '')
+                        : current}
+                      onFocus={() => sensitive && !isRevealed && toggleReveal(id)}
+                      onChange={e => setEdits(prev => ({ ...prev, [id]: e.target.value }))}
+                      placeholder={hasValue ? undefined : 'Não configurado'}
+                      type={sensitive && !isRevealed ? 'password' : 'text'}
                       style={{
-                        flex: 1, background: S2, border: `1px solid ${dirty ? A + '60' : B}`,
-                        borderRadius: 8, padding: '10px 12px', color: T, fontFamily: ff, fontSize: 13,
+                        flex: 1, background: S2,
+                        border: `1px solid ${dirty ? A + '80' : B}`,
+                        borderRadius: 8, padding: '10px 12px',
+                        color: T, fontFamily: ff, fontSize: 13,
+                        outline: 'none',
                       }}
                     />
+                    {sensitive && (
+                      <button
+                        onClick={() => toggleReveal(id)}
+                        title={isRevealed ? 'Ocultar' : 'Revelar'}
+                        style={{
+                          background: 'transparent', border: `1px solid ${B}`,
+                          borderRadius: 8, padding: '0 12px', color: M,
+                          cursor: 'pointer', fontSize: 13,
+                        }}
+                      >
+                        {isRevealed ? '🙈' : '👁'}
+                      </button>
+                    )}
                     <button
                       onClick={() => save(row)}
-                      disabled={!dirty || saving === row.id}
+                      disabled={!dirty || saving === id}
                       style={{
-                        background: dirty ? A : B, color: dirty ? '#000' : M2,
+                        background: dirty ? A : B2, color: dirty ? '#000' : M2,
                         border: 'none', borderRadius: 8, padding: '0 16px',
                         fontFamily: ffd, fontSize: 13, letterSpacing: 1,
-                        cursor: dirty && saving !== row.id ? 'pointer' : 'default',
+                        cursor: dirty && saving !== id ? 'pointer' : 'default',
                         transition: 'background 0.15s',
                         display: 'flex', alignItems: 'center', gap: 6,
+                        minWidth: 52,
                       }}
                     >
-                      {saving === row.id ? <Loader2 size={14} style={{ animation: 'spin 0.8s linear infinite' }} /> :
-                       saved === row.id  ? <Check size={14} /> : 'OK'}
+                      {saving === id ? <Loader2 size={14} style={{ animation: 'spin 0.8s linear infinite' }} /> :
+                       saved  === id ? <Check size={14} /> : 'OK'}
                     </button>
                   </div>
                 </div>
