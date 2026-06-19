@@ -3908,9 +3908,8 @@ function StatePreview({
           {/* ── Timeline view — slides lado a lado com scroll horizontal ── */}
           {viewMode === 'timeline' && (
             <div style={{
-              flex: 1,
               overflowX: 'auto',
-              overflowY: 'auto',
+              overflowY: 'hidden',
               display: 'flex',
               alignItems: 'flex-start',
               gap: 16,
@@ -4463,8 +4462,8 @@ export default function Studio() {
 
       <div style={{
         flex: 1, paddingTop: 56,
-        display: 'flex', flexDirection: 'column',
-        alignItems: appState !== 'preview' ? 'center' : 'stretch',
+        display: 'flex', alignItems: appState !== 'preview' ? 'flex-start' : 'stretch',
+        justifyContent: appState !== 'preview' ? 'center' : 'stretch',
         overflowY: appState !== 'preview' ? 'auto' : 'hidden',
         overflowX: 'hidden',
       }}>
@@ -4493,7 +4492,7 @@ export default function Studio() {
             </div>
           )}
           {!loadingCarousel && appState === 'preview' && (
-            <div style={{ width: '100%', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
               <StatePreview
                 onBack={() => setAppState('input')}
                 initialSlides={previewSlides.length > 0 ? previewSlides : MOCK_SLIDES}
