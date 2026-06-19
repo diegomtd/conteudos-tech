@@ -244,8 +244,6 @@ function Sidebar({
   const { pathname } = useLocation()
   const W = open ? 240 : 64
 
-  const pct      = profile ? Math.min(100, (profile.exports_used_this_month / Math.max(1, profile.exports_limit)) * 100) : 0
-  const barColor = pct >= 90 ? '#EF4444' : pct >= 70 ? '#F59E0B' : A
   const plan     = profile?.plan ?? 'free'
 
   const NAV = [
@@ -261,6 +259,12 @@ function Sidebar({
   const aiUsed     = profile?.ai_images_used_this_month ?? 0
   const aiPct      = aiLimit > 0 ? Math.min(100, (aiUsed / aiLimit) * 100) : 100
   const aiBarColor = aiPct >= 90 ? '#EF4444' : aiPct >= 70 ? '#F59E0B' : '#00B4D8'
+
+  const SIDEBAR_CAR_LIMITS: Record<string, number> = { free: 3, construtor: 50, escala: 150, agencia: 300 }
+  const sidebarCarLimit = profile?.carousels_limit ?? SIDEBAR_CAR_LIMITS[profile?.plan ?? 'free'] ?? 3
+  const sidebarCarUsed  = profile?.carousels_used_this_month ?? 0
+  const sidebarCarPct   = Math.min(100, (sidebarCarUsed / Math.max(1, sidebarCarLimit)) * 100)
+  const sidebarCarColor = sidebarCarPct >= 90 ? '#EF4444' : sidebarCarPct >= 70 ? '#F59E0B' : A
 
   return (
     <aside style={{
@@ -333,13 +337,11 @@ function Sidebar({
         {open && profile && (
           <>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ fontFamily: ff, fontSize: 11, color: M, letterSpacing: 0.5 }}>Exportações</span>
+              <span style={{ fontFamily: ff, fontSize: 11, color: M, letterSpacing: 0.5 }}>Posts este mês</span>
               <div style={{ height: 4, borderRadius: 2, background: B, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${pct}%`, background: barColor, borderRadius: 2, transition: 'width 0.4s ease' }} />
+                <div style={{ height: '100%', width: `${sidebarCarPct}%`, background: sidebarCarColor, borderRadius: 2, transition: 'width 0.4s ease' }} />
               </div>
-              <span style={{ fontFamily: ff, fontSize: 11, color: M }}>
-                {plan === 'escala' || plan === 'agencia' ? 'Ilimitadas' : `${profile.exports_used_this_month} / ${profile.exports_limit}`}
-              </span>
+              <span style={{ fontFamily: ff, fontSize: 11, color: M }}>{sidebarCarUsed} / {sidebarCarLimit}</span>
             </div>
 
             {aiLimit > 0 ? (
@@ -620,17 +622,31 @@ export default function Dashboard() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { setCarouselPage(0) }, [searchQuery, filterMonth, activeCollection])
 
-  const plan         = profile?.plan ?? 'free'
-  const exportsUsed  = profile?.exports_used_this_month ?? 0
-  const exportsLimit = profile?.exports_limit ?? 1
-  const exportPct    = Math.min(100, (exportsUsed / Math.max(1, exportsLimit)) * 100)
-  const barColor     = exportPct >= 90 ? '#EF4444' : exportPct >= 70 ? '#F59E0B' : A
-
+  const plan       = profile?.plan ?? 'free'
   const renewLabel = plan === 'free' ? 'gratuito' : 'renova em 30 dias'
 
+  // ── Carrosseis deste mês ───────────────────────────────────────
+  const CAROUSEL_LIMITS_FALLBACK: Record<string, number> = { free: 3, construtor: 50, escala: 150, agencia: 300 }
+  const carouselLimit      = profile?.carousels_limit ?? CAROUSEL_LIMITS_FALLBACK[plan] ?? 3
+  const carouselsThisMonth = profile?.carousels_used_this_month ?? 0
+  const carouselPct        = Math.min(100, (carouselsThisMonth / Math.max(1, carouselLimit)) * 100)
+  const carouselBarColor   = carouselPct >= 90 ? '#EF4444' : carouselPct >= 70 ? '#F59E0B' : A
+
+  // ── Imagens IA ─────────────────────────────────────────────────
+  const aiLimitDash  = profile?.ai_images_limit ?? 0
+  const aiUsedDash   = profile?.ai_images_used_this_month ?? 0
+  const aiPctDash    = aiLimitDash > 0 ? Math.min(100, (aiUsedDash / aiLimitDash) * 100) : 0
+  const aiBarDash    = aiPctDash >= 90 ? '#EF4444' : aiPctDash >= 70 ? '#F59E0B' : '#00B4D8'
+
+  // ── Count-up para total de carrosseis ─────────────────────────
+  const useCountUpTotal = useCountUp(carouselsCount, !loading)
+
+  // ── Alertas de limite próximo (>= 80%) ────────────────────────
+  const nearCarousels = carouselPct >= 80
+  const nearImages    = aiLimitDash > 0 && aiPctDash >= 80
+  const showLimitWarn = nearCarousels || nearImages
+
   // ── Count-up ───────────────────────────────────────────────────
-  const countExports   = useCountUp(exportsUsed, !loading)
-  const countCarousels = useCountUp(carouselsCount, !loading)
 
   // ── Idea topics ────────────────────────────────────────────────
   // Sugestões ricas da IA (hook + titulo + tipo). Se ainda carregando, usa fallback.
@@ -691,6 +707,13 @@ export default function Dashboard() {
           0%   { background-position: 0% 50%; }
           50%  { background-position: 100% 50%; }
           100% { background-position: 0% 50%; }
+        }
+        @media (max-width: 768px) {
+          .dash-stats-grid { grid-template-columns: 1fr 1fr !important; }
+          main { padding: 20px 16px 48px !important; }
+        }
+        @media (max-width: 480px) {
+          .dash-stats-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
 
@@ -759,52 +782,79 @@ export default function Dashboard() {
         </div>
 
         {/* ── LAYOUT APPLE ───────────────────────────────────── */}
-        {/* ── Stats — 3 números Apple widget ─────────────────── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 28 }}>
-          {[
-            {
-              label: 'Carrosseis',
-              value: loading ? null : String(countCarousels),
-              sub: 'criados no total',
-              color: T,
-            },
-            {
-              label: 'Exportações',
-              value: loading ? null : (plan === 'escala' || plan === 'agencia' ? '∞' : `${countExports} / ${exportsLimit}`),
-              sub: 'este mês',
-              color: barColor,
-              bar: !loading && plan !== 'escala' && plan !== 'agencia',
-              pct: exportPct,
-            },
-            {
-              label: 'Plano',
-              value: loading ? null : PLAN_LABELS[plan],
-              sub: renewLabel,
-              color: PLAN_COLOR[plan],
-            },
-          ].map((stat, i) => (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.06 }}
-              style={{
-                ...GLASS, borderRadius: 18, padding: '22px 24px',
-                display: 'flex', flexDirection: 'column', gap: 6,
-              }}
-            >
-              <span style={{ fontFamily: ff, fontSize: 11, color: M, textTransform: 'uppercase', letterSpacing: 1 }}>
-                {stat.label}
-              </span>
-              {stat.value === null
-                ? <Skeleton w={80} h={38} r={4} />
-                : <span style={{ fontFamily: ffd, fontSize: 38, color: stat.color, lineHeight: 1, letterSpacing: 0.5 }}>{stat.value}</span>
-              }
-              <span style={{ fontFamily: ff, fontSize: 12, color: M }}>{stat.sub}</span>
-              {stat.bar && <GlowBar pct={stat.pct!} color={barColor} />}
-            </motion.div>
-          ))}
+        {/* ── Stats — uso do mês ──────────────────────────────── */}
+        <div className="dash-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
+          {/* Card 1: Posts gerados este mês */}
+          <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0 }}
+            style={{ ...GLASS, borderRadius: 18, padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{ fontFamily: ff, fontSize: 11, color: M, textTransform: 'uppercase', letterSpacing: 1 }}>Posts este mês</span>
+            {loading
+              ? <Skeleton w={80} h={38} r={4} />
+              : <span style={{ fontFamily: ffd, fontSize: 38, color: carouselBarColor, lineHeight: 1, letterSpacing: 0.5 }}>
+                  {carouselsThisMonth}<span style={{ fontSize: 18, color: M }}>/{carouselLimit}</span>
+                </span>
+            }
+            <span style={{ fontFamily: ff, fontSize: 12, color: M }}>carrosseis gerados com IA</span>
+            {!loading && <GlowBar pct={carouselPct} color={carouselBarColor} />}
+          </motion.div>
+
+          {/* Card 2: Imagens IA */}
+          <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 }}
+            style={{ ...GLASS, borderRadius: 18, padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{ fontFamily: ff, fontSize: 11, color: M, textTransform: 'uppercase', letterSpacing: 1 }}>Imagens IA</span>
+            {loading
+              ? <Skeleton w={80} h={38} r={4} />
+              : aiLimitDash > 0
+                ? <span style={{ fontFamily: ffd, fontSize: 38, color: aiBarDash, lineHeight: 1, letterSpacing: 0.5 }}>
+                    {aiUsedDash}<span style={{ fontSize: 18, color: M }}>/{aiLimitDash}</span>
+                  </span>
+                : <span style={{ fontFamily: ffd, fontSize: 20, color: M, lineHeight: 1.4 }}>Não incluso</span>
+            }
+            <span style={{ fontFamily: ff, fontSize: 12, color: M }}>fundos gerados por IA</span>
+            {!loading && aiLimitDash > 0 && <GlowBar pct={aiPctDash} color={aiBarDash} />}
+          </motion.div>
+
+          {/* Card 3: Plano + upgrade CTA */}
+          <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}
+            style={{ ...GLASS, borderRadius: 18, padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{ fontFamily: ff, fontSize: 11, color: M, textTransform: 'uppercase', letterSpacing: 1 }}>Plano</span>
+            {loading
+              ? <Skeleton w={80} h={38} r={4} />
+              : <span style={{ fontFamily: ffd, fontSize: 38, color: PLAN_COLOR[plan], lineHeight: 1, letterSpacing: 0.5 }}>{PLAN_LABELS[plan]}</span>
+            }
+            <span style={{ fontFamily: ff, fontSize: 12, color: M }}>{useCountUpTotal} carrosseis criados · {renewLabel}</span>
+            {!loading && plan !== 'agencia' && (
+              <button onClick={() => navigate('/studio')}
+                style={{ marginTop: 6, background: 'none', border: `1px solid ${A}44`, borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontFamily: ff, fontSize: 11, color: A, letterSpacing: 0.5 }}>
+                Ver planos →
+              </button>
+            )}
+          </motion.div>
         </div>
+
+        {/* ── Banner de aviso de limite próximo ───────────────── */}
+        {!loading && showLimitWarn && (
+          <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
+            style={{ ...GLASS, border: '1px solid rgba(250,204,21,0.3)', borderRadius: 14, padding: '14px 20px', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 18 }}>⚠️</span>
+              <div>
+                <span style={{ fontFamily: ff, fontSize: 13, color: '#FDE68A', fontWeight: 600 }}>
+                  {nearCarousels && nearImages ? 'Posts e imagens quase no limite' : nearCarousels ? `Posts quase no limite — ${carouselLimit - carouselsThisMonth} restantes` : `Imagens IA quase no limite — ${aiLimitDash - aiUsedDash} restantes`}
+                </span>
+                <p style={{ fontFamily: ff, fontSize: 11, color: M, margin: '2px 0 0' }}>
+                  O contador reseta todo mês. Faça upgrade para não parar sua produção.
+                </p>
+              </div>
+            </div>
+            {plan !== 'agencia' && (
+              <button onClick={() => navigate('/studio')}
+                style={{ background: '#FACC15', color: '#080808', border: 'none', borderRadius: 8, padding: '8px 16px', cursor: 'pointer', fontFamily: ffd, fontSize: 13, letterSpacing: 0.5, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                Fazer upgrade
+              </button>
+            )}
+          </motion.div>
+        )}
 
         {/* ── Hero: O que criar hoje ─────────────────────────── */}
         <motion.div
