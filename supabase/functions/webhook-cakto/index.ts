@@ -149,6 +149,18 @@ serve(async (req) => {
     }
 
     console.log(`[cakto] plano ativado: ${email} → ${plan}`)
+
+    // ── 9. E-mail de confirmação de upgrade (fire-and-forget) ────────────
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+    fetch(`${supabaseUrl}/functions/v1/send-email`, {
+      method:  'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''}`,
+      },
+      body: JSON.stringify({ type: 'upgrade', email, plan }),
+    }).catch((e) => console.warn('[cakto] send-email upgrade falhou (non-fatal):', e))
+
     return json({ ok: true, plan })
 
   } catch (err) {
