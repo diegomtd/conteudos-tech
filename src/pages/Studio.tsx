@@ -1272,7 +1272,50 @@ function StateGenerating({
 }
 
 // ─── Modal de Upgrade ─────────────────────────────────────────
+const UPGRADE_PLANS = [
+  {
+    key:    'construtor',
+    name:   'Construtor',
+    price:  'R$47/mês',
+    desc:   '30 carrosseis/mês · exportação ilimitada · 20 imagens IA',
+    urlKey: 'url_construtor',
+  },
+  {
+    key:       'escala',
+    name:      'Escala',
+    price:     'R$97/mês',
+    desc:      '100 carrosseis/mês · calendário · Telegram · 60 imagens IA',
+    urlKey:    'url_escala',
+    highlight: true,
+  },
+  {
+    key:    'agencia',
+    name:   'Agência',
+    price:  'R$197/mês',
+    desc:   'Ilimitado · 5 subcontas · suporte prioritário · 200 imagens IA',
+    urlKey: 'url_agencia',
+  },
+]
+
 function UpgradeModal({ onClose, plan }: { onClose: () => void; plan: string }) {
+  const [urls, setUrls] = React.useState<Record<string, string>>({})
+
+  React.useEffect(() => {
+    supabase
+      .from('system_config')
+      .select('key, value')
+      .eq('category', 'cakto')
+      .then(({ data }) => {
+        if (!data) return
+        const map: Record<string, string> = {}
+        for (const row of data) map[row.key] = row.value
+        setUrls(map)
+      })
+  }, [])
+
+  const visiblePlans = UPGRADE_PLANS.filter((p) => p.key !== plan)
+  const fallbackUrl  = 'https://conteudos.tech/#planos'
+
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 100,
@@ -1286,7 +1329,7 @@ function UpgradeModal({ onClose, plan }: { onClose: () => void; plan: string }) 
         onClick={(e) => e.stopPropagation()}
         style={{
           backgroundColor: S, border: `1px solid ${B}`,
-          borderRadius: 16, padding: '36px 32px', maxWidth: 400, width: '90%',
+          borderRadius: 16, padding: '36px 32px', maxWidth: 420, width: '90%',
           display: 'flex', flexDirection: 'column', gap: 20,
         }}
       >
@@ -1295,56 +1338,66 @@ function UpgradeModal({ onClose, plan }: { onClose: () => void; plan: string }) 
             Limite atingido
           </p>
           <h2 style={{ fontFamily: '"Bebas Neue", sans-serif', fontSize: 28, color: T, margin: 0, letterSpacing: 1 }}>
-            Você esgotou suas exportações
+            {plan === 'free' ? 'Desbloqueie o poder total' : 'Hora de crescer'}
           </h2>
         </div>
 
-        <p style={{ fontSize: 13, color: M, fontFamily: ff, lineHeight: 1.6, margin: 0 }}>
+        <p style={{ fontSize: 13, color: M, lineHeight: 1.6, margin: 0 }}>
           {plan === 'free'
-            ? 'O plano gratuito inclui 1 exportação por mês. Faça upgrade para continuar criando sem limite.'
-            : 'Você atingiu o limite do seu plano este mês. Faça upgrade ou aguarde o próximo ciclo.'}
+            ? 'O plano gratuito não inclui exportação. Escolha um plano e comece a publicar hoje.'
+            : 'Você atingiu o limite do seu plano. Faça upgrade para continuar sem interrupção.'}
         </p>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {[
-            { name: 'Criador', price: 'R$47/mês', limit: '20 exportações + 20 imagens IA' },
-            { name: 'Profissional', price: 'R$97/mês', limit: 'Exportações ilimitadas + Calendário + Telegram' },
-            { name: 'Agência', price: 'R$197/mês', limit: 'Ilimitado + 5 subcontas + 200 imagens IA' },
-          ].map((p) => (
-            <div key={p.name} style={{
-              backgroundColor: S3, border: `1px solid ${B}`, borderRadius: 10,
-              padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            }}>
-              <div>
-                <p style={{ fontFamily: ff, fontWeight: 700, fontSize: 13, color: T, margin: '0 0 2px' }}>{p.name}</p>
-                <p style={{ fontFamily: ff, fontSize: 11, color: M, margin: 0 }}>{p.limit}</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {visiblePlans.map((p) => {
+            const url = urls[p.urlKey] || fallbackUrl
+            return (
+              <div key={p.key} style={{
+                backgroundColor: p.highlight ? 'rgba(200,255,0,0.06)' : S3,
+                border: `1px solid ${p.highlight ? 'rgba(200,255,0,0.3)' : B}`,
+                borderRadius: 12, padding: '14px 16px',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12,
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                    <p style={{ fontFamily: ff, fontWeight: 700, fontSize: 14, color: T, margin: 0 }}>{p.name}</p>
+                    {p.highlight && (
+                      <span style={{ fontSize: 9, fontWeight: 700, color: '#000', background: A, borderRadius: 4, padding: '1px 5px', letterSpacing: 0.5 }}>
+                        POPULAR
+                      </span>
+                    )}
+                  </div>
+                  <p style={{ fontSize: 11, color: M, margin: 0, lineHeight: 1.4 }}>{p.desc}</p>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
+                  <span style={{ fontFamily: ff, fontWeight: 700, fontSize: 13, color: p.highlight ? A : T }}>{p.price}</span>
+                  <button
+                    onClick={() => window.open(url, '_blank')}
+                    style={{
+                      height: 30, padding: '0 12px',
+                      backgroundColor: p.highlight ? A : 'transparent',
+                      border: `1px solid ${p.highlight ? A : B}`,
+                      borderRadius: 6, color: p.highlight ? '#000' : T,
+                      fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+                    }}
+                  >
+                    Assinar →
+                  </button>
+                </div>
               </div>
-              <span style={{ fontFamily: ff, fontWeight: 700, fontSize: 13, color: A }}>{p.price}</span>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button
-            onClick={onClose}
-            style={{
-              flex: 1, height: 42, backgroundColor: 'transparent', border: `1px solid ${B}`,
-              borderRadius: 8, color: M, fontSize: 13, fontFamily: ff, cursor: 'pointer',
-            }}
-          >
-            Agora não
-          </button>
-          <button
-            onClick={() => window.open('https://conteudos.tech/#planos', '_blank')}
-            style={{
-              flex: 2, height: 42, backgroundColor: A, border: 'none',
-              borderRadius: 8, color: '#000', fontSize: 13, fontFamily: ff,
-              fontWeight: 700, cursor: 'pointer',
-            }}
-          >
-            Ver planos
-          </button>
-        </div>
+        <button
+          onClick={onClose}
+          style={{
+            height: 40, backgroundColor: 'transparent', border: `1px solid ${B}`,
+            borderRadius: 8, color: M, fontSize: 13, cursor: 'pointer',
+          }}
+        >
+          Agora não
+        </button>
       </motion.div>
     </div>
   )
