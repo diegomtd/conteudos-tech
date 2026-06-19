@@ -23,7 +23,7 @@ const AI_IMAGE_LIMITS: Record<Plan, number> = {
   free:       3,
   construtor: 20,
   escala:     60,
-  agencia:    150,
+  agencia:    200,
 }
 
 const MAX_SLIDES_DEFAULT: Record<Plan, number> = {

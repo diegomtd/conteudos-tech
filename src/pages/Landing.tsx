@@ -91,7 +91,7 @@ const PLANS = [
   },
   {
     name: 'Agência', price: 'R$197', period: '/mês', pop: false,
-    features: ['300 carrosseis com copy/mês', 'Exportação ilimitada', '150 imagens IA/mês', '15 slides máx.', 'Sem marca d\'água', '3 perfis de cliente separados', 'Tudo do Escala incluído'],
+    features: ['300 carrosseis com copy/mês', 'Exportação ilimitada', '200 imagens IA/mês', '15 slides máx.', 'Sem marca d\'água', '3 perfis de cliente separados', 'Tudo do Escala incluído'],
     cta: 'Criar conta Agência →',
   },
 ]
@@ -144,7 +144,7 @@ const TESTIMONIALS = [
 const FAQ_ITEMS = [
   { q: 'Como a IA gera o conteúdo?',          a: 'Você descreve o tema do carrossel. O Claude (Anthropic) analisa e gera copy para cada slide: título, subtítulo e corpo com narrativa estratégica. A imagem IA (fal.ai Flux 2 Pro) usa esse contexto para gerar um visual cinematográfico.' },
   { q: 'Quantos carrosseis posso criar?',      a: 'Depende do plano: Free 3/mês, Construtor 50/mês, Escala 150/mês, Agência 300/mês. A exportação é ilimitada a partir do Escala. O contador reseta todo mês.' },
-  { q: 'A imagem IA tem limite?',              a: 'Sim. Free: 3/mês. Construtor: 20. Escala: 60. Agência: 150. A geração de copy é o produto principal e está inclusa na cota de carrosseis. Você pode usar suas próprias imagens sem limite em todos os planos.' },
+  { q: 'A imagem IA tem limite?',              a: 'Sim. Free: 3/mês. Construtor: 20. Escala: 60. Agência: 200. A geração de copy é o produto principal e está inclusa na cota de carrosseis. Você pode usar suas próprias imagens sem limite em todos os planos.' },
   { q: 'Posso cancelar a qualquer momento?',   a: 'Sim. Sem fidelidade, sem multa. Cancele pelo painel e o plano segue ativo até o fim do período pago.' },
   { q: 'Funciona para qualquer nicho?',        a: 'Sim. A IA foi calibrada para criadores de conteúdo, coaches, nutricionistas, designers, agências, e-commerce e qualquer perfil que queira crescer no Instagram. Ela aprende o seu nicho no onboarding, então o conteúdo nunca sai genérico.' },
   { q: 'Funciona pra perfil dark, sem mostrar o rosto?', a: 'Funciona perfeitamente. A IA cria copy e imagem do zero — você nunca precisa aparecer. É a ferramenta ideal pra perfil dark e página de nicho.' },
@@ -819,7 +819,7 @@ export default function Landing() {
             <motion.div className="transp-card" variants={fadeUp} whileHover={{ y: -4 }}>
               <div className="transp-card-icon" style={{ fontSize: '32px' }}>IA</div>
               <h3>IMAGEM IA COM LIMITE</h3>
-              <p>Free 3 · Construtor 20 · Escala 60 · Agência 150</p>
+              <p>Free 3 · Construtor 20 · Escala 60 · Agência 200</p>
               <p style={{ marginTop: '8px', fontSize: '13px' }}>Suba suas próprias imagens sem limite, em qualquer plano — sempre que quiser.</p>
             </motion.div>
           </RevealGroup>

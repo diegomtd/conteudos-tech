@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   LayoutDashboard, Zap, Calendar, Settings,
-  ChevronLeft, Users, Shield,
+  ChevronLeft, Users, Shield, RefreshCw,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -232,6 +232,30 @@ function GlowBar({ pct, color }: { pct: number; color: string }) {
   )
 }
 
+// ─── Medidor de uso (sidebar) — gradiente + glow + número inline ──
+function UsageMeter({ label, used, limit, accent }: { label: string; used: number; limit: number; accent: string }) {
+  const pct      = Math.min(100, (used / Math.max(1, limit)) * 100)
+  const barColor = pct >= 100 ? '#EF4444' : pct >= 80 ? '#F59E0B' : accent
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <span style={{ fontFamily: ff, fontSize: 11, color: M, letterSpacing: 0.5 }}>{label}</span>
+        <span style={{ fontFamily: ffd, fontSize: 13, color: barColor, letterSpacing: 0.5 }}>
+          {used}<span style={{ color: 'rgba(255,255,255,0.3)' }}>/{limit}</span>
+        </span>
+      </div>
+      <div style={{ height: 6, borderRadius: 3, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+        <div style={{
+          height: '100%', width: `${pct}%`, borderRadius: 3,
+          background: `linear-gradient(90deg, ${barColor}44, ${barColor})`,
+          boxShadow: `0 0 8px ${barColor}66`,
+          transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+        }} />
+      </div>
+    </div>
+  )
+}
+
 // ─── Sidebar (unchanged logic) ────────────────────────────────────
 function Sidebar({
   open, onToggle, profile,
@@ -258,13 +282,21 @@ function Sidebar({
   const aiLimit    = profile?.ai_images_limit ?? 0
   const aiUsed     = profile?.ai_images_used_this_month ?? 0
   const aiPct      = aiLimit > 0 ? Math.min(100, (aiUsed / aiLimit) * 100) : 100
-  const aiBarColor = aiPct >= 90 ? '#EF4444' : aiPct >= 70 ? '#F59E0B' : '#00B4D8'
 
   const SIDEBAR_CAR_LIMITS: Record<string, number> = { free: 3, construtor: 50, escala: 150, agencia: 300 }
   const sidebarCarLimit = profile?.carousels_limit ?? SIDEBAR_CAR_LIMITS[profile?.plan ?? 'free'] ?? 3
   const sidebarCarUsed  = profile?.carousels_used_this_month ?? 0
   const sidebarCarPct   = Math.min(100, (sidebarCarUsed / Math.max(1, sidebarCarLimit)) * 100)
-  const sidebarCarColor = sidebarCarPct >= 90 ? '#EF4444' : sidebarCarPct >= 70 ? '#F59E0B' : A
+
+  // Reset acontece no dia 1 de cada mês (cron reset-monthly-usage)
+  const now         = new Date()
+  const nextReset   = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+  const daysToReset = Math.max(1, Math.ceil((nextReset.getTime() - now.getTime()) / 86_400_000))
+
+  // Alerta de cota: posts ou imagens >= 80%
+  const carNear = sidebarCarPct >= 80
+  const imgNear = aiLimit > 0 && aiPct >= 80
+  const nearAny = (carNear || imgNear) && plan !== 'free'
 
   return (
     <aside style={{
@@ -322,36 +354,31 @@ function Sidebar({
         })}
       </nav>
 
-      {/* Footer */}
-      <div style={{ padding: open ? '16px 16px 24px' : '16px 8px 24px', borderTop: `1px solid ${B}`, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {/* Footer — painel de uso */}
+      <div style={{ padding: open ? '16px 16px 24px' : '16px 8px 24px', borderTop: `1px solid ${B}`, display: 'flex', flexDirection: 'column', gap: open ? 14 : 10 }}>
+        {/* Badge do plano com gradiente sutil */}
         <div style={{
           border: `1px solid ${PLAN_BORDER_SIDEBAR[plan]}`,
-          borderRadius: 6, padding: open ? '6px 10px' : '6px',
-          display: 'flex', alignItems: 'center', justifyContent: open ? 'flex-start' : 'center', gap: 6,
+          background: plan === 'free'
+            ? 'transparent'
+            : `linear-gradient(135deg, ${plan === 'agencia' ? 'rgba(245,158,11,0.12)' : 'rgba(200,255,0,0.10)'}, transparent)`,
+          borderRadius: 8, padding: open ? '8px 12px' : '6px',
+          display: 'flex', alignItems: 'center', justifyContent: open ? 'space-between' : 'center', gap: 6,
         }}>
-          <span style={{ fontFamily: ffd, fontSize: 13, letterSpacing: 1, color: plan === 'free' ? M : plan === 'agencia' ? '#F59E0B' : T }}>
+          <span style={{ fontFamily: ffd, fontSize: 14, letterSpacing: 1, color: plan === 'free' ? M : plan === 'agencia' ? '#F59E0B' : A }}>
             {open ? PLAN_LABELS[plan] : PLAN_LABELS[plan][0]}
           </span>
+          {open && plan !== 'free' && (
+            <span style={{ fontFamily: ff, fontSize: 10, color: M, letterSpacing: 0.3 }}>ATIVO</span>
+          )}
         </div>
 
         {open && profile && (
           <>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ fontFamily: ff, fontSize: 11, color: M, letterSpacing: 0.5 }}>Posts este mês</span>
-              <div style={{ height: 4, borderRadius: 2, background: B, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${sidebarCarPct}%`, background: sidebarCarColor, borderRadius: 2, transition: 'width 0.4s ease' }} />
-              </div>
-              <span style={{ fontFamily: ff, fontSize: 11, color: M }}>{sidebarCarUsed} / {sidebarCarLimit}</span>
-            </div>
+            <UsageMeter label="Posts este mês" used={sidebarCarUsed} limit={sidebarCarLimit} accent={A} />
 
             {aiLimit > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <span style={{ fontFamily: ff, fontSize: 11, color: M, letterSpacing: 0.5 }}>Imagens IA</span>
-                <div style={{ height: 4, borderRadius: 2, background: B, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${aiPct}%`, background: aiBarColor, borderRadius: 2, transition: 'width 0.4s ease' }} />
-                </div>
-                <span style={{ fontFamily: ff, fontSize: 11, color: M }}>{aiUsed} / {aiLimit}</span>
-              </div>
+              <UsageMeter label="Imagens IA" used={aiUsed} limit={aiLimit} accent="#00B4D8" />
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <span style={{ fontFamily: ff, fontSize: 11, color: M }}>Imagens IA</span>
@@ -361,18 +388,38 @@ function Sidebar({
               </div>
             )}
 
-            {plan === 'free' && (
-              <button
-                onClick={() => navigate('/settings')}
+            {/* Reset countdown */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '8px 10px', borderRadius: 8,
+              background: 'rgba(255,255,255,0.03)', border: `1px solid ${B}`,
+            }}>
+              <RefreshCw size={12} color={M} />
+              <span style={{ fontFamily: ff, fontSize: 11, color: M, lineHeight: 1.3 }}>
+                Cota renova em <span style={{ color: T, fontWeight: 600 }}>{daysToReset} dia{daysToReset > 1 ? 's' : ''}</span>
+              </span>
+            </div>
+
+            {/* CTA contextual: aviso de cota OU upgrade do free */}
+            {nearAny ? (
+              <button onClick={() => navigate('/studio')}
                 style={{
-                  background: A, color: '#000', border: 'none',
-                  borderRadius: 6, padding: '8px 0', cursor: 'pointer',
+                  background: 'linear-gradient(135deg, #FACC15, #F59E0B)', color: '#080808', border: 'none',
+                  borderRadius: 8, padding: '9px 0', cursor: 'pointer',
+                  fontFamily: ffd, fontSize: 13, letterSpacing: 0.8, width: '100%',
+                }}>
+                ⚠ Quase no limite — upgrade
+              </button>
+            ) : plan === 'free' ? (
+              <button onClick={() => navigate('/settings')}
+                style={{
+                  background: `linear-gradient(135deg, ${A}, #A8D900)`, color: '#000', border: 'none',
+                  borderRadius: 8, padding: '9px 0', cursor: 'pointer',
                   fontFamily: ffd, fontSize: 14, letterSpacing: 1, width: '100%',
-                }}
-              >
+                }}>
                 FAZER UPGRADE
               </button>
-            )}
+            ) : null}
           </>
         )}
       </div>
@@ -623,7 +670,11 @@ export default function Dashboard() {
   useEffect(() => { setCarouselPage(0) }, [searchQuery, filterMonth, activeCollection])
 
   const plan       = profile?.plan ?? 'free'
-  const renewLabel = plan === 'free' ? 'gratuito' : 'renova em 30 dias'
+  // Reset de cota no dia 1 de cada mês (cron reset-monthly-usage)
+  const _now        = new Date()
+  const _nextReset  = new Date(_now.getFullYear(), _now.getMonth() + 1, 1)
+  const daysToReset = Math.max(1, Math.ceil((_nextReset.getTime() - _now.getTime()) / 86_400_000))
+  const renewLabel  = plan === 'free' ? 'gratuito' : `renova em ${daysToReset} dia${daysToReset > 1 ? 's' : ''}`
 
   // ── Carrosseis deste mês ───────────────────────────────────────
   const CAROUSEL_LIMITS_FALLBACK: Record<string, number> = { free: 3, construtor: 50, escala: 150, agencia: 300 }

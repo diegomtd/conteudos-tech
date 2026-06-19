@@ -136,7 +136,7 @@ const PLAN_META: Record<string, {
     items: [
       '300 carrosseis gerados com IA por mês',
       'Exportação PNG sem marca d\'água',
-      '150 imagens IA de fundo por mês',
+      '200 imagens IA de fundo por mês',
       'Calendário editorial integrado',
       'Notificações de postagem via Telegram',
       '3 perfis de cliente separados',
