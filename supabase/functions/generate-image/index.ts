@@ -27,6 +27,7 @@ const STYLE_MODIFIERS: Record<string, string> = {
 
 // ─── Bloqueio de texto na imagem ─────────────────────────────────────────────
 const NO_TEXT = 'NO TEXT, NO WORDS, NO LETTERS, NO NUMBERS, NO TYPOGRAPHY, NO WATERMARKS, NO CAPTIONS, NO UI ELEMENTS anywhere in the image.'
+const NEGATIVE_PROMPT = 'text, words, letters, numbers, typography, watermarks, captions, subtitles, labels, signs, writing, fonts, interface, UI elements, buttons, menus, overlaid graphics, screen content, instagram interface, social media UI'
 
 // ─── Composição por tipo de slide ────────────────────────────────────────────
 // Capa: impacto visual máximo, espaço limpo no topo para o título sobreposto.
@@ -54,7 +55,7 @@ function inferMood(text: string): string {
 function nichoToVisualContext(nicho: string): string {
   const n = (nicho ?? '').toLowerCase()
   if (/marketing|conteúdo|criador|social|instagram/.test(n))
-    return 'social media creative environment, smartphone screens with glowing light, modern workspace, digital content creation'
+    return 'modern creative workspace with dramatic ambient blue-teal light, abstract glowing bokeh in background, dark minimal setting, no visible screens or interfaces'
   if (/negócio|empreend|empresa|vendas|mercado/.test(n))
     return 'premium business environment, modern city architecture, executive office, corporate energy'
   if (/finanças|invest|dinheiro|renda/.test(n))
@@ -104,8 +105,8 @@ function buildSceneFromContent(titulo: string, corpo: string, nicho: string, isF
   // Slides internos: cena que sustenta o conteúdo específico
   if (/dinheiro|lucro|faturamento|venda|negócio/.test(t))
     return 'abstract close-up of premium financial symbols, dark rich background, single directional warm light, depth of field blur creating clean space for text overlay'
-  if (/rede social|algoritmo|engajamento|viral|alcance/.test(t))
-    return 'glowing smartphone screen emitting light in a dark room, social media interface visible as light source, modern minimalist composition, clean dark background for text'
+  if (/redes? sociais?|algoritmo|engajamento|viral|alcance|bot|automação|automatiz/.test(t))
+    return 'abstract glowing blue-teal light network nodes floating in deep darkness, interconnected geometric lines suggesting digital communication, no screens no text no interface, cinematic atmospheric depth, clean dark background for text overlay'
   if (/pessoas|time|equipe|cliente|comunidade/.test(t))
     return 'silhouettes of people against a warm backlit window, soft natural light diffusion, peaceful collaborative atmosphere, large clean bright area for text overlay'
   if (/dados|número|resultado|métrica|análise/.test(t))
@@ -122,6 +123,72 @@ function buildSceneFromContent(titulo: string, corpo: string, nicho: string, isF
   return `${nichoCtx}, cinematic atmospheric background, dramatic professional lighting, wide negative space area for text overlay`
 }
 
+// ─── Gera a cena com Claude a partir do conteúdo REAL do slide ───────────────
+// Em vez de casar palavras-chave fixas (que falha em qualquer tema fora da
+// lista), o Claude lê título+corpo+tema e descreve uma cena fotográfica
+// LITERAL e específica — o personagem, o lugar, a época, o objeto que o slide
+// realmente menciona. Retorna null em erro para cair no fallback por regex.
+async function sceneFromClaude(
+  titulo: string,
+  corpo: string,
+  tema: string,
+  isFirstSlide: boolean,
+): Promise<string | null> {
+  const apiKey = Deno.env.get('ANTHROPIC_API_KEY')
+  if (!apiKey) return null
+
+  const roleRule = isFirstSlide
+    ? 'This is the COVER (first slide): the single most scroll-stopping, pattern-breaking, attention-grabbing image of the whole carousel. Bold dramatic focal subject. Leave clean dark negative space in the upper-left third for a headline that will be overlaid later.'
+    : 'This is an internal content slide: push the main subject to one edge and keep a wide, clean, low-contrast negative space across the center for body text that will be overlaid later.'
+
+  // Parte estática (regras) vai no system com cache_control → cacheia entre todas
+  // as chamadas de cena, derrubando o custo de input. TTL de 5min mantém quente
+  // com tráfego contínuo.
+  const systemRules = [
+    'Você é diretor de arte de carrosséis virais para Instagram. A partir do conteúdo de um slide, descreva UMA cena fotográfica concreta para um gerador de imagem (Flux).',
+    'REGRAS:',
+    '- Mostre LITERALMENTE o assunto/personagem/lugar/época/objeto que o slide menciona. Nada de metáfora abstrata genérica. Se fala de uma fábrica inglesa do século 19, mostre operários e máquinas vitorianas; se cita uma pessoa histórica, mostre uma figura fiel à época; se é futebol, mostre futebol.',
+    '- Fotorrealista, cinematográfico, qualidade de fotografia editorial. Iluminação dramática direcional.',
+    '- SEM nenhum texto, letra, palavra, número, logo ou interface na cena.',
+    '- Responda APENAS com a descrição da cena, em inglês, um parágrafo, no máximo ~55 palavras. Sem preâmbulo.',
+  ].join('\n')
+
+  const userMsg = [
+    `Tema do carrossel: "${tema || titulo}".`,
+    `Título do slide: "${titulo}".`,
+    corpo ? `Corpo do slide: "${corpo.substring(0, 400)}".` : '',
+    '',
+    roleRule,
+  ].filter(Boolean).join('\n')
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 220,
+        system: [{ type: 'text', text: systemRules, cache_control: { type: 'ephemeral' } }],
+        messages: [{ role: 'user', content: userMsg }],
+      }),
+    })
+    if (!res.ok) {
+      console.error('[scene] Claude HTTP', res.status, (await res.text()).substring(0, 200))
+      return null
+    }
+    const data = await res.json()
+    const text = (data?.content?.[0]?.text ?? '').trim()
+    return text.length > 10 ? text : null
+  } catch (e) {
+    console.error('[scene] Claude erro:', String(e))
+    return null
+  }
+}
+
 // ─── Monta prompt completo ────────────────────────────────────────────────────
 function buildContextualPrompt(
   titulo: string,
@@ -130,11 +197,12 @@ function buildContextualPrompt(
   isFirstSlide: boolean,
   nicho: string,
   tema: string,
+  sceneOverride?: string,
 ): string {
   const modifier  = STYLE_MODIFIERS[style] ?? STYLE_MODIFIERS['cinematic']
   const mood      = inferMood(`${titulo} ${corpo ?? ''} ${tema ?? ''}`)
   const comp      = isFirstSlide ? COVER_COMP : SLIDE_COMP
-  const scene     = buildSceneFromContent(titulo, corpo, nicho, isFirstSlide)
+  const scene     = sceneOverride ?? buildSceneFromContent(titulo, corpo, nicho, isFirstSlide)
 
   const qualitySuffix = isFirstSlide
     ? 'Photorealistic ultra-detailed render, 8K resolution, perfect focus, professional color grade, RAW photo quality, hyper-realistic textures and materials, no text, no words, no watermarks, no overlaid graphics.'
@@ -163,6 +231,64 @@ function buildGenericPrompt(tema: string, style: string, nicho: string): string 
     `Render style: ${modifier}.`,
     'Ultra high resolution, professional color grading, no text, no letters, no watermarks.',
   ].join(' ')
+}
+
+// ─── fal.ai com retry + timeout ───────────────────────────────────────────────
+// Retries: 3 tentativas com backoff 2s / 4s.
+// Timeout: AbortController em 52s (abaixo do limite de 60s da Edge Function).
+// Retryable: timeout, 429, 5xx. Non-retryable: 4xx (exceto 429).
+async function falWithRetry(
+  falKey: string,
+  body: Record<string, unknown>,
+): Promise<string> {
+  const DELAYS_MS = [0, 2000, 4000]
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) {
+      await new Promise((r) => setTimeout(r, DELAYS_MS[attempt]))
+      console.log(`[fal] retry ${attempt}/2`)
+    }
+
+    const ctrl = new AbortController()
+    const tid = setTimeout(() => ctrl.abort(), 52_000)
+
+    try {
+      const res = await fetch('https://fal.run/fal-ai/flux-2-pro', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Key ${falKey}` },
+        body:    JSON.stringify(body),
+        signal:  ctrl.signal,
+      })
+      clearTimeout(tid)
+
+      if (res.ok) {
+        const data = await res.json()
+        const url  = data.images?.[0]?.url as string | undefined
+        if (url) return url
+        throw new Error(`fal_no_url: ${JSON.stringify(data).substring(0, 200)}`)
+      }
+
+      const errText = await res.text()
+      console.error(`[fal] attempt ${attempt} HTTP ${res.status}:`, errText.substring(0, 200))
+
+      // retryable: throttle ou erro de servidor
+      if (res.status === 429 || res.status >= 500) continue
+
+      // non-retryable: 4xx (exceto 429)
+      throw new Error(`fal_http_${res.status}: ${errText.substring(0, 100)}`)
+
+    } catch (e) {
+      clearTimeout(tid)
+      if (e instanceof DOMException && e.name === 'AbortError') {
+        console.error(`[fal] attempt ${attempt} timeout (52s)`)
+        continue  // retry após timeout
+      }
+      if (attempt < 2 && String(e).includes('fal_no_url')) continue
+      throw e
+    }
+  }
+
+  throw new Error('fal_exhausted_retries')
 }
 
 serve(async (req) => {
@@ -234,47 +360,40 @@ serve(async (req) => {
       const finalTitulo = slideData?.titulo ?? titulo ?? ''
       const finalCorpo  = slideData?.corpo  ?? corpo  ?? ''
 
-      fullPrompt = buildContextualPrompt(finalTitulo, finalCorpo, styleKey, !!is_first_slide, userNicho, carouselTema)
+      // Cena vinda do Claude (contextual ao conteúdo real); null → fallback regex
+      const scene = await sceneFromClaude(finalTitulo, finalCorpo, carouselTema, !!is_first_slide)
+      fullPrompt = buildContextualPrompt(finalTitulo, finalCorpo, styleKey, !!is_first_slide, userNicho, carouselTema, scene ?? undefined)
     } else {
-      // Sem slide específico: prompt genérico contextualizado pelo nicho
+      // Sem slide específico: usa a capa do tema (Claude) como cena de impacto
       if (carouselRes.error || !carouselRes.data) return json({ error: 'carousel_not_found' }, 404)
-      fullPrompt = buildGenericPrompt(carouselTema, styleKey, userNicho)
+      const scene = await sceneFromClaude(carouselTema, '', carouselTema, true)
+      fullPrompt = scene
+        ? buildContextualPrompt(carouselTema, '', styleKey, true, userNicho, carouselTema, scene)
+        : buildGenericPrompt(carouselTema, styleKey, userNicho)
     }
 
     console.log('[generate-image] slide_id:', slide_id ?? 'all', 'prompt:', fullPrompt)
 
-    // ── Chama fal.ai ──────────────────────────────────────────────────
+    // ── Chama fal.ai com retry + timeout ─────────────────────────────
     const falKey = Deno.env.get('FAL_KEY') ?? ''
-    console.log('[init] FAL_KEY length:', falKey.length)
+    if (!falKey) return json({ error: 'fal_key_missing' }, 500)
 
-    const falRes = await fetch('https://fal.run/fal-ai/flux-2-pro', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Key ${falKey}`,
-      },
-      body: JSON.stringify({
-        prompt: fullPrompt,
-        image_size: { width: 1080, height: 1350 },
-        num_inference_steps: is_first_slide ? 35 : 30,  // capa recebe mais passos
-        guidance_scale: 4.5,   // mais aderência ao prompt descritivo
-        num_images: 1,
+    let imageUrl: string
+    try {
+      imageUrl = await falWithRetry(falKey, {
+        prompt:                fullPrompt,
+        negative_prompt:       NEGATIVE_PROMPT,
+        image_size:            { width: 1080, height: 1350 },
+        num_inference_steps:   is_first_slide ? 35 : 30,
+        guidance_scale:        4.5,
+        num_images:            1,
         enable_safety_checker: true,
-      }),
-    })
-
-    if (!falRes.ok) {
-      const errText = await falRes.text()
-      console.error('[fal] erro HTTP', falRes.status, ':', errText)
-      return json({ error: 'fal_error', status: falRes.status, detail: errText }, 502)
-    }
-
-    const falData = await falRes.json()
-    const imageUrl = falData.images?.[0]?.url
-
-    if (!imageUrl) {
-      console.error('[fal] sem URL na resposta:', JSON.stringify(falData).substring(0, 300))
-      return json({ error: 'no_image_returned', detail: falData }, 502)
+      })
+    } catch (e) {
+      const msg = String(e)
+      console.error('[fal] falhou após retries:', msg)
+      const isTimeout = msg.includes('timeout') || msg.includes('exhausted')
+      return json({ error: isTimeout ? 'fal_timeout' : 'fal_error', retryable: true, detail: msg }, 502)
     }
 
     console.log('[fal] imagem gerada:', imageUrl)
@@ -313,7 +432,7 @@ serve(async (req) => {
       user_id:     userId,
       action:      'generate_image',
       tokens_used: 0,
-      cost_brl:    0.28,  // fal.ai flux-2-pro ≈ $0.05 USD × câmbio 5.6
+      cost_brl:    0.29,  // flux-2-pro ≈ R$0.28 + cena via Claude Haiku ≈ R$0.01
     })
 
     return json({ success: true, bg_image_url: imageUrl })

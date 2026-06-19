@@ -2116,6 +2116,7 @@ function StatePreview({
     setImageQueueStatus({ total, current: 0, currentTitle: '', done: false })
 
     let limitReached = false
+    let failCount = 0
     for (let i = 0; i < slides.length; i++) {
       if (limitReached) break
       const slide = slides[i]
@@ -2127,19 +2128,28 @@ function StatePreview({
       setImageGenProgress(`Slide ${i + 1}/${total}: ${slide.titulo?.slice(0, 30) ?? ''}`)
 
       try {
-        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-image`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({
-            carousel_id: carouselId,
-            style: imageStyle,
-            slide_id: slide.id,
-            titulo: slide.titulo ?? '',
-            corpo: slide.corpo ?? '',
-            is_first_slide: i === 0,
-            mode: 'queue_item',
-          }),
-        })
+        // Timeout de 90s no cliente — cobre as 3 tentativas da edge function
+        const ctrl = new AbortController()
+        const tid = setTimeout(() => ctrl.abort(), 90_000)
+        let res: Response
+        try {
+          res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-image`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({
+              carousel_id: carouselId,
+              style: imageStyle,
+              slide_id: slide.id,
+              titulo: slide.titulo ?? '',
+              corpo: slide.corpo ?? '',
+              is_first_slide: i === 0,
+              mode: 'queue_item',
+            }),
+            signal: ctrl.signal,
+          })
+        } finally {
+          clearTimeout(tid)
+        }
         const data = await res.json()
 
         if (data.error === 'ai_images_limit_reached') {
@@ -2147,9 +2157,13 @@ function StatePreview({
           limitReached = true
         } else if (data.bg_image_url) {
           setSlides(prev => prev.map(s => s.id === slide.id ? { ...s, bgImageUrl: data.bg_image_url } : s))
+        } else {
+          failCount++
+          console.error(`[fila] slide ${i + 1} falhou:`, data.error ?? 'sem imagem')
         }
       } catch (e) {
-        console.error(`[fila] erro slide ${i}:`, e)
+        failCount++
+        console.error(`[fila] erro slide ${i + 1}:`, e)
       }
 
       // Delay de 500ms entre imagens para não sobrecarregar a API
@@ -2159,7 +2173,16 @@ function StatePreview({
     }
 
     setImageQueueStatus(prev => ({ ...prev, done: true }))
-    if (!limitReached) toast.success(`${total} imagens geradas com sucesso`)
+    if (!limitReached) {
+      const ok = total - failCount
+      if (failCount === 0) {
+        toast.success(`${total} imagens geradas com sucesso`)
+      } else if (ok > 0) {
+        toast.error(`${ok} de ${total} geradas — ${failCount} falharam. Clique em "Gerar imagens" para tentar novamente.`, { duration: 8000 })
+      } else {
+        toast.error('Nenhuma imagem foi gerada. Verifique sua conexão e tente novamente.')
+      }
+    }
     setImageGenProgress(null)
     setGeneratingImages(false)
     setTimeout(() => setImageQueueStatus({ total: 0, current: 0, currentTitle: '', done: false }), 3000)
