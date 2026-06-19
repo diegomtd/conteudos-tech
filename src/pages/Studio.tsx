@@ -165,7 +165,7 @@ function Header({
   onNextSlide: () => void
   carouselId?: string
 }) {
-  const { plan, exportsRemaining, exportLimit, aiImagesRemaining: headerAiRemaining, aiImageLimit: headerAiLimit } = usePlan()
+  const { plan, exportsRemaining, exportLimit, aiImagesRemaining: headerAiRemaining, aiImageLimit: headerAiLimit, carouselsRemaining: headerCarouselsRemaining, carouselsLimit: headerCarouselsLimit, carouselsNearLimit, imagesNearLimit } = usePlan()
   const navigate = useNavigate()
   const PLAN_COLORS: Record<string, string> = { free: 'rgba(255,255,255,0.2)', criador: CYAN, profissional: '#C8FF00', agencia: '#A855F7' }
   const color = PLAN_COLORS[plan] ?? 'rgba(255,255,255,0.2)'
@@ -255,6 +255,17 @@ function Header({
           <span style={{ color: A }}>✦</span>{' '}
           <span style={{ color: headerAiRemaining > 0 ? '#F5F5F5' : '#f87171', fontWeight: 600 }}>{headerAiRemaining}</span>
           /{headerAiLimit >= 999999 ? '∞' : headerAiLimit} IA
+        </span>
+      )}
+      {headerCarouselsLimit < 999999 && (
+        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', fontFamily: 'DM Sans, sans-serif', marginRight: 8 }}>
+          <span style={{ color: headerCarouselsRemaining > 0 ? '#F5F5F5' : '#f87171', fontWeight: 600 }}>{headerCarouselsRemaining}</span>
+          /{headerCarouselsLimit} posts
+        </span>
+      )}
+      {(carouselsNearLimit || imagesNearLimit) && (
+        <span style={{ fontSize: 11, fontWeight: 700, color: '#080808', background: '#FACC15', borderRadius: 99, padding: '3px 10px', marginRight: 8, letterSpacing: 0.3 }}>
+          ⚠ {carouselsNearLimit && imagesNearLimit ? 'posts e imagens quase no limite' : carouselsNearLimit ? `${headerCarouselsRemaining} posts restantes` : `${headerAiRemaining} imagens restantes`}
         </span>
       )}
       <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', fontFamily: 'DM Sans, sans-serif', marginRight: 8 }}>
@@ -1277,14 +1288,14 @@ const UPGRADE_PLANS = [
     key:    'construtor',
     name:   'Construtor',
     price:  'R$47/mês',
-    desc:   '30 carrosseis/mês · exportação ilimitada · 20 imagens IA',
+    desc:   '50 carrosseis/mês · exportação sem marca d\'água · 20 imagens IA',
     urlKey: 'url_construtor',
   },
   {
     key:       'escala',
     name:      'Escala',
     price:     'R$97/mês',
-    desc:      '100 carrosseis/mês · calendário · Telegram · 60 imagens IA',
+    desc:      '150 carrosseis/mês · calendário · Telegram · 60 imagens IA',
     urlKey:    'url_escala',
     highlight: true,
   },
@@ -1292,7 +1303,7 @@ const UPGRADE_PLANS = [
     key:    'agencia',
     name:   'Agência',
     price:  'R$197/mês',
-    desc:   'Ilimitado · 5 subcontas · suporte prioritário · 200 imagens IA',
+    desc:   '300 carrosseis/mês · 3 perfis de cliente · suporte prioritário · 150 imagens IA',
     urlKey: 'url_agencia',
   },
 ]

@@ -3,11 +3,13 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from './useAuth'
 import type { Plan, Profile } from '@/types'
 
+// Fallbacks usados apenas quando o banco não retornar o valor.
+// Fonte de verdade real: plan_limits table (via profile.carousels_limit, profile.ai_images_limit).
 const CAROUSEL_LIMITS: Record<Plan, number> = {
   free:       3,
-  construtor: 30,
-  escala:     100,
-  agencia:    999999,
+  construtor: 50,
+  escala:     150,
+  agencia:    300,
 }
 
 const EXPORT_LIMITS: Record<Plan, number> = {
@@ -21,7 +23,7 @@ const AI_IMAGE_LIMITS: Record<Plan, number> = {
   free:       3,
   construtor: 20,
   escala:     60,
-  agencia:    200,
+  agencia:    150,
 }
 
 const MAX_SLIDES_DEFAULT: Record<Plan, number> = {
@@ -79,9 +81,16 @@ export function usePlan() {
   // Carrosseis
   const carouselsLimit     = profile?.carousels_limit ?? CAROUSEL_LIMITS[plan]
   const carouselsUsed      = profile?.carousels_used_this_month ?? 0
-  const carouselsRemaining = plan === 'escala' || plan === 'agencia'
-    ? 999999
-    : Math.max(0, carouselsLimit - carouselsUsed)
+  const carouselsRemaining = Math.max(0, carouselsLimit - carouselsUsed)
+
+  // Avisos de limite próximo (>= 80% do uso, sem ter atingido 100%)
+  const carouselsNearLimit = carouselsLimit > 0
+    && carouselsUsed >= Math.floor(carouselsLimit * 0.8)
+    && carouselsUsed < carouselsLimit
+
+  const imagesNearLimit = aiImageLimit > 0
+    && aiImagesUsed >= Math.floor(aiImageLimit * 0.8)
+    && aiImagesUsed < aiImageLimit
 
   return {
     profile,
@@ -97,5 +106,7 @@ export function usePlan() {
     carouselsLimit,
     carouselsUsed,
     carouselsRemaining,
+    carouselsNearLimit,
+    imagesNearLimit,
   }
 }
