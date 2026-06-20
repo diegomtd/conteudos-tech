@@ -232,6 +232,38 @@ function GlowBar({ pct, color }: { pct: number; color: string }) {
   )
 }
 
+// ─── Mini-slide: prévia fiel da capa / slide de conteúdo ──────────
+function MiniSlide({ titulo, corpo, isCover }: { titulo: string; corpo: string; isCover: boolean }) {
+  return (
+    <div style={{
+      position: 'relative', width: '100%', aspectRatio: '4 / 5', borderRadius: 9, overflow: 'hidden',
+      background: isCover ? 'linear-gradient(155deg, #161616 0%, #080808 100%)' : '#0C0C0C',
+      border: '1px solid rgba(255,255,255,0.07)',
+      display: 'flex', flexDirection: 'column', justifyContent: isCover ? 'flex-end' : 'center',
+      padding: 11,
+    }}>
+      <div style={{ position: 'absolute', top: 9, left: 9, width: 16, height: 3, background: A, borderRadius: 2 }} />
+      {isCover ? (
+        <span style={{ fontFamily: ffd, fontSize: 14, lineHeight: 1.04, color: T, letterSpacing: 0.4, textTransform: 'uppercase', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+          {titulo || '—'}
+        </span>
+      ) : (
+        <>
+          <span style={{ fontFamily: ffd, fontSize: 11, lineHeight: 1.12, color: A, letterSpacing: 0.3, textTransform: 'uppercase', marginBottom: 6, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+            {titulo || '—'}
+          </span>
+          <span style={{ fontFamily: ff, fontSize: 9, lineHeight: 1.5, color: 'rgba(255,255,255,0.62)', display: '-webkit-box', WebkitLineClamp: 7, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+            {corpo}
+          </span>
+        </>
+      )}
+      <span style={{ position: 'absolute', bottom: 7, right: 9, fontFamily: ff, fontSize: 8, color: 'rgba(255,255,255,0.22)' }}>
+        {isCover ? '01' : '02'}
+      </span>
+    </div>
+  )
+}
+
 // ─── Medidor de uso (sidebar) — gradiente + glow + número inline ──
 function UsageMeter({ label, used, limit, accent }: { label: string; used: number; limit: number; accent: string }) {
   const pct      = Math.min(100, (used / Math.max(1, limit)) * 100)
@@ -481,6 +513,9 @@ export default function Dashboard() {
   const [loading, setLoading]               = useState(true)
   const [aiTopics, setAiTopics]             = useState<SuggestedTema[]>([])
   const [loadingTopics, setLoadingTopics]   = useState(false)
+  // Prévias reais (capa + slide 2) por tema — geradas via generate-carousel mode=preview
+  const [previews, setPreviews]             = useState<Record<string, { titulo: string; corpo: string }[]>>({})
+  const [previewLoading, setPreviewLoading] = useState<Set<string>>(new Set())
   const [hasLiveNews, setHasLiveNews]       = useState(false)
   const [viewMode, setViewMode]             = useState<'lista' | 'grade'>('lista')
   const [searchQuery, setSearchQuery]       = useState('')
@@ -590,6 +625,52 @@ export default function Dashboard() {
   }
 
   useEffect(() => { fetchTopics() }, [user])
+
+  // ── Prévias reais das ideias (capa + slide 2) ─────────────────────
+  // Lê do cache (topic_previews); gera as faltantes via mode=preview (sem cota).
+  useEffect(() => {
+    if (!user || aiTopics.length === 0) return
+    const temas = aiTopics.slice(0, 4).map(t => t.titulo).filter(Boolean)
+    if (temas.length === 0) return
+    let cancelled = false
+
+    ;(async () => {
+      const { data: cached } = await supabase
+        .from('topic_previews')
+        .select('tema, slides')
+        .eq('user_id', user.id)
+        .in('tema', temas)
+      if (cancelled) return
+
+      const fromCache: Record<string, { titulo: string; corpo: string }[]> = {}
+      ;(cached ?? []).forEach((r: { tema: string; slides: { titulo: string; corpo: string }[] }) => {
+        if (Array.isArray(r.slides) && r.slides.length >= 2) fromCache[r.tema] = r.slides
+      })
+      if (Object.keys(fromCache).length > 0) setPreviews(prev => ({ ...prev, ...fromCache }))
+
+      // Gera as que faltam — sequencial para não sobrecarregar
+      const missing = temas.filter(t => !fromCache[t])
+      for (const tema of missing) {
+        if (cancelled) break
+        setPreviewLoading(s => new Set(s).add(tema))
+        try {
+          const { data } = await supabase.functions.invoke('generate-carousel', {
+            body: { mode: 'preview', tema, tom: 'Provocador', cta_tipo: 'Engajamento', num_slides: 2, template_id: 'impacto' },
+          })
+          if (!cancelled && Array.isArray(data?.slides) && data.slides.length >= 2) {
+            setPreviews(prev => ({ ...prev, [tema]: data.slides }))
+          }
+        } catch (e) {
+          console.warn('[preview] falhou para', tema, e)
+        } finally {
+          if (!cancelled) setPreviewLoading(s => { const n = new Set(s); n.delete(tema); return n })
+        }
+      }
+    })()
+
+    return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aiTopics, user])
 
   const handleDelete = async (id: string) => {
     setDeletingId(id)
@@ -761,10 +842,12 @@ export default function Dashboard() {
         }
         @media (max-width: 768px) {
           .dash-stats-grid { grid-template-columns: 1fr 1fr !important; }
+          .preview-grid { grid-template-columns: 1fr 1fr !important; }
           main { padding: 20px 16px 48px !important; }
         }
         @media (max-width: 480px) {
           .dash-stats-grid { grid-template-columns: 1fr !important; }
+          .preview-grid { grid-template-columns: 1fr 1fr !important; }
         }
       `}</style>
 
@@ -995,35 +1078,72 @@ export default function Dashboard() {
             </motion.button>
           </div>
 
-          {/* Outras sugestões como pills */}
-          {!topicsLoading && richTopics.length > 1 && (
-            <div style={{ display: 'flex', gap: 8, marginTop: 20, flexWrap: 'wrap' }}>
-              {richTopics.slice(1).map((t, i) => (
-                <button
-                  key={i}
-                  onClick={() => navigate(`/studio?tema=${encodeURIComponent(t.titulo)}`)}
-                  style={{
-                    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-                    borderRadius: 99, padding: '7px 16px', cursor: 'pointer',
-                    fontFamily: ff, fontSize: 12, color: M, transition: 'all 0.15s',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = `${A}44`; e.currentTarget.style.color = T }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = M }}
-                >
-                  {(t.hook || t.titulo).slice(0, 58)}{(t.hook || t.titulo).length > 58 ? '…' : ''}
-                </button>
-              ))}
+          {/* Prévias reais — capa + slide 2 do que a IA vai criar */}
+          {!topicsLoading && richTopics.length > 0 && (
+            <div style={{ marginTop: 22 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+                <span style={{ fontFamily: ff, fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1.2 }}>
+                  Prévia real do que a IA vai criar — clique para abrir no editor
+                </span>
+              </div>
+              <div className="preview-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+                {richTopics.slice(0, 4).map((t, i) => {
+                  const tema   = t.titulo
+                  const pv     = previews[tema]
+                  const isLoad = !pv || previewLoading.has(tema)
+                  return (
+                    <div key={i} style={{
+                      background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)',
+                      borderRadius: 14, padding: 11, display: 'flex', flexDirection: 'column', gap: 9,
+                      transition: 'border-color 0.15s',
+                    }}
+                      onMouseEnter={e => { if (!isLoad) e.currentTarget.style.borderColor = `${A}55` }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)' }}
+                    >
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                        {isLoad ? (
+                          <>
+                            <div style={{ aspectRatio: '4 / 5', borderRadius: 9, background: 'rgba(255,255,255,0.04)', animation: 'shimmer 1.6s infinite' }} />
+                            <div style={{ aspectRatio: '4 / 5', borderRadius: 9, background: 'rgba(255,255,255,0.04)', animation: 'shimmer 1.6s infinite' }} />
+                          </>
+                        ) : (
+                          <>
+                            <MiniSlide titulo={pv[0]?.titulo ?? ''} corpo="" isCover />
+                            <MiniSlide titulo={pv[1]?.titulo ?? ''} corpo={pv[1]?.corpo ?? ''} isCover={false} />
+                          </>
+                        )}
+                      </div>
+                      <span style={{ fontFamily: ff, fontSize: 11, color: M, lineHeight: 1.3, minHeight: 29, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        {t.hook || t.titulo}
+                      </span>
+                      <button
+                        onClick={() => navigate(`/studio?tema=${encodeURIComponent(tema)}`)}
+                        disabled={isLoad}
+                        style={{
+                          background: isLoad ? 'rgba(255,255,255,0.05)' : A, color: isLoad ? M : '#000',
+                          border: 'none', borderRadius: 8, padding: '8px 0',
+                          cursor: isLoad ? 'default' : 'pointer',
+                          fontFamily: ffd, fontSize: 12, letterSpacing: 0.5, width: '100%',
+                          transition: 'background 0.2s',
+                        }}
+                      >
+                        {isLoad ? 'Gerando prévia…' : 'Usar este tema →'}
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
               <button
                 onClick={() => navigate('/studio')}
                 style={{
-                  background: 'none', border: '1px dashed rgba(255,255,255,0.1)',
+                  marginTop: 12, background: 'none', border: '1px dashed rgba(255,255,255,0.12)',
                   borderRadius: 99, padding: '7px 16px', cursor: 'pointer',
                   fontFamily: ff, fontSize: 12, color: M, transition: 'color 0.15s',
                 }}
                 onMouseEnter={e => e.currentTarget.style.color = T}
                 onMouseLeave={e => e.currentTarget.style.color = M}
               >
-                Ver mais ideias →
+                Criar do zero →
               </button>
             </div>
           )}

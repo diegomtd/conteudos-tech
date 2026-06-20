@@ -1103,7 +1103,7 @@ function StateInput({
 
 // ─── Estado 2: Gerando ────────────────────────────────────────
 interface ProdutoItem { id: string; nome: string; descricao: string; promessa: string; preco?: string }
-interface GenerateConfig { tema: string; slides: number; tom: string; cta: string; template_id?: string; instructions?: string; produto_selecionado?: ProdutoItem }
+interface GenerateConfig { tema: string; slides: number; tom: string; cta: string; template_id?: string; instructions?: string; produto_selecionado?: ProdutoItem; seed_slides?: Array<{ position: number; titulo: string; corpo: string }> }
 interface GenerateResult {
   carousel_id: string
   preview_token: string
@@ -1163,6 +1163,7 @@ function StateGenerating({
             template_id: config.template_id,
             ...(config.instructions ? { instructions: config.instructions } : {}),
             ...(config.produto_selecionado ? { produto_selecionado: config.produto_selecionado } : {}),
+            ...(config.seed_slides ? { seed_slides: config.seed_slides } : {}),
           },
         })
 
@@ -4396,14 +4397,36 @@ export default function Studio() {
     loadCarousel()
   }, [carouselIdFromURL])
 
-  const handleGenerate = useCallback((config: GenerateConfig) => {
+  const handleGenerate = useCallback(async (config: GenerateConfig) => {
     if (carouselsRemaining === 0) {
       toast.error('Limite do plano atingido. Acesse Configurações → Plano para fazer upgrade.')
       return
     }
-    setGenerateConfig(config)
+    // Se houver prévia em cache para este tema, reaproveita os 2 slides EXATOS
+    // que o usuário viu (capa + slide 2) como seed — o resto é gerado em volta.
+    let finalConfig = config
+    if (!config.seed_slides && config.tema && user) {
+      try {
+        const { data: pv } = await supabase
+          .from('topic_previews')
+          .select('slides')
+          .eq('user_id', user.id)
+          .eq('tema', config.tema)
+          .maybeSingle()
+        const s = (pv?.slides ?? []) as Array<{ titulo: string; corpo: string }>
+        if (Array.isArray(s) && s.length >= 2) {
+          finalConfig = {
+            ...config,
+            seed_slides: s.slice(0, 2).map((sl, i) => ({ position: i + 1, titulo: sl.titulo, corpo: sl.corpo })),
+          }
+        }
+      } catch (e) {
+        console.warn('[studio] seed lookup falhou (segue sem seed):', e)
+      }
+    }
+    setGenerateConfig(finalConfig)
     setAppState('generating')
-  }, [carouselsRemaining])
+  }, [carouselsRemaining, user])
 
   const handleDone = useCallback((result: GenerateResult) => {
     setGenerateResult(result)
